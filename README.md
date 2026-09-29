@@ -1,14 +1,15 @@
 # Meler Games
 
-打开浏览器就能玩的网页小游戏合集，通过 GitHub Pages 发布：<https://melerpaine.com/meler-games/>
+打开浏览器就能玩的网页小游戏合集，通过 GitHub Pages 发布：<https://meler-games.melerpaine.com/>
 
 | 游戏 | 地址 | 源码 |
 | --- | --- | --- |
-| 🏎️ 鹈鹕赛车 | <https://melerpaine.com/meler-games/pelican-racing/> | 本地 `pelican-racing` 工程（`python3 build.py` 打包成单个 HTML） |
+| 🏎️ 鹈鹕赛车 | <https://meler-games.melerpaine.com/pelican-racing/> | 本地 `pelican-racing` 工程（`python3 build.py` 打包成单个 HTML） |
 
 ## 目录结构
 
 ```
+CNAME                       自定义域名 meler-games.melerpaine.com（GitHub Pages 设置里改域名时会自动更新，不要删）
 index.html                  游戏大厅首页
 pelican-racing/
   index.html                鹈鹕赛车（打包好的单文件）
