@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meler Games · 网页小游戏</title>
+<meta name="description" content="打开浏览器就能玩的 3D 网页小游戏合集：鹈鹕赛车等。">
+<meta property="og:title" content="Meler Games · 网页小游戏">
+<meta property="og:description" content="打开浏览器就能玩的 3D 网页小游戏合集。">
+<meta property="og:image" content="pelican-racing/cover.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+<style>
+  :root {
+    --bg: #f4f1ea; --card: #ffffff; --ink: #1d2733; --muted: #5d6875; --line: #1d273318;
+    --accent: #d8452a; --accent-ink: #ffffff; --chip: #1d27330d; --shadow: 0 10px 30px #1d27331a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --card: #1b2129; --ink: #e9edf1; --muted: #9aa5b1; --line: #ffffff14;
+      --accent: #ff6a4a; --accent-ink: #14171c; --chip: #ffffff0f; --shadow: 0 10px 30px #0006;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  header.wrap { padding-top: 56px; padding-bottom: 28px; }
+  .brand { font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  h1 { margin: 6px 0 8px; font-size: clamp(30px, 6vw, 46px); line-height: 1.15; }
+  .lead { margin: 0; color: var(--muted); max-width: 560px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; padding-bottom: 48px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+  .card.feature { grid-column: 1 / -1; display: grid; grid-template-columns: 1.35fr 1fr; }
+  .cover { display: block; position: relative; aspect-ratio: 1200 / 630; background: #cfdde8 center / cover; }
+  .card.feature .cover { aspect-ratio: auto; min-height: 300px; }
+  .cover .badge { position: absolute; left: 14px; top: 14px; background: #000a; color: #fff; font-size: 12px; padding: 3px 10px; border-radius: 99px; }
+  .body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 12px; }
+  h2 { margin: 0; font-size: 26px; }
+  .desc { margin: 0; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .chips li { background: var(--chip); padding: 2px 10px; border-radius: 99px; font-size: 13px; }
+  .modes { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; columns: 2; column-gap: 20px; }
+  .play { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 700; padding: 11px 22px; border-radius: 12px; }
+  .play:hover { filter: brightness(1.08); }
+  .note { font-size: 13px; color: var(--muted); margin: 0; }
+  .soon { border-style: dashed; box-shadow: none; background: transparent; justify-content: center; align-items: center; text-align: center; min-height: 180px; color: var(--muted); padding: 24px; }
+  .soon b { display: block; font-size: 30px; margin-bottom: 6px; }
+  footer.wrap { border-top: 1px solid var(--line); padding-top: 20px; padding-bottom: 36px; color: var(--muted); font-size: 13px; }
+  footer a { color: inherit; }
+  @media (max-width: 760px) {
+    header.wrap { padding-top: 36px; }
+    .card.feature { grid-template-columns: 1fr; }
+    .card.feature .cover { min-height: 0; aspect-ratio: 1200 / 630; }
+    .modes { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="brand">Meler Games</div>
+  <h1>打开浏览器就能玩的小游戏</h1>
+  <p class="lead">不用下载安装，点开就玩。模型、音效、音乐全部由代码实时生成。</p>
+</header>
+
+<main class="wrap grid">
+  <article class="card feature">
+    <a class="cover" href="pelican-racing/" style="background-image:url('pelican-racing/cover.jpg')" aria-label="开始玩鹈鹕赛车"><span class="badge">3D 赛车</span></a>
+    <div class="body">
+      <h2>🏎️ 鹈鹕赛车</h2>
+      <p class="desc">开着赛车的鹈鹕和 4 位鹈鹕对手一决高下。漂移、氮气、小喷、飞跃跳台，五张地图连成一片开放世界，还能开直升机当警察抓逃犯。</p>
+      <ul class="chips"><li>5 张地图</li><li>5 款赛车 · 8 种涂装</li><li>开放世界</li><li>回放</li></ul>
+      <ul class="modes">
+        <li>🏁 名次赛</li><li>🍄 道具赛</li><li>⏱ 计时赛（幽灵车）</li><li>🌀 漂移赛</li>
+        <li>🚨 警匪追逐</li><li>🚁 空中追捕</li><li>🚗 自由驾驶</li>
+      </ul>
+      <a class="play" href="pelican-racing/">开始游戏 →</a>
+      <p class="note">电脑上用键盘玩最顺手：方向键驾驶、空格刹车、C 氮气、T 切换视角。手机横屏可用触屏按键。</p>
+    </div>
+  </article>
+
+  <div class="card soon"><div><b>🎲</b>更多游戏正在制作中</div></div>
+</main>
+
+<footer class="wrap">
+  © <span id="y">2026</span> Meler Games · <a href="https://github.com/pmtao/meler-games">GitHub</a>
+</footer>
+<script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>
