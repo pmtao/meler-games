@@ -175,7 +175,10 @@ body.touch #hint, body.replaying #hint { display: none; }
 #modeHud .combo.dim { font-size: 11px; color: #1d3040a0; font-weight: 400; }
 #modeHud .good { color: #1f9d55; margin-left: 6px; font-size: 16px; }
 #modeHud .bad { color: #d8452a; margin-left: 6px; font-size: 16px; }
-#itemBox { left: 14px; top: 250px; width: 84px; height: 96px; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 3px solid #1d304030; }
+#itemBox { left: 14px; top: 250px; width: 96px; height: 124px; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 3px solid #1d304030; pointer-events: auto; cursor: pointer; }
+#itemBox .queue { display: flex; gap: 4px; margin-top: 2px; }
+#itemBox .slot { width: 28px; height: 28px; border-radius: 7px; border: 2px dashed #1d304030; display: flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
+#itemBox .slot.on { border-style: solid; border-color: #1d304060; background: #ffffffb0; }
 #itemBox.has { border-color: #f2c230; animation: glow 0.8s ease-in-out infinite alternate; }
 #itemBox.locked { border-color: #e53935; animation: lockflash 0.3s steps(2) infinite; }
 @keyframes lockflash { from { background: #ffd6d6f0; } to { background: #ffffffe6; } }
@@ -186,9 +189,14 @@ body.touch #hint, body.replaying #hint { display: none; }
 #touch #tItem { right: calc(94px + var(--sr)); bottom: calc(222px + var(--sb)); background: #f2c230b0; font-size: 15px; }
 @media (max-width: 760px), (max-height: 500px) {
   #modeHud { top: calc(40px + var(--st)); min-width: 180px; font-size: 11px; padding: 4px 10px; }
-  #itemBox { top: auto; bottom: calc(160px + var(--sb)); left: calc(8px + var(--sl)); width: 64px; height: 72px; }
+  #itemBox { top: auto; bottom: calc(160px + var(--sb)); left: calc(8px + var(--sl)); width: 74px; height: 96px; }
+  #itemBox .slot { width: 22px; height: 22px; font-size: 14px; }
   #itemBox .icon { font-size: 30px; min-height: 32px; }
 }
+
+/* 浏览器还不允许出声时的提示（第一次点击 / 按键后消失） */
+#audioHint { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: #1d3040e6; color: #fff; font-size: 14px; padding: 6px 16px; border-radius: 99px; pointer-events: none; display: none; animation: glow 1.2s ease-in-out infinite alternate; }
+body.audio-locked #audioHint { display: block; }
 
 /* ?fps=1 帧率显示 */
 #fps { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 50; font: 12px/1.4 ui-monospace, monospace; color: #fff; background: #0008; padding: 2px 8px; border-radius: 6px; pointer-events: none; }
@@ -214,7 +222,7 @@ body.touch #hint, body.replaying #hint { display: none; }
 <div id="board" class="card"></div>
 <div id="pursuitHud" class="card"></div>
 <div id="modeHud" class="card"></div>
-<div id="itemBox" class="card"><span class="icon"></span><span class="label"></span></div>
+<div id="itemBox" class="card"><span class="icon"></span><span class="label"></span><span class="queue"></span></div>
 <div id="flash"></div>
 <div id="minimap" class="card" title="点击查看全景地图（Tab）"><canvas></canvas></div>
 <div id="speedo" class="card">
@@ -226,7 +234,8 @@ body.touch #hint, body.replaying #hint { display: none; }
 <div id="message" class="card"></div>
 <div id="mirror"></div>
 <div id="nowPlaying" class="card"></div>
-<div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
+<div id="audioHint">🔈 点击任意位置开启声音</div>
+<div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>Z</kbd> 换道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
 <div id="replayBar" class="card">
   <div class="rp-row"><b>🎬 回放</b><span id="rpTime">00:00.00</span><input id="rpSeek" type="range" min="0" max="1000" value="0" step="1"><span id="rpTotal"></span></div>
   <div class="rp-row">
@@ -281,6 +290,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.5;
 document.body.appendChild(renderer.domElement);
 
+const MAX_ANISO = Math.min(16, renderer.capabilities.getMaxAnisotropy());
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xc9dff0, 0.0012);
 
@@ -412,7 +422,7 @@ function canvasTexture(size, draw, { srgb = true, repeat = [1, 1], height = size
   if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(...repeat);
-  tex.anisotropy = 8;
+  tex.anisotropy = MAX_ANISO;   // 斜着看的路面、地面不糊
   return tex;
 }
 
@@ -703,7 +713,12 @@ const PG = {
     featherGeometry(0.09 + (i % 3) * 0.02, 0.025),
     compose(v((i - 3) * 0.008, 0, 0), new THREE.Euler(0.5 + 0.08 * (i % 2), Math.PI / 2 + 0.1 * (i - 3), 0)),
   ])),
-  helmet: new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.085, 0.09, 0.12),
+  // 赛车头盔：整圆的头顶 + 后脑和两侧往下包住、前面留出脸（喙从这里伸出来）
+  helmetDome: new THREE.SphereGeometry(1, 32, 12, 0, Math.PI * 2, 0, Math.PI * 0.36),
+  helmetBack: new THREE.SphereGeometry(1, 32, 10, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, Math.PI * 0.36, Math.PI * 0.3),
+  visor: sculpt(new THREE.SphereGeometry(1, 20, 6, Math.PI / 2 - 0.9, 1.8, Math.PI * 0.33, 0.12), () => {}),
+  collar: new THREE.CylinderGeometry(0.075, 0.1, 0.1, 20, 1, true),
+  hans: new THREE.TorusGeometry(0.1, 0.022, 8, 24, Math.PI * 1.35).rotateX(Math.PI / 2).rotateY(Math.PI * 0.175 + Math.PI / 2),
   goggleLens: new THREE.CylinderGeometry(0.028, 0.028, 0.02, 16).rotateX(Math.PI / 2),
   strap: new THREE.TorusGeometry(0.087, 0.008, 6, 24).rotateX(Math.PI / 2).scale(1, 1, 1.35),
   // 收拢的翅膀：身体两侧的白色翅面 + 一排黑色飞羽
@@ -718,6 +733,50 @@ const PG = {
 };
 shareAll(PG);
 
+// 头盔 / 赛车服贴图按颜色缓存（同色的车手共用）
+const gearCache = new Map();
+function gearMaterials(helmetColor, suitColor) {
+  const key = `${helmetColor}-${suitColor}`;
+  if (gearCache.has(key)) return gearCache.get(key);
+  const hc = toCss(helmetColor), sc = toCss(suitColor);
+  const light = (c) => new THREE.Color(c).getHSL({}).l > 0.7;
+  const stripe = light(helmetColor) ? '#d8452a' : '#f4f4f4';
+  // 头盔：球面 u 绕一圈（u=0.25 朝前），v 从头顶往下；中间一道宽条纹 + 两侧号码圆 + 后脑字样
+  const helmetTex = canvasTexture(512, (g, w, h) => {
+    g.fillStyle = hc; g.fillRect(0, 0, w, h);
+    g.fillStyle = stripe;
+    for (const u of [0.25, 0.75]) g.fillRect((u - 0.035) * w, 0, 0.07 * w, h);   // 从前到后的中线条纹
+    g.fillRect(0, h * 0.8, w, h * 0.05);
+    g.fillStyle = light(helmetColor) ? '#1d3040' : '#ffffff';
+    for (const u of [0.0, 0.5]) { g.beginPath(); g.arc(u * w, h * 0.55, h * 0.12, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = light(helmetColor) ? '#ffffff' : '#111111';
+    g.font = `900 ${h * 0.16}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const u of [0.0, 0.5, 1.0]) g.fillText('P', u * w, h * 0.56);
+    g.fillStyle = stripe; g.font = `900 ${h * 0.1}px Arial`;
+    g.fillText('PELICAN', 0.75 * w, h * 0.62);
+  }, { height: 256 });
+  const helmet = new THREE.MeshPhysicalMaterial({ map: helmetTex, metalness: 0.2, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.04 });
+  // 赛车服：车队色 + 两侧白色竖条 + 胸前赞助商贴片
+  const suitTex = canvasTexture(256, (g, w, h) => {
+    g.fillStyle = sc; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#f4f4f4';
+    for (const u of [0.0, 0.5, 1.0]) g.fillRect((u - 0.03) * w, 0, 0.06 * w, h);   // 两侧竖条
+    g.fillRect(0.14 * w, 0.42 * h, 0.22 * w, 0.12 * h);                            // 胸前贴片
+    g.fillStyle = '#d8452a'; g.font = `900 ${h * 0.08}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('PELICAN', 0.25 * w, 0.48 * h);
+    g.fillStyle = '#00000030'; g.fillRect(0, 0.62 * h, w, 0.02 * h);              // 腰带
+  }, { height: 256 });
+  const suit = new THREE.MeshStandardMaterial({ map: suitTex, roughness: 0.8 });
+  const sleeve = new THREE.MeshStandardMaterial({ color: suitColor, roughness: 0.8 });
+  const glove = new THREE.MeshStandardMaterial({ color: light(suitColor) ? 0x1d1d20 : 0xf2f2f2, roughness: 0.6 });
+  const out = { helmet, suit, sleeve, glove };
+  for (const m of Object.values(out)) { m.userData.shared = true; if (m.map) m.map.userData.shared = true; }
+  gearCache.set(key, out);
+  return out;
+}
+const BELT_MAT = mat(0xd42020, { roughness: 0.7 });
+BELT_MAT.userData.shared = true;
+
 // 沿 a→b 摆放的椭球（翅膀前臂），每帧更新
 function setLimb(m, a, b, thickness, width) {
   const dir = new THREE.Vector3().subVectors(b, a);
@@ -726,13 +785,22 @@ function setLimb(m, a, b, thickness, width) {
   m.quaternion.setFromUnitVectors(Z_AXIS, dir.normalize());
 }
 
-function createPelican(helmetColor) {
+function createPelican(helmetColor, suitColor = helmetColor) {
+  const gear = gearMaterials(helmetColor, suitColor);
   const group = new THREE.Group();
   group.add(
-    shaped(PG.sphere24, PM.body, v(0, 0.12, -0.08), v(0.24, 0.3, 0.3)),
+    shaped(PG.sphere24, gear.suit, v(0, 0.12, -0.08), v(0.24, 0.3, 0.3), new THREE.Euler(0, -Math.PI / 2, 0)),   // 穿赛车服的身体（贴图 u=0.25 朝前）
     shaped(PG.tail, PM.covert, v(0, 0.05, -0.36)),
     mesh(PG.neck, PM.neck),
+    shaped(PG.collar, gear.sleeve, v(0, 0.3, -0.03)),   // 赛车服立领
+    shaped(PG.hans, PM.carbon, v(0, 0.36, -0.05)),      // HANS 头颈保护装置（搭在肩上）
   );
+  // 安全带：两条肩带从肩后翻过来，交到腹前的卡扣；一条腰带
+  const c = v(0, 0.12, -0.08), R = v(0.24 * 1.06, 0.3 * 1.06, 0.3 * 1.06);
+  const onBody = (x, a) => { const d = v(x, Math.cos(a), Math.sin(a)).normalize(); return [c.x + d.x * R.x, c.y + d.y * R.y, c.z + d.z * R.z]; };
+  for (const s of [-1, 1]) group.add(tube([onBody(s * 0.3, -0.35), onBody(s * 0.3, 0.3), onBody(s * 0.22, 0.9), onBody(s * 0.06, 1.35)], 0.012, BELT_MAT, 12, 5));
+  group.add(tube([-0.9, -0.5, 0, 0.5, 0.9].map((x) => onBody(x, 1.62)), 0.013, BELT_MAT, 12, 5));
+  group.add(shaped(PG.sphere16, PM.metal, v(...onBody(0, 1.45)), v(0.03, 0.03, 0.012)));   // 卡扣
 
   const head = new THREE.Group();
   head.position.set(0, 0.87, 0.14);
@@ -745,11 +813,15 @@ function createPelican(helmetColor) {
       shaped(PG.sphere16, PM.pupil, v(0.073 * s, 0.016, 0.054), v(0.004, 0.007, 0.007)),
     );
   }
-  const helmetMat = paintMat(helmetColor);
-  head.add(shaped(PG.helmet, helmetMat, v(0, 0.03, -0.015)));
-  // 护目镜推在头盔上
-  head.add(shaped(PG.strap, PM.strap, v(0, 0.06, -0.01)));
-  for (const s of [-1, 1]) head.add(shaped(PG.goggleLens, PM.goggle, v(0.03 * s, 0.085, 0.07), 1, new THREE.Euler(-0.5, 0, 0)));
+  // 赛车头盔：头顶 + 后脑两侧，前沿一圈深色遮阳帽檐，顶上一个进气口，下巴一根系带
+  const hScale = v(0.092, 0.1, 0.125);
+  head.add(shaped(PG.helmetDome, gear.helmet, v(0, 0.012, -0.012), hScale));
+  head.add(shaped(PG.helmetBack, gear.helmet, v(0, 0.012, -0.012), hScale));
+  head.add(shaped(PG.visor, PM.goggle, v(0, 0.012, -0.012), v(0.1, 0.108, 0.136)));
+  head.add(shaped(PG.sphere16, PM.carbon, v(0, 0.108, 0.01), v(0.018, 0.012, 0.035)));
+  head.add(shaped(PG.strap, PM.strap, v(0, -0.05, 0.02), v(0.8, 1, 0.55), new THREE.Euler(0.5, 0, 0)));
+  // 护目镜推在头盔前额上
+  for (const s of [-1, 1]) head.add(shaped(PG.goggleLens, PM.goggle, v(0.032 * s, 0.085, 0.085), 1, new THREE.Euler(-0.7, 0, 0)));
   const crest = mesh(PG.crest, PM.covert);
   crest.position.set(0, 0.05, -0.1);
   head.add(crest);
@@ -767,10 +839,10 @@ function createPelican(helmetColor) {
     const shoulder = v(0.2 * s, 0.3, 0.02);
     const panel = shaped(PG.wingPanel, PM.body, v(0.23 * s, 0.2, -0.12), 1, new THREE.Euler(0.35, 0, 0));
     const flight = shaped(PG.flight, PM.flight, v(0.25 * s, 0.2, -0.05));
-    const upper = mesh(PG.sphere24, PM.body);
-    const fore = mesh(PG.sphere24, PM.body);
-    const hand = mesh(PG.sphere16, PM.flight);
-    hand.scale.set(0.04, 0.03, 0.055);
+    const upper = mesh(PG.sphere24, gear.sleeve);   // 赛车服袖子
+    const fore = mesh(PG.sphere24, gear.sleeve);
+    const hand = mesh(PG.sphere16, gear.glove);     // 赛车手套
+    hand.scale.set(0.045, 0.034, 0.06);
     group.add(panel, flight, upper, fore, hand);
     return { side: s, shoulder, elbow: v(0.27 * s, 0.16, 0.2), upper, fore, hand };
   });
@@ -843,7 +915,30 @@ function stationInterpolator(stations) {
   };
 }
 
-function loftGeometry(stations, { rings = 90, seg = 44, arches = [], archInner = 0 } = {}) {
+// 截面 z 处的一圈轮廓点（超椭圆，上半部收窄，轮拱处挖掉）
+function loftRing(at, z, seg, arches = [], archInner = 0) {
+  let [y0, y1, wb, wt, n] = at(z);
+  y1 = Math.max(y1, y0 + 0.01);
+  wb = Math.max(wb, 0.005); wt = Math.max(wt, 0.005);
+  const yc = (y0 + y1) / 2, hh = (y1 - y0) / 2, e = 2 / Math.max(n, 1.5);
+  const ring = [];
+  for (let j = 0; j <= seg; j++) {
+    const th = -Math.PI / 2 + (j / seg) * Math.PI * 2;
+    const c = Math.cos(th), s = Math.sin(th);
+    let y = yc + Math.sign(s) * Math.abs(s) ** e * hh;
+    const f = (y - y0) / (y1 - y0);
+    const x = Math.sign(c) * Math.abs(c) ** e * lerp(wb, wt, THREE.MathUtils.smoothstep(f, 0.35, 1));
+    for (const [az, ay, ar] of arches) {
+      const dz = z - az;
+      if (Math.abs(x) > archInner && dz * dz + (y - ay) ** 2 < ar * ar) y = ay + Math.sqrt(ar * ar - dz * dz);
+    }
+    ring.push([x, y, z]);
+  }
+  return { ring, yc, y0, y1 };
+}
+
+// open: { rear, front } 为 true 时不封口（由 endPanel 做成带贴图的车尾 / 车头面板）
+function loftGeometry(stations, { rings = 90, seg = 44, arches = [], archInner = 0, open = {} } = {}) {
   const at = stationInterpolator(stations);
   const zA = stations[0][0], zB = stations[stations.length - 1][0];
   const pos = [], uv = [], idx = [];
@@ -851,25 +946,8 @@ function loftGeometry(stations, { rings = 90, seg = 44, arches = [], archInner =
   for (let i = 0; i <= rings; i++) {
     const u = i / rings;
     const z = zA + (zB - zA) * u;
-    let [y0, y1, wb, wt, n] = at(z);
-    y1 = Math.max(y1, y0 + 0.01);
-    wb = Math.max(wb, 0.005); wt = Math.max(wt, 0.005);
-    const yc = (y0 + y1) / 2, hh = (y1 - y0) / 2, e = 2 / Math.max(n, 1.5);
-    const ring = [];
-    for (let j = 0; j <= seg; j++) {
-      const th = -Math.PI / 2 + (j / seg) * Math.PI * 2;
-      const c = Math.cos(th), s = Math.sin(th);
-      let y = yc + Math.sign(s) * Math.abs(s) ** e * hh;
-      const f = (y - y0) / (y1 - y0);
-      const x = Math.sign(c) * Math.abs(c) ** e * lerp(wb, wt, THREE.MathUtils.smoothstep(f, 0.35, 1));
-      for (const [az, ay, ar] of arches) {
-        const dz = z - az;
-        if (Math.abs(x) > archInner && dz * dz + (y - ay) ** 2 < ar * ar) y = ay + Math.sqrt(ar * ar - dz * dz);
-      }
-      pos.push(x, y, z);
-      uv.push(u, j / seg);
-      ring.push([x, y, z]);
-    }
+    const { ring, yc } = loftRing(at, z, seg, arches, archInner);
+    ring.forEach(([x, y], j) => { pos.push(x, y, z); uv.push(u, j / seg); });
     ringPts.push({ ring, yc, z });
   }
   const W = seg + 1;
@@ -881,6 +959,7 @@ function loftGeometry(stations, { rings = 90, seg = 44, arches = [], archInner =
   }
   // 两端封口
   for (const [ri, front] of [[0, false], [rings, true]]) {
+    if (front ? open.front : open.rear) continue;
     const { ring, yc, z } = ringPts[ri];
     const base = pos.length / 3;
     pos.push(0, yc, z);
@@ -946,6 +1025,87 @@ function livery(stations, draw, size = 1024) {
     };
     draw(P, w, h);
   });
+}
+
+// 车尾 / 车头的端面面板：沿放样端面的轮廓做一圈斜边，中间往车身里凹进去一点，
+// 用平面贴图（从车外看过去：X 向右、Y 向上，单位米），draw(P) 里画饰板、格栅、牌照、分缝线
+function endPanel(stations, end, draw, { recess = 0.035, bevel = 0.05, size = 512, seg = 44 } = {}) {
+  const at = stationInterpolator(stations);
+  const rear = end === 'rear';
+  const z = rear ? stations[0][0] : stations[stations.length - 1][0];
+  const dir = rear ? 1 : -1;   // 往车身里面的方向
+  const { ring, yc, y0, y1 } = loftRing(at, z, seg);
+  const W = Math.max(...ring.map(([x]) => Math.abs(x)));
+  const xv = (x) => (rear ? -x : x);   // 从车外看过去的横坐标
+  const U = (x) => (xv(x) + W) / (2 * W), V = (y) => (y - y0) / (y1 - y0);
+  const pos = [], uv = [], idx = [];
+  const inner = ring.map(([x, y]) => {
+    const k = 1 - bevel / Math.max(W, (y1 - y0) / 2);
+    return [x * k, yc + (y - yc) * k, z + dir * recess];
+  });
+  for (const [x, y, zz] of [...ring, ...inner]) { pos.push(x, y, zz); uv.push(U(x), V(y)); }
+  const n = ring.length;
+  for (let j = 0; j < n - 1; j++) {
+    const a = j, b = j + 1, c = n + j, d = n + j + 1;
+    if (rear) idx.push(a, c, b, b, c, d); else idx.push(a, b, c, b, d, c);
+  }
+  const center = pos.length / 3;
+  pos.push(0, yc, z + dir * recess);
+  uv.push(U(0), V(yc));
+  for (let j = 0; j < n - 1; j++) {
+    if (rear) idx.push(center, n + j + 1, n + j); else idx.push(center, n + j, n + j + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const H = y1 - y0;
+  const tex = canvasTexture(size, (ctx, w, h) => {
+    const px = (X) => ((X + W) / (2 * W)) * w, py = (Y) => (1 - (Y - y0) / H) * h, sc = w / (2 * W);
+    const P = {
+      ctx, W, y0, y1, px, py, sc,
+      rect(X0, X1, Y0, Y1, color) { ctx.fillStyle = color; ctx.fillRect(px(X0), py(Y1), (X1 - X0) * sc, (Y1 - Y0) * h / H); },
+      round(X0, X1, Y0, Y1, r, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(px(X0), py(Y1), (X1 - X0) * sc, (Y1 - Y0) * h / H, r * sc); ctx.fill(); },
+      text(str, X, Y, height, color, font = '900') {
+        ctx.save(); ctx.translate(px(X), py(Y)); ctx.scale(1, (h / H) / sc);
+        ctx.fillStyle = color; ctx.font = `${font} ${Math.round(height * sc)}px "Helvetica Neue", Arial, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(str, 0, 0); ctx.restore();
+      },
+      // 蜂窝格栅
+      honeycomb(X0, X1, Y0, Y1, cell = 0.03, color = '#2a2c30') {
+        ctx.save(); ctx.beginPath(); ctx.rect(px(X0), py(Y1), (X1 - X0) * sc, (Y1 - Y0) * h / H); ctx.clip();
+        ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, cell * sc * 0.18);
+        const r = cell * sc / 2, dy = (h / H) / sc;
+        for (let row = 0, y = py(Y1); y < py(Y0) + r * 2; row++, y += r * 1.5 * dy) {
+          for (let x = px(X0) + (row % 2 ? r * 0.87 : 0); x < px(X1) + r * 2; x += r * 1.74) {
+            ctx.beginPath();
+            for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + (k * Math.PI) / 3; ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r * dy); }
+            ctx.closePath(); ctx.stroke();
+          }
+        }
+        ctx.restore();
+      },
+      // 分缝线
+      line(pts, color = '#00000070', width = 0.008) {
+        ctx.strokeStyle = color; ctx.lineWidth = width * sc; ctx.beginPath();
+        pts.forEach(([X, Y], i) => (i ? ctx.lineTo(px(X), py(Y)) : ctx.moveTo(px(X), py(Y))));
+        ctx.stroke();
+      },
+    };
+    draw(P);
+  }, { height: Math.max(64, Math.round((size * H) / (2 * W))) });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  return mesh(g, paintMaterial(tex));
+}
+
+// 车身侧面的分缝线、门把手等（画在 livery 贴图上，左右两侧对称）：
+// lines 为 [z0, z1, v0, v1] 的细矩形（v 取左侧的值，右侧自动镜像）
+function sideLines(P, lines, color = '#0000004a') {
+  for (const [z0, z1, v0, v1] of lines) {
+    P.rect(z0, z1, v0, v1, color);
+    P.rect(z0, z1, 1 - v1, 1 - v0, color);
+  }
 }
 
 function paintMaterial(map) {
@@ -1034,13 +1194,26 @@ function mirrorPair(group, paint, x, y, z, stalk = 0.1) {
     group.add(glass);
   }
 }
-// 圆形车灯：灯碗 + 发光灯芯
-function roundLamp(group, x, y, z, r, material, ringMat = PM.metal) {
+// 圆形车灯：灯碗 + 发光灯芯 + 灯圈；facing = 1 朝前（车头），-1 朝后（车尾）
+function roundLamp(group, x, y, z, r, material, ringMat = PM.metal, facing = 1) {
   group.add(cyl(r, r, 0.05, material, x, y, z, Math.PI / 2, 0, 0, 20));
   const ring = mesh(new THREE.TorusGeometry(r, r * 0.12, 6, 20), ringMat);
-  ring.position.set(x, y, z + 0.025);
+  ring.position.set(x, y, z + 0.025 * facing);
   group.add(ring);
 }
+// 蜂窝格栅材质（进气口、扩散器、格栅）
+const honeycombTex = canvasTexture(128, (g, w, h) => {
+  g.fillStyle = '#08090b'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#34373d'; g.lineWidth = 3;
+  const r = 12;
+  for (let row = 0, y = 0; y < h + r * 2; row++, y += r * 1.5) {
+    for (let x = row % 2 ? r * 0.87 : 0; x < w + r * 2; x += r * 1.74) {
+      g.beginPath();
+      for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + (k * Math.PI) / 3; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
+      g.closePath(); g.stroke();
+    }
+  }
+}, { repeat: [4, 2] });
 
 Object.assign(PM, {
   mirror: new THREE.MeshPhysicalMaterial({ color: 0xcfe4ff, metalness: 1, roughness: 0.05 }),
@@ -1051,6 +1224,11 @@ Object.assign(PM, {
   exhaust: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1, side: THREE.DoubleSide }),
   steel: mat(0x9ea3aa, { metalness: 0.9, roughness: 0.3 }),
   disc: mat(0x6b6e73, { metalness: 0.9, roughness: 0.45 }),
+  mesh: new THREE.MeshStandardMaterial({ map: honeycombTex, roughness: 0.55, metalness: 0.5 }),
+  lens: new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, roughness: 0.03, clearcoat: 1, depthWrite: false }),   // 透明灯罩
+  plastic: mat(0x16171a, { roughness: 0.7 }),              // 黑色塑料（保险杠下沿、轮眉）
+  reflector: new THREE.MeshStandardMaterial({ color: 0x661111, emissive: 0x440000, roughness: 0.3 }),
+  reverse: new THREE.MeshStandardMaterial({ color: 0xeeeeee, emissive: 0x333333, roughness: 0.2 }),   // 倒车灯
 });
 PM.glass.side = THREE.DoubleSide;
 shareAll(PM);
@@ -1386,6 +1564,10 @@ const CAR_BUILDERS = {
       else paintPattern(P, st, look, color);
       P.rect(-3, 3, 0, 0.1, '#161616'); P.rect(-3, 3, 0.9, 1, '#161616');
       P.round(-0.46, 0.62, 0.36, 0.64, 26, '#131315');     // 双座驾驶舱
+      // 分缝线：车门、前后盖；门把手
+      sideLines(P, [[0.56, 0.572, 0.13, 0.37], [-0.4, -0.388, 0.13, 0.37], [-0.4, 0.572, 0.13, 0.142], [-0.2, -0.05, 0.33, 0.345]]);
+      P.rect(1.2, 1.212, 0.39, 0.61, '#0000004a');     // 前盖
+      P.rect(-1.25, -1.238, 0.4, 0.6, '#0000004a');    // 发动机盖
       if (look.pattern !== 'police') {   // 警车不画号码和赞助商
         P.sideDisc(0.1, 0.24, 0.07, '#ffffff');
         P.sideText('23', 0.1, 0.09, '#111', { vLeft: 0.24 });
@@ -1395,8 +1577,18 @@ const CAR_BUILDERS = {
     const g = new THREE.Group();
     const wheels = [];
     const arches = [[1.4, 0.36, 0.44], [-1.35, 0.37, 0.46]];
-    g.add(mesh(loftGeometry(st, { arches, archInner: 0.55 }), paintMaterial(tex)));
+    g.add(mesh(loftGeometry(st, { arches, archInner: 0.55, open: { rear: true } }), paintMaterial(tex)));
     const paint = paintMat(color);
+    // 车尾面板：贯穿式灯带的黑色饰条、下半部蜂窝格栅、车尾字标、发动机盖分缝
+    g.add(endPanel(st, 'rear', (P) => {
+      P.rect(-1, 1, 0, 1, toCss(color));
+      P.round(-0.72, 0.72, 0.715, 0.815, 0.02, '#111214');
+      P.round(-0.64, 0.64, 0.36, 0.63, 0.05, '#0b0c0e');
+      P.honeycomb(-0.6, 0.6, 0.39, 0.6, 0.032);
+      P.text('P E L I C A N', 0, 0.672, 0.032, '#1b1b1b');
+      P.line([[-0.7, 0.835], [0.7, 0.835]]);
+      for (const X of [-0.72, 0.72]) P.line([[X, 0.835], [X, 0.64]]);
+    }));
     g.add(windshield(1.45, 0.42, 1.0, 0.12, PM.glass, 0, 0.97, 0.5));
     g.add(tube([[-0.72, 0.86, 0.64], [-0.71, 1.07, 0.22], [0, 1.09, 0.32], [0.71, 1.07, 0.22], [0.72, 0.86, 0.64]], 0.018, PM.carbon, 20, 6));
     // 驼峰头枕整流罩 + 防滚架
@@ -1407,21 +1599,33 @@ const CAR_BUILDERS = {
     // 发动机玻璃罩 + 百叶
     g.add(box(0.8, 0.02, 0.75, PM.glass, 0, 1.005, -1.45));
     for (let i = 0; i < 6; i++) g.add(box(0.8, 0.012, 0.05, PM.grille, 0, 1.01, -1.95 + i * 0.07));
-    // 侧进气口、侧裙、前铲、扩散器
+    // 侧进气口（带蜂窝网）、侧裙、前铲
     for (const s of [-1, 1]) {
-      g.add(ell(PM.grille, s * 0.93, 0.6, -0.72, 0.08, 0.15, 0.36));
+      g.add(ell(PM.plastic, s * 0.93, 0.6, -0.72, 0.08, 0.15, 0.36), ell(PM.mesh, s * 0.95, 0.6, -0.72, 0.06, 0.12, 0.3));
       g.add(box(0.05, 0.07, 2.2, PM.carbon, s * 0.95, 0.25, 0.05));
-      g.add(ell(PM.grille, s * 0.55, 0.36, 2.2, 0.22, 0.07, 0.08));        // 前保险杠进气
-      g.add(ell(PM.grille, s * 0.56, 0.6, 2.08, 0.22, 0.045, 0.12, 0, s * 0.3));   // 大灯罩
-      g.add(ell(PM.headlight, s * 0.56, 0.6, 2.1, 0.17, 0.02, 0.09, 0, s * 0.3));
-      g.add(box(0.46, 0.035, 0.04, PM.taillight, s * 0.5, 0.8, -2.28));
+      g.add(rbox(0.36, 0.1, 0.06, 0.03, PM.plastic, s * 0.52, 0.36, 2.2), box(0.32, 0.075, 0.02, PM.mesh, s * 0.52, 0.36, 2.235));   // 前保险杠进气
+      // 大灯：黑色灯座 + 透明灯罩 + LED 日行灯条 + 两个投射灯
+      g.add(ell(PM.chrome, s * 0.56, 0.585, 2.09, 0.2, 0.035, 0.105, 0, s * 0.3));
+      g.add(ell(PM.lens, s * 0.56, 0.6, 2.09, 0.21, 0.042, 0.115, 0, s * 0.3));
+      g.add(box(0.19, 0.014, 0.02, PM.headlight, s * 0.57, 0.612, 2.15, 0, s * 0.3));
+      for (const dx of [-0.07, 0.05]) g.add(ell(PM.headlight, s * (0.56 + dx), 0.608, 2.08, 0.035, 0.02, 0.035));
+      g.add(ell(PM.grille, s * 0.56, 0.625, 2.02, 0.19, 0.012, 0.03, 0, s * 0.3));   // 灯眉
+      g.add(ell(PM.amber, s * 0.8, 0.52, 1.95, 0.05, 0.015, 0.03, 0, s * 0.8));   // 侧转向灯
     }
     g.add(box(1.7, 0.03, 0.28, PM.carbon, 0, 0.25, 2.18));
-    g.add(box(1.4, 0.16, 0.22, PM.grille, 0, 0.36, -2.24));
-    for (let i = -3; i <= 3; i++) g.add(box(0.015, 0.16, 0.3, PM.carbon, i * 0.18, 0.28, -2.22, -0.2));
-    for (const x of [-0.14, 0.14]) {
-      g.add(cyl(0.05, 0.05, 0.12, PM.chrome, x, 0.5, -2.3, Math.PI / 2), cyl(0.04, 0.04, 0.02, PM.exhaust, x, 0.5, -2.365, Math.PI / 2));
+    // 车尾：贯穿式 LED 灯带 + 两端 C 形灯、中间雾灯、中置双排气、倾斜扩散器和导流片
+    g.add(rbox(1.34, 0.026, 0.03, 0.012, PM.taillight, 0, 0.765, -2.3));
+    for (const s of [-1, 1]) {
+      g.add(box(0.035, 0.1, 0.03, PM.taillight, s * 0.68, 0.74, -2.3), box(0.12, 0.022, 0.03, PM.taillight, s * 0.62, 0.7, -2.3));
+      g.add(box(0.08, 0.03, 0.02, PM.reverse, s * 0.35, 0.7, -2.3));
     }
+    g.add(box(0.1, 0.05, 0.03, PM.taillight, 0, 0.42, -2.3));
+    for (const x of [-0.11, 0.11]) {
+      g.add(cyl(0.058, 0.058, 0.1, PM.chrome, x, 0.53, -2.29, Math.PI / 2), cyl(0.047, 0.047, 0.02, PM.exhaust, x, 0.53, -2.335, Math.PI / 2));
+    }
+    g.add(box(1.36, 0.02, 0.55, PM.carbon, 0, 0.25, -2.05, 0.3));
+    for (let i = -2; i <= 2; i++) g.add(box(0.012, 0.1, 0.46, PM.carbon, i * 0.26, 0.27, -2.07, 0.3));
+    g.add(mesh(new THREE.TorusGeometry(0.035, 0.01, 6, 12), mat(0xd42020)).translateX(-0.45).translateY(0.35).translateZ(-2.33));   // 拖车钩
     // 尾翼
     g.add(airfoil(1.75, 0.34, 0.045, PM.carbon, 0, 1.24, -2.05, -0.12));
     for (const s of [-1, 1]) {
@@ -1440,7 +1644,7 @@ const CAR_BUILDERS = {
         wheels.push(w);
       }
     }
-    return { group: g, wheels, seat: v(0.34, 0.34, -0.12), pelScale: 1.0, wheelPos: v(0.34, 0.86, 0.33), wheelTilt: -1.05, wheelR: 0.16, wheelStyle: 'round', exhausts: [v(0.14, 0.5, -2.37), v(-0.14, 0.5, -2.37)], tails: [v(0.5, 0.8, -2.32), v(-0.5, 0.8, -2.32)], half: [1.0, 2.3], camH: 2.3, camD: 7 };
+    return { group: g, wheels, seat: v(0.34, 0.34, -0.12), pelScale: 1.0, wheelPos: v(0.34, 0.86, 0.33), wheelTilt: -1.05, wheelR: 0.16, wheelStyle: 'round', exhausts: [v(0.11, 0.53, -2.35), v(-0.11, 0.53, -2.35)], tails: [v(0.5, 0.765, -2.33), v(-0.5, 0.765, -2.33)], half: [1.0, 2.3], camH: 2.3, camD: 7 };
   },
 
   // WRC 拉力车：两厢掀背，宽体轮眉、大尾翼、车顶进气、前杠射灯组、挡泥板、拉力涂装
@@ -1461,6 +1665,9 @@ const CAR_BUILDERS = {
       for (const vv of [0.3, 0.7]) P.rect(-0.55, 0.55, vv - 0.07, vv + 0.07, '#ffffff');   // 车门号码牌
       P.sideText('12', 0, 0.11, '#111', { vLeft: 0.3 });
       P.sideText('PELICAN RALLY TEAM', -1.45, 0.035, '#ffffff', { vLeft: 0.23 });
+      // 分缝线：前后门、油箱盖、门把手
+      sideLines(P, [[0.62, 0.632, 0.12, 0.4], [-0.62, -0.608, 0.12, 0.4], [-1.45, -1.438, 0.12, 0.4], [0.35, 0.5, 0.36, 0.372], [-0.85, -0.7, 0.36, 0.372]]);
+      P.round(-1.75, -1.62, 0.33, 0.38, 6, '#0000003a');
     });
     const ghTex = greenhouseTexture(gh, body, (P) => {
       P.rect(-1.62, 0.36, 0.34, 0.66, '#f4f4f4');   // 白色车顶
@@ -1475,9 +1682,20 @@ const CAR_BUILDERS = {
     const g = new THREE.Group();
     const wheels = [];
     const arches = [[1.3, 0.34, 0.43], [-1.25, 0.34, 0.43]];
-    g.add(mesh(loftGeometry(st, { arches, archInner: 0.55 }), paintMaterial(tex)));
+    g.add(mesh(loftGeometry(st, { arches, archInner: 0.55, open: { rear: true } }), paintMaterial(tex)));
     g.add(mesh(loftGeometry(gh, { rings: 50, seg: 36 }), glassMaterial(ghTex)));
     const paint = paintMat(color), white = paintMat(0xf4f4f4);
+    // 尾门：分缝线、牌照、车标；下面是黑色保险杠和蜂窝扩散器
+    g.add(endPanel(st, 'rear', (P) => {
+      P.rect(-1, 1, 0, 1.2, body);
+      P.rect(-1, 1, 0.3, 0.47, '#141518');
+      P.honeycomb(-0.45, 0.45, 0.33, 0.45, 0.03);
+      P.round(-0.2, 0.2, 0.51, 0.6, 0.012, '#f4f4f4');
+      P.text('PR · 12', 0, 0.555, 0.06, '#1a2a60');
+      P.text('PELICAN', 0, 0.66, 0.04, '#f4f4f4');
+      P.line([[-0.72, 0.5], [0.72, 0.5]]);
+      for (const X of [-0.72, 0.72]) P.line([[X, 0.5], [X, 0.9]]);
+    }));
     // 宽体轮眉
     for (const s of [-1, 1]) for (const z of [1.3, -1.25]) {
       const flare = mesh(new THREE.TorusGeometry(0.46, 0.06, 6, 20, Math.PI).rotateY(Math.PI / 2), paint);
@@ -1491,8 +1709,13 @@ const CAR_BUILDERS = {
     for (const s of [-1, 1]) {
       g.add(ell(PM.grille, s * 0.6, 0.63, 2.0, 0.2, 0.08, 0.1, 0, s * 0.25));
       g.add(ell(PM.headlight, s * 0.6, 0.63, 2.03, 0.16, 0.055, 0.07, 0, s * 0.25));
-      g.add(box(0.34, 0.1, 0.05, PM.taillight, s * 0.62, 0.78, -2.06));
+      // L 形尾灯（横条 + 外侧竖条）、倒车灯、反光片
+      g.add(rbox(0.32, 0.075, 0.03, 0.015, PM.taillight, s * 0.52, 0.8, -2.055), rbox(0.075, 0.22, 0.03, 0.015, PM.taillight, s * 0.7, 0.72, -2.05));
+      g.add(box(0.1, 0.04, 0.02, PM.reverse, s * 0.46, 0.745, -2.05));
+      g.add(box(0.14, 0.03, 0.02, PM.reflector, s * 0.6, 0.4, -2.1));
     }
+    g.add(box(0.36, 0.035, 0.03, PM.taillight, 0, 1.035, -1.965));   // 第三刹车灯
+    g.add(tube([[0.05, 0.93, -1.975], [-0.2, 0.97, -1.97], [-0.42, 1.0, -1.962]], 0.008, PM.plastic, 6, 5));   // 后雨刮
     g.add(box(1.3, 0.04, 0.12, PM.grille, 0, 0.72, 2.14));
     for (let i = 0; i < 4; i++) roundLamp(g, (i - 1.5) * 0.3, 0.8, 2.18, 0.075, PM.headlight, PM.grille);
     g.add(box(1.6, 0.04, 0.2, PM.carbon, 0, 0.26, 2.1), mesh(new THREE.TorusGeometry(0.04, 0.012, 6, 12), mat(0xd42020)).translateX(0.45).translateY(0.3).translateZ(2.18));
@@ -1509,8 +1732,11 @@ const CAR_BUILDERS = {
       g.add(rbox(0.025, 0.24, 0.44, 0.05, PM.carbon, s * 0.87, 1.33, -2.02));
       g.add(box(0.05, 0.3, 0.1, PM.carbon, s * 0.55, 1.2, -1.92, -0.25));
     }
-    g.add(box(1.5, 0.12, 0.2, PM.grille, 0, 0.3, -2.06));
-    g.add(cyl(0.055, 0.055, 0.18, PM.steel, -0.5, 0.3, -2.1, Math.PI / 2), cyl(0.045, 0.045, 0.02, PM.exhaust, -0.5, 0.3, -2.19, Math.PI / 2));
+    // 后保险杠下沿 + 扩散器导流片、大口径排气、拖车带
+    g.add(rbox(1.74, 0.09, 0.14, 0.035, PM.plastic, 0, 0.34, -2.07));
+    for (let i = -2; i <= 2; i++) g.add(box(0.012, 0.09, 0.28, PM.plastic, i * 0.18, 0.27, -1.97, 0.25));
+    g.add(cyl(0.065, 0.065, 0.2, PM.steel, -0.5, 0.33, -2.1, Math.PI / 2), cyl(0.054, 0.054, 0.02, PM.exhaust, -0.5, 0.33, -2.2, Math.PI / 2));
+    g.add(box(0.05, 0.1, 0.01, mat(0xf2c230), 0.42, 0.34, -2.15));
     mirrorPair(g, paint, 0.98, 1.0, 0.85, 0.12);
     bake(g);
     for (const [z, front] of [[1.3, true], [-1.25, false]]) {
@@ -1523,7 +1749,7 @@ const CAR_BUILDERS = {
         wheels.push(w);
       }
     }
-    return { group: g, wheels, seat: v(0, 0.5, -0.55), pelScale: 1.35, wheelPos: v(0, 0.95, 0.1), wheelTilt: -1.1, wheelR: 0.17, wheelStyle: 'round', exhausts: [v(-0.5, 0.3, -2.2)], tails: [v(0.62, 0.78, -2.1), v(-0.62, 0.78, -2.1)], half: [0.95, 2.1], camH: 2.8, camD: 7.2 };
+    return { group: g, wheels, seat: v(0, 0.5, -0.55), pelScale: 1.35, wheelPos: v(0, 0.95, 0.1), wheelTilt: -1.1, wheelR: 0.17, wheelStyle: 'round', exhausts: [v(-0.5, 0.33, -2.21)], tails: [v(0.56, 0.8, -2.09), v(-0.56, 0.8, -2.09)], half: [0.95, 2.1], camH: 2.8, camD: 7.2 };
   },
 
   // 美式肌肉车：长车头短车尾的敞篷，镀铬保险杠、圆形大灯、引擎盖进气口、白色赛道条纹、侧排气
@@ -1542,13 +1768,28 @@ const CAR_BUILDERS = {
       P.rect(-3, 3, 0, 0.09, '#141414'); P.rect(-3, 3, 0.91, 1, '#141414');
       P.round(-0.86, 0.45, 0.33, 0.67, 24, '#1b1512');    // 真皮座舱
       P.sideText('V8', 1.7, 0.05, '#f4f4f4', { vLeft: 0.3 });
+      // 分缝线：长车门、前盖、后备箱盖、门把手、油箱盖
+      sideLines(P, [[-0.9, -0.888, 0.12, 0.4], [0.62, 0.632, 0.12, 0.4], [-0.45, -0.3, 0.36, 0.372]]);
+      P.rect(0.9, 0.912, 0.4, 0.6, '#0000004a'); P.rect(-1.62, -1.608, 0.4, 0.6, '#0000004a');
+      P.sideDisc(-1.9, 0.36, 0.035, '#c9ccd1');
       P.sideText('PELICAN', -0.2, 0.05, '#f4f4f4', { vLeft: 0.22, font: 'italic 900' });
     });
     const g = new THREE.Group();
     const wheels = [];
     const arches = [[1.45, 0.36, 0.45], [-1.45, 0.38, 0.47]];
-    g.add(mesh(loftGeometry(st, { arches, archInner: 0.62 }), paintMaterial(tex)));
+    g.add(mesh(loftGeometry(st, { arches, archInner: 0.62, open: { rear: true } }), paintMaterial(tex)));
     const paint = paintMat(color);
+    // 车尾：嵌进车身的黑色尾灯板（镀铬包边）、中间的圆形车标、后备箱分缝、牌照凹槽
+    g.add(endPanel(st, 'rear', (P) => {
+      P.rect(-1.2, 1.2, 0, 1.2, toCss(color));
+      P.round(-0.84, 0.84, 0.61, 0.83, 0.035, '#d9dce0');
+      P.round(-0.825, 0.825, 0.622, 0.818, 0.03, '#0c0c0d');
+      for (let y = 0.635; y < 0.81; y += 0.022) P.rect(-0.8, 0.8, y, y + 0.006, '#1c1d20');   // 横向饰纹
+      P.round(-0.2, 0.2, 0.43, 0.565, 0.015, '#0e0e0e');
+      P.round(-0.17, 0.17, 0.445, 0.55, 0.01, '#f2c230');
+      P.text('V8 PWR', 0, 0.497, 0.05, '#141414');
+      P.line([[-0.8, 0.848], [0.8, 0.848]]);
+    }));
     // 引擎盖进气口
     g.add(rbox(0.5, 0.12, 0.7, 0.05, paint, 0, 0.97, 1.35), box(0.4, 0.07, 0.02, PM.grille, 0, 0.98, 1.71));
     // 挡风玻璃 + 镀铬框、折叠的软顶
@@ -1559,9 +1800,16 @@ const CAR_BUILDERS = {
     g.add(rbox(1.62, 0.34, 0.06, 0.05, PM.grille, 0, 0.62, 2.47));
     for (let i = 0; i < 5; i++) g.add(box(1.4, 0.012, 0.02, PM.chrome, 0, 0.5 + i * 0.06, 2.5));
     for (const s of [-1, 1]) roundLamp(g, s * 0.62, 0.64, 2.5, 0.11, PM.headlight, PM.chrome);
-    g.add(rbox(1.9, 0.1, 0.12, 0.04, PM.chrome, 0, 0.34, 2.52), rbox(1.9, 0.1, 0.12, 0.04, PM.chrome, 0, 0.36, -2.48));
-    // 尾部：四个圆形尾灯、鸭尾扰流
-    for (const s of [-1, 1]) for (const x of [0.4, 0.68]) roundLamp(g, s * x, 0.72, -2.47, 0.08, PM.taillight, PM.chrome);
+    g.add(rbox(1.9, 0.1, 0.12, 0.04, PM.chrome, 0, 0.34, 2.52));
+    // 尾部：四个嵌在尾灯板里的圆形尾灯（镀铬灯圈）、中间圆形车标、贴着车身的镀铬保险杠（两端包角 + 护杠）、鸭尾扰流
+    for (const s of [-1, 1]) for (const x of [0.4, 0.66]) roundLamp(g, s * x, 0.72, -2.43, 0.078, PM.taillight, PM.chrome, -1);
+    g.add(cyl(0.06, 0.06, 0.02, PM.chrome, 0, 0.72, -2.43, Math.PI / 2), cyl(0.045, 0.045, 0.022, mat(0xb01818), 0, 0.72, -2.435, Math.PI / 2));
+    g.add(rbox(1.7, 0.085, 0.09, 0.035, PM.chrome, 0, 0.43, -2.47));
+    for (const s of [-1, 1]) {
+      g.add(rbox(0.09, 0.085, 0.34, 0.035, PM.chrome, s * 0.86, 0.43, -2.34, 0, s * 0.45));
+      g.add(rbox(0.05, 0.16, 0.06, 0.02, PM.chrome, s * 0.32, 0.45, -2.5));
+      g.add(box(0.08, 0.02, 0.02, PM.reverse, s * 0.12, 0.6, -2.43));
+    }
     g.add(rbox(1.8, 0.05, 0.28, 0.02, paint, 0, 0.97, -2.3, 0.18));
     // 侧排气管
     for (const s of [-1, 1]) {
@@ -1580,7 +1828,7 @@ const CAR_BUILDERS = {
         wheels.push(w);
       }
     }
-    return { group: g, wheels, seat: v(0.38, 0.4, -0.3), pelScale: 1.05, wheelPos: v(0.38, 0.95, 0.22), wheelTilt: -1.1, wheelR: 0.18, wheelStyle: 'round', exhausts: [v(0.98, 0.27, -0.78), v(-0.98, 0.27, -0.78)], tails: [v(0.4, 0.72, -2.52), v(0.68, 0.72, -2.52), v(-0.4, 0.72, -2.52), v(-0.68, 0.72, -2.52)], half: [1.0, 2.45], camH: 2.5, camD: 7.4 };
+    return { group: g, wheels, seat: v(0.38, 0.4, -0.3), pelScale: 1.05, wheelPos: v(0.38, 0.95, 0.22), wheelTilt: -1.1, wheelR: 0.18, wheelStyle: 'round', exhausts: [v(0.98, 0.27, -0.78), v(-0.98, 0.27, -0.78)], tails: [v(0.4, 0.72, -2.48), v(0.66, 0.72, -2.48), v(-0.4, 0.72, -2.48), v(-0.66, 0.72, -2.48)], half: [1.0, 2.45], camH: 2.5, camD: 7.4 };
   },
 
   // 卡丁车：钢管车架、前鼻整流罩和号码牌、侧箱、座椅、单缸发动机（散热片）+ 弯曲的排气管
@@ -1950,22 +2198,7 @@ function buildRegion(Tr, theme, { barriers }) {
 
   // ---- 路面：沥青 + 边线 + 中间虚线 ----
   const roadLen = loopPeriod(T, 24);
-  const roadTex = canvasTexture(256, (g, w, h) => {
-    g.fillStyle = theme.asphalt;
-    g.fillRect(0, 0, w, h);
-    for (let i = 0; i < w * h * 0.3; i++) {
-      g.fillStyle = Math.random() < 0.5 ? '#00000030' : '#ffffff18';
-      g.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
-    }
-    g.fillStyle = '#00000018';   // 行车线上的胎痕颜色深一些
-    g.fillRect(w * 0.3, 0, w * 0.12, h);
-    g.fillRect(w * 0.58, 0, w * 0.12, h);
-    g.fillStyle = '#f2f2f2';
-    g.fillRect(6, 0, 7, h);
-    g.fillRect(w - 13, 0, 7, h);
-    g.fillRect(w / 2 - 3, 0, 6, h * 0.45);
-  }, { height: 512 });
-  world.add(mesh(ribbon(T, 0, T.N, -T.W, T.W, 0.03, roadLen), new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.85, ...LAYER(3) }), false));
+  world.add(mesh(ribbon(T, 0, T.N, -T.W, T.W, 0.03, roadLen), asphaltMaterial(theme.asphalt, T.W * 2, roadLen, { extra: LAYER(3) }), false));
 
   // ---- 路肩（缓冲区）----
   const shoulderTex = noiseTexture(128, theme.shoulder[0], theme.shoulder[1], [1, 1], 0.5);
@@ -2604,6 +2837,69 @@ function buildRamps() {
   }
 }
 
+// =====================================================================
+// 沥青路面：颜色贴图（明暗斑块、大小不一的石子、行车线磨损、清晰的标线）+ 细颗粒凹凸贴图（1.5 米一个循环）
+// width 为路面总宽（米），len 为贴图沿路方向的周期（米）
+// center：'dash' 白色中间虚线，'yellow' 双黄线
+// =====================================================================
+const asphaltDetail = canvasTexture(256, (g, w, h) => {
+  g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < w * h * 0.5; i++) {
+    const r = Math.random();
+    g.fillStyle = r < 0.45 ? `rgba(0,0,0,${0.15 + Math.random() * 0.35})` : `rgba(255,255,255,${0.1 + Math.random() * 0.35})`;
+    const sz = r > 0.97 ? 2.5 : 1 + Math.random();
+    g.fillRect(Math.random() * w, Math.random() * h, sz, sz);
+  }
+}, { srgb: false });
+asphaltDetail.userData.shared = true;
+
+function asphaltMaterial(base, width, len, { center = 'dash', extra = {} } = {}) {
+  const map = canvasTexture(512, (g, w, h) => {
+    const mpx = w / width;   // 每米像素数（横向）
+    g.fillStyle = base; g.fillRect(0, 0, w, h);
+    // 大块的明暗斑块（修补、油渍、新旧沥青）
+    for (let i = 0; i < 26; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = 20 + Math.random() * 70;
+      const grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, Math.random() < 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grad; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // 石子：大多数很细，少量亮一点的大颗粒
+    for (let i = 0; i < w * h * 0.22; i++) {
+      const r = Math.random();
+      g.fillStyle = r < 0.5 ? `rgba(0,0,0,${0.12 + Math.random() * 0.2})` : r < 0.97 ? `rgba(255,255,255,${0.05 + Math.random() * 0.12})` : 'rgba(210,205,195,0.35)';
+      const sz = r < 0.97 ? 1 : 2;
+      g.fillRect(Math.random() * w, Math.random() * h, sz, sz);
+    }
+    // 行车线：两条颜色深一点、边缘柔和的磨损带
+    for (const cx of [0.28, 0.72]) {
+      const grad = g.createLinearGradient((cx - 0.09) * w, 0, (cx + 0.09) * w, 0);
+      grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.5, 'rgba(0,0,0,0.13)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grad; g.fillRect((cx - 0.09) * w, 0, 0.18 * w, h);
+    }
+    // 标线：边线 15 厘米、离路边 30 厘米；中间虚线 3 米线 + 空 3 米（贴图周期里按比例画）
+    const line = (x0, x1, y0, y1, color) => {
+      g.fillStyle = color; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+      g.fillStyle = 'rgba(0,0,0,0.12)';   // 少许磨损
+      for (let i = 0; i < (x1 - x0) * (y1 - y0) * 0.04; i++) g.fillRect(x0 + Math.random() * (x1 - x0), y0 + Math.random() * (y1 - y0), 1.5, 1.5);
+    };
+    const e0 = 0.3 * mpx, e1 = e0 + 0.15 * mpx;
+    line(e0, e1, 0, h, '#ececec');
+    line(w - e1, w - e0, 0, h, '#ececec');
+    if (center === 'yellow') {
+      for (const dx of [-0.16, 0.06]) line(w / 2 + dx * mpx, w / 2 + (dx + 0.1) * mpx, 0, h, '#e8b923');
+    } else {
+      const dashes = Math.max(1, Math.round(len / 6));
+      for (let k = 0; k < dashes; k++) line(w / 2 - 0.07 * mpx, w / 2 + 0.07 * mpx, (k / dashes) * h, ((k + 0.5) / dashes) * h, '#ececec');
+    }
+  }, { height: 1024 });
+  const bump = asphaltDetail.clone();
+  bump.userData.shared = false;
+  bump.repeat.set(width / 1.5, len / 1.5);
+  return new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.2, roughness: 0.88, ...extra });
+}
+
 /* ===== js/world/open-world.js ===== */
 // 自由驾驶的开放世界：四张地图 + 连接公路、道路/障碍物网格、天空混合、碰撞、就近回到路面
 'use strict';
@@ -2857,16 +3153,7 @@ function buildOpenWorld() {
   }
   // 3. 地面、公路
   buildOpenGround();
-  const roadTex = canvasTexture(256, (g, w, h) => {
-    g.fillStyle = '#4b4e53'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < w * h * 0.3; i++) {
-      g.fillStyle = Math.random() < 0.5 ? '#00000030' : '#ffffff18';
-      g.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
-    }
-    g.fillStyle = '#f2f2f2'; g.fillRect(8, 0, 7, h); g.fillRect(w - 15, 0, 7, h);
-    g.fillStyle = '#f2c230'; g.fillRect(w / 2 - 8, 0, 5, h * 0.5); g.fillRect(w / 2 + 3, 0, 5, h * 0.5);
-  }, { height: 512 });
-  const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.85, ...LAYER(2.5) });
+  const roadMat = asphaltMaterial('#4b4e53', 13, 24, { center: 'yellow', extra: LAYER(2.5) });
   const shoulderMat = new THREE.MeshStandardMaterial({ map: noiseTexture(128, '#9a9588', [['#85806f', 0.8], ['#b3ad9e', 0.6]], [1, 1], 0.5), roughness: 1, ...LAYER(1.5) });
   const postGeo = merge([
     [new THREE.BoxGeometry(0.14, 1.0, 0.14), compose(v(0, 0.5, 0))],
@@ -3810,6 +4097,7 @@ class SoundFx {
     this.crowdMod = 1;
     this.crowdProx = 0;
     if (this.ctx.state === 'suspended') this.ctx.resume();
+    this.ctx.onstatechange = () => updateAudioHint();
     this.music = new MusicBox(this);
     this.music.onSong = (song) => showNowPlaying(song);
     showNowPlaying(this.music.song);
@@ -3846,6 +4134,12 @@ class SoundFx {
   }
 
   get ready() { return this.ctx && this.enabled; }
+
+  // 浏览器要求用户先和页面交互一次才能出声：页面上任何一次点击 / 触摸 / 按键都会调用这里
+  unlock() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state !== 'running') this.ctx.resume();
+  }
 
   // 玩家（或回放焦点）用一个引擎声部；最近的一辆 NPC 用另一个声部，按距离衰减并带多普勒变调
   voice(slot, carId) {
@@ -4202,7 +4496,7 @@ function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false
     return sp;
   });
 
-  const pel = createPelican(helmet ?? (isPlayer ? 0xffffff : color));
+  const pel = createPelican(helmet ?? (isPlayer ? 0xffffff : color), color);
   pel.group.position.copy(built.seat);
   pel.group.scale.setScalar(built.pelScale);
   body.add(pel.group);
@@ -5733,7 +6027,7 @@ function flashLightbar(c) {
 
 const MODES = [
   ['race', '🏁 名次赛', '和 4 位鹈鹕对手比名次'],
-  ['items', '🍄 道具赛', '撞碎道具箱拿道具：香蕉皮、龟壳、蘑菇、闪电、无敌星，X 键使用'],
+  ['items', '🍄 道具赛', '撞碎道具箱拿道具（最多存 3 个）：香蕉皮、龟壳、蘑菇、闪电、无敌星、护盾，X 使用、Z 换顺序'],
   ['timetrial', '⏱ 计时赛', '独自跑圈挑战纪录，和自己最快单圈的幽灵车比'],
   ['drift', '🌀 漂移赛', '独自跑圈拿漂移分：连续漂移倍率越来越高，撞墙清零'],
   ['pursuit', '🚨 警匪追逐', '甩掉警车和直升机，第一个冲线，被围住就被捕'],
@@ -5943,6 +6237,8 @@ const ITEM_ODDS = [
   { green: 12, red: 32, mushroom: 28, lightning: 16, star: 12 },
 ];
 const ITEM_ROWS = [0.2, 0.45, 0.68, 0.9];   // 道具箱在一圈里的位置
+const ITEM_SLOTS = 3;                        // 最多同时存几个道具（含正在抽取的）
+const itemCount = (c) => c.items.length + c.pending.length;
 let itemBoxes = [], bananas = [], shells = [];
 const itemBoxEl = $('itemBox');
 
@@ -6000,7 +6296,7 @@ function setupItems() {
       itemBoxes.push({ mesh: m, x: p.x, z: p.z, y0, respawn: 0, phase: Math.random() * 6 });
     }
   }
-  for (const c of racers) Object.assign(c, { item: null, rolling: 0, pending: null, starT: 0, zapT: 0, shieldT: 0, itemAiT: rand(1, 3), hitsGiven: 0, hitsTaken: 0 });
+  for (const c of racers) Object.assign(c, { items: [], rolling: 0, pending: [], starT: 0, zapT: 0, shieldT: 0, itemAiT: rand(1, 3), hitsGiven: 0, hitsTaken: 0 });
   itemBoxEl.style.display = 'flex';
   updateItemBox();
 }
@@ -6026,10 +6322,11 @@ function rollItem(c) {
 }
 
 // ---------------- 使用道具 ----------------
+// 使用排在最前面的道具
 function useItem(c) {
-  const id = c.item;
+  const id = c.items[0];
   if (!id || c.state !== 'drive') return;
-  c.item = null;
+  c.items.shift();
   const [fx, fz] = forwardOf(c.heading);
   const half = c.built.half[1];
   if (id === 'banana') {
@@ -6137,12 +6434,12 @@ function updateItems(dt) {
     if (b.respawn > 0) { b.respawn -= dt; b.mesh.visible = b.respawn <= 0; continue; }
     if (!live) continue;
     for (const c of racers) {
-      if (c.item || c.rolling > 0 || c.state !== 'drive') continue;
+      if (itemCount(c) >= ITEM_SLOTS || c.state !== 'drive') continue;   // 道具槽满了就撞不开
       if ((c.x - b.x) ** 2 + (c.z - b.z) ** 2 < 4.4) {
         b.respawn = 4;
         b.mesh.visible = false;
-        c.rolling = 1.1;
-        c.pending = rollItem(c);
+        if (c.rolling <= 0) c.rolling = 1.1;
+        c.pending.push(rollItem(c));
         for (let k = 0; k < 8; k++) emit(sparkPool, v(b.x, 1.1, b.z), { vel: v(rand(-3, 3), rand(1, 4), rand(-3, 3)), life: 0.5, size0: 0.4, size1: 0.1, color: pick([0xff4d4d, 0xffe94d, 0x4dc3ff, 0x4dff88]), gravity: 6, alpha: 1 });
         if (c.isPlayer) sound.itemGet();
         break;
@@ -6152,7 +6449,12 @@ function updateItems(dt) {
   for (const c of racers) {
     if (c.rolling > 0) {
       c.rolling -= dt;
-      if (c.rolling <= 0) { c.item = c.pending; c.pending = null; c.itemAiT = rand(0.8, 2.5); }
+      // 抽完一个放进道具槽；后面还排着的接着抽（快一点）
+      if (c.rolling <= 0) {
+        c.items.push(c.pending.shift());
+        if (c.items.length === 1) c.itemAiT = rand(0.8, 2.5);
+        if (c.pending.length) c.rolling = 0.6;
+      }
     }
     if (c.starT > 0) {
       c.starT -= dt;
@@ -6171,7 +6473,7 @@ function updateItems(dt) {
     // 被闪电劈中的车缩小
     const s = c.zapT > 0 ? 0.7 : 1;
     c.root.scale.setScalar(lerp(c.root.scale.x, s, Math.min(1, dt * 6)));
-    if (!c.isPlayer && live && c.item && c.state === 'drive') aiUseItem(c, dt);
+    if (!c.isPlayer && live && c.items.length && c.state === 'drive') aiUseItem(c, dt);
   }
   // 香蕉皮
   for (let i = bananas.length - 1; i >= 0; i--) {
@@ -6235,7 +6537,7 @@ function updateItems(dt) {
       shells.splice(i, 1);
     }
   }
-  if ((player.item ?? '') !== itemBoxEl.dataset.item || player.rolling > 0) updateItemBox();
+  if (itemKey(player) !== itemBoxEl.dataset.key || player.rolling > 0) updateItemBox();
   // 被追踪红壳锁定：道具框闪红，嘀嘀报警
   const locked = shells.some((s) => s.type === 'red' && s.target === player);
   itemBoxEl.classList.toggle('locked', locked);
@@ -6249,7 +6551,7 @@ let lockBeepT = 0;
 // ---------------- AI 用道具 ----------------
 function aiUseItem(c, dt) {
   c.itemAiT -= dt;
-  const id = c.item;
+  const id = c.items[0];
   let use = c.itemAiT < -8;   // 拿太久了就随便用掉
   if (c.itemAiT <= 0) {
     if (id === 'banana') use ||= racers.some((o) => o !== c && c.progress - o.progress > 0 && c.progress - o.progress < 30);
@@ -6263,26 +6565,42 @@ function aiUseItem(c, dt) {
     else if (id === 'mushroom') use ||= Math.abs(T.k[T.wrap(c.idx + 20)]) < 1 / 200;
     else if (id === 'shield') use ||= shells.some((s) => s.target === c || (s.owner !== c && (s.x - c.x) ** 2 + (s.z - c.z) ** 2 < 900)) || racers.some((o) => o !== c && c.progress - o.progress > 0 && c.progress - o.progress < 15);
     else use = true;   // 闪电、无敌星：拿到就用
+    // 最前面的道具暂时用不上、后面还有别的：换一下顺序
+    if (!use && c.items.length > 1 && Math.random() < 0.3) { swapItems(c); c.itemAiT = rand(0.5, 1.5); return; }
   }
   if (use) useItem(c);
 }
 
+// 把最前面的道具换到最后
+function swapItems(c) {
+  if (c.items.length < 2) return;
+  c.items.push(c.items.shift());
+  if (c.isPlayer) { sound.tone({ frequency: 880, duration: 0.06, type: 'triangle', gain: 0.06 }); updateItemBox(); }
+}
+
 // ---------------- 界面 ----------------
+// 道具框：大图标是马上能用的道具，下面一排小格是后面排着的（抽取中的格子在转）
+const itemKey = (c) => `${c.items.join(',')}|${c.pending.length}`;
 function updateItemBox() {
   const p = player;
-  if (!p) return;
-  if (p.rolling > 0) {
-    const ids = Object.keys(ITEMS);
-    itemBoxEl.querySelector('.icon').textContent = ITEMS[ids[Math.floor(elapsed * 14) % ids.length]].icon;
-    itemBoxEl.querySelector('.label').textContent = '抽取中…';
-    itemBoxEl.dataset.item = '';
-    return;
+  if (!p || !p.items) return;
+  const ids = Object.keys(ITEMS);
+  const roulette = ITEMS[ids[Math.floor(elapsed * 14) % ids.length]].icon;
+  const first = p.items[0];
+  itemBoxEl.dataset.key = itemKey(p);
+  itemBoxEl.querySelector('.icon').textContent = first ? ITEMS[first].icon : p.pending.length ? roulette : '';
+  itemBoxEl.querySelector('.label').textContent = first ? `${ITEMS[first].name} · X 使用${p.items.length > 1 ? ' · Z 换' : ''}` : p.pending.length ? '抽取中…' : '撞道具箱拿道具';
+  const slots = [];
+  for (let i = 1; i < ITEM_SLOTS; i++) {
+    const id = p.items[i];
+    const rolling = !id && i - p.items.length < p.pending.length && i >= p.items.length;
+    slots.push(`<span class="slot${id || rolling ? ' on' : ''}">${id ? ITEMS[id].icon : rolling ? roulette : ''}</span>`);
   }
-  itemBoxEl.dataset.item = p.item ?? '';
-  itemBoxEl.querySelector('.icon').textContent = p.item ? ITEMS[p.item].icon : '';
-  itemBoxEl.querySelector('.label').textContent = p.item ? `${ITEMS[p.item].name} · X 使用` : '撞道具箱拿道具';
-  itemBoxEl.classList.toggle('has', !!p.item);
+  itemBoxEl.querySelector('.queue').innerHTML = slots.join('');
+  itemBoxEl.classList.toggle('has', !!first);
 }
+// 触屏：点道具框换道具
+itemBoxEl.addEventListener('pointerdown', (e) => { if (player && isItems()) { e.preventDefault(); swapItems(player); } });
 
 function itemHudHtml() {
   const p = player;
@@ -6590,7 +6908,7 @@ function heliHud() {
 // 输入：键盘 + 触屏按键
 // =====================================================================
 const keys = new Set();
-const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'];
+const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ'];
 const menu = $('menu');
 const dialog = menu.querySelector('.dialog');
 let menuKind = null;
@@ -6638,6 +6956,7 @@ function press(code) {
     return;
   }
   if (code === 'KeyX' && raceState === 'racing' && isItems() && !player.finished) return useItem(player);
+  if (code === 'KeyZ' && raceState === 'racing' && isItems() && !player.finished) return swapItems(player);
   if (code === 'KeyC' && raceState === 'racing' && !player.finished) {
     if (!useNitro(player)) {
       const fill = $('nitroFill');
@@ -6786,7 +7105,7 @@ function keysHelp() {
     漂移：高速过弯时打满方向 + 踩油门（或点一下刹车），漂移超过 1 秒会奖励氮气<br>
     小喷：漂移结束或飞跃落地后马上松开再按一下 <kbd>↑</kbd>，越快越好（0.2 秒内是完美小喷）；发车灯熄灭的瞬间按 <kbd>↑</kbd> 完美起步<br>
     自由驾驶：没有护栏、不管逆行，四张地图由公路连成一片，山、楼、树、大海以外哪里都能去<br>
-    <kbd>X</kbd> 使用道具（道具赛）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 鹈鹕视角 / 自由）<br>
+    <kbd>X</kbd> 使用道具 / <kbd>Z</kbd> 换道具（道具赛，最多存 3 个）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 鹈鹕视角 / 自由）<br>
     <kbd>Tab</kbd> 或点击小地图：全景地图　<kbd>R</kbd> 撞车后重新启动　<kbd>P</kbd> 暂停　<kbd>M</kbd> 音效开关　<kbd>B</kbd> 背景音乐　<kbd>N</kbd> 下一首　<kbd>V</kbd> 后视镜　<kbd>Esc</kbd> 菜单
   </div>`;
 }
@@ -8124,6 +8443,15 @@ window.__pelicanRacing = {
   autopilot(on = true) { autoDrive = on; },
 };
 let autoDrive = false;   // 测试用：让 AI 代驾玩家
+
+// 声音：页面一打开就建好音频（菜单音乐会立刻排好），浏览器允许出声之前先暂停着；
+// 第一次点击 / 触摸 / 按键（点哪里都行）就开启
+function updateAudioHint() {
+  document.body.classList.toggle('audio-locked', !sound.ctx || sound.ctx.state !== 'running');
+}
+for (const ev of ['pointerdown', 'keydown', 'touchstart']) addEventListener(ev, () => { sound.unlock(); updateAudioHint(); }, { capture: true, passive: true });
+sound.init();
+updateAudioHint();
 
 setupRace({ newRivals: true });
 openMainMenu();
