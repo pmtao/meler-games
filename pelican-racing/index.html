@@ -186,6 +186,8 @@ body.touch #hint, body.replaying #hint { display: none; }
 #itemBox .icon { font-size: 40px; line-height: 1; min-height: 44px; }
 #itemBox .label { font-size: 10px; text-align: center; color: #1d3040c0; padding: 0 4px; }
 #flash { position: fixed; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; z-index: 20; }
+#touch #tWalk { left: calc(128px + var(--sl)); bottom: calc(96px + var(--sb)); }
+#touch #tWalk[hidden] { display: none; }
 #touch #tItem { right: calc(94px + var(--sr)); bottom: calc(222px + var(--sb)); background: #f2c230b0; font-size: 15px; }
 @media (max-width: 760px), (max-height: 500px) {
   #modeHud { top: calc(40px + var(--st)); min-width: 180px; font-size: 11px; padding: 4px 10px; }
@@ -197,6 +199,11 @@ body.touch #hint, body.replaying #hint { display: none; }
 /* 浏览器还不允许出声时的提示（第一次点击 / 按键后消失） */
 #audioHint { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: #1d3040e6; color: #fff; font-size: 14px; padding: 6px 16px; border-radius: 99px; pointer-events: none; display: none; animation: glow 1.2s ease-in-out infinite alternate; }
 body.audio-locked #audioHint { display: block; }
+
+/* 前方特色路段提示 */
+#featureCue { position: fixed; left: 50%; top: 96px; transform: translateX(-50%); z-index: 20; display: none; padding: 5px 14px; border-radius: 10px;
+  background: #1d3040e0; color: #fff; font-size: 15px; font-weight: 700; pointer-events: none; white-space: nowrap; border-left: 6px solid var(--cue, #f2c230); }
+#featureCue.near { animation: glow 0.4s ease-in-out infinite alternate; }
 
 /* ?fps=1 帧率显示 */
 #fps { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 50; font: 12px/1.4 ui-monospace, monospace; color: #fff; background: #0008; padding: 2px 8px; border-radius: 6px; pointer-events: none; }
@@ -234,8 +241,9 @@ body.audio-locked #audioHint { display: block; }
 <div id="message" class="card"></div>
 <div id="mirror"></div>
 <div id="nowPlaying" class="card"></div>
+<div id="featureCue"></div>
 <div id="audioHint">🔈 点击任意位置开启声音</div>
-<div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>Z</kbd> 换道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
+<div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>Z</kbd> 换道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>F</kbd> 下车/上车 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
 <div id="replayBar" class="card">
   <div class="rp-row"><b>🎬 回放</b><span id="rpTime">00:00.00</span><input id="rpSeek" type="range" min="0" max="1000" value="0" step="1"><span id="rpTotal"></span></div>
   <div class="rp-row">
@@ -262,6 +270,7 @@ body.audio-locked #audioHint { display: block; }
   <button id="tView" class="small" data-key="KeyT" aria-label="视角">视角</button>
   <button id="tReset" class="small" data-key="KeyR" aria-label="重新启动">R</button>
   <button id="tItem" data-key="KeyX" aria-label="道具">道具</button>
+  <button id="tWalk" class="small" data-key="KeyF" aria-label="下车 / 上车" hidden>🚶</button>
 </div>
 <div id="rotateTip">横屏体验更好</div>
 
@@ -582,32 +591,32 @@ const CAR_BY_ID = Object.fromEntries(CARS.map((c) => [c.id, c]));
 
 // =====================================================================
 // 赛道定义：闭合路线的控制点 [x, z]，第一个点就是起终点线，沿数组顺序行驶
-// ramps：长直道上的跳台（at 一圈里的位置，lat 横向位置 × 路面半宽，正值在左侧）
+// W：路面半宽（米）。跳台、加速带、减速带每次建地图时随机摆放（见 track-geometry.js 的 generateRoadFeatures）
 // =====================================================================
 const TRACKS = [
   {
-    id: 'seaside', name: '阳光海滨', theme: 'seaside', W: 8, level: 1, ramps: [{ at: 0.1, lat: 0.5 }],
+    id: 'seaside', name: '阳光海滨', theme: 'seaside', W: 16, level: 1,
     desc: '棕榈树与沙滩，大弯为主，适合新手',
     points: [[-120, -15], [100, -10], [260, 10], [330, 80], [300, 160], [200, 190], [80, 150], [0, 190], [-100, 230], [-240, 210], [-330, 130], [-340, 50], [-300, 0]],
   },
   {
-    id: 'canyon', name: '红岩峡谷', theme: 'canyon', W: 7.5, level: 2,
+    id: 'canyon', name: '红岩峡谷', theme: 'canyon', W: 15, level: 2,
     desc: '沙漠中的高速赛道，有一个急速发夹弯',
     points: [[0, 0], [200, 0], [350, 40], [400, 150], [330, 230], [220, 200], [150, 260], [180, 360], [80, 420], [-60, 380], [-120, 280], [-60, 200], [-160, 140], [-260, 180], [-340, 100], [-280, 10], [-150, -20]],
   },
   {
-    id: 'snow', name: '雪山松林', theme: 'snow', W: 7, level: 3,
+    id: 'snow', name: '雪山松林', theme: 'snow', W: 14, level: 3,
     desc: '林间连续弯道，节奏紧凑，考验走线',
     points: [[0, 0], [150, -10], [240, 50], [220, 140], [120, 160], [90, 240], [160, 320], [100, 400], [-20, 380], [-60, 300], [-150, 280], [-220, 200], [-180, 110], [-230, 40], [-150, -10]],
   },
   {
-    id: 'night', name: '霓虹夜城', theme: 'night', W: 7.5, level: 3, ramps: [{ at: 0.47, lat: -0.5 }],
+    id: 'night', name: '霓虹夜城', theme: 'night', W: 15, level: 3,
     desc: '夜晚的城市街道赛，长直道接直角弯',
     points: [[0, 0], [240, 0], [270, 10], [280, 40], [280, 140], [270, 170], [240, 180], [160, 180], [130, 190], [120, 220], [120, 300], [110, 330], [80, 340], [-120, 340], [-150, 330], [-160, 300], [-160, 120], [-170, 90], [-200, 80], [-260, 80], [-290, 70], [-300, 40], [-290, 10], [-260, 0]],
   },
   {
     // 仿《极品飞车：热力追踪》的山海高速：超宽路面、超长直道、高速大弯，最适合警匪追逐
-    id: 'sunset', name: '落日公路', theme: 'sunset', W: 9, level: 2, ramps: [{ at: 0.08, lat: 0.5 }, { at: 0.15, lat: -0.5 }],
+    id: 'sunset', name: '落日公路', theme: 'sunset', W: 18, level: 2,
     desc: '夕阳下的山林高速，超长直道接高速大弯，最适合警匪追逐',
     points: [[0, 0], [300, -10], [600, 20], [820, 120], [900, 300], [820, 470], [600, 540], [380, 500], [200, 560], [0, 620], [-220, 560], [-380, 420], [-420, 240], [-330, 90], [-180, 20]],
   },
@@ -736,13 +745,14 @@ shareAll(PG);
 // 头盔 / 赛车服贴图按颜色缓存（同色的车手共用）
 const gearCache = new Map();
 function gearMaterials(helmetColor, suitColor) {
-  const key = `${helmetColor}-${suitColor}`;
+  const key = `${helmetColor}-${suitColor}-${pixelActive}`;
+  const sz = pixelActive ? 1 / 8 : 1;   // 像素世界：贴图缩小 8 倍、按最近点采样
   if (gearCache.has(key)) return gearCache.get(key);
   const hc = toCss(helmetColor), sc = toCss(suitColor);
   const light = (c) => new THREE.Color(c).getHSL({}).l > 0.7;
   const stripe = light(helmetColor) ? '#d8452a' : '#f4f4f4';
   // 头盔：球面 u 绕一圈（u=0.25 朝前），v 从头顶往下；中间一道宽条纹 + 两侧号码圆 + 后脑字样
-  const helmetTex = canvasTexture(512, (g, w, h) => {
+  const helmetTex = canvasTexture(512 * sz, (g, w, h) => {
     g.fillStyle = hc; g.fillRect(0, 0, w, h);
     g.fillStyle = stripe;
     for (const u of [0.25, 0.75]) g.fillRect((u - 0.035) * w, 0, 0.07 * w, h);   // 从前到后的中线条纹
@@ -754,10 +764,10 @@ function gearMaterials(helmetColor, suitColor) {
     for (const u of [0.0, 0.5, 1.0]) g.fillText('P', u * w, h * 0.56);
     g.fillStyle = stripe; g.font = `900 ${h * 0.1}px Arial`;
     g.fillText('PELICAN', 0.75 * w, h * 0.62);
-  }, { height: 256 });
-  const helmet = new THREE.MeshPhysicalMaterial({ map: helmetTex, metalness: 0.2, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.04 });
+  }, { height: 256 * sz });
+  const helmet = new THREE.MeshPhysicalMaterial({ map: pixelateTex(helmetTex), metalness: 0.2, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.04, flatShading: pixelActive });
   // 赛车服：车队色 + 两侧白色竖条 + 胸前赞助商贴片
-  const suitTex = canvasTexture(256, (g, w, h) => {
+  const suitTex = canvasTexture(256 * sz, (g, w, h) => {
     g.fillStyle = sc; g.fillRect(0, 0, w, h);
     g.fillStyle = '#f4f4f4';
     for (const u of [0.0, 0.5, 1.0]) g.fillRect((u - 0.03) * w, 0, 0.06 * w, h);   // 两侧竖条
@@ -765,8 +775,8 @@ function gearMaterials(helmetColor, suitColor) {
     g.fillStyle = '#d8452a'; g.font = `900 ${h * 0.08}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText('PELICAN', 0.25 * w, 0.48 * h);
     g.fillStyle = '#00000030'; g.fillRect(0, 0.62 * h, w, 0.02 * h);              // 腰带
-  }, { height: 256 });
-  const suit = new THREE.MeshStandardMaterial({ map: suitTex, roughness: 0.8 });
+  }, { height: 256 * sz });
+  const suit = new THREE.MeshStandardMaterial({ map: pixelateTex(suitTex), roughness: 0.8, flatShading: pixelActive });
   const sleeve = new THREE.MeshStandardMaterial({ color: suitColor, roughness: 0.8 });
   const glove = new THREE.MeshStandardMaterial({ color: light(suitColor) ? 0x1d1d20 : 0xf2f2f2, roughness: 0.6 });
   const out = { helmet, suit, sleeve, glove };
@@ -866,7 +876,8 @@ function animatePelican(pel, dt, t, steer, accel, speed) {
   const pitchTarget = clamp(-accel * 0.012, -0.25, 0.25);
   pel.headPitch += (pitchTarget - pel.headPitch) * Math.min(1, dt * 6);
   pel.head.rotation.set(pel.headPitch, pel.headYaw, Math.sin(t * 17) * 0.004 * Math.min(speed / 30, 1));
-  pel.head.position.z = 0.14 + pel.headPitch * 0.12;
+  pel.head.position.z = (pel.headZ ?? 0.14) + pel.headPitch * 0.12;
+  if (!pel.pouch) return;   // 其他角色没有喉囊、冠羽
   // 弹簧阻尼：加速度让喉囊晃动
   pel.pouchVel += (-80 * pel.pouchOffset - 7 * pel.pouchVel + accel * 0.35) * dt;
   pel.pouchOffset = clamp(pel.pouchOffset + pel.pouchVel * dt, -0.35, 0.45);
@@ -915,6 +926,16 @@ function stationInterpolator(stations) {
   };
 }
 
+// 像素世界：车身放样降成低面数（平面着色看得出棱角），涂装贴图降低分辨率并按最近点采样（像素格）
+const pixSeg = (seg) => (pixelActive ? Math.max(8, Math.round(seg / 3.5)) : seg);
+const pixRings = (rings) => (pixelActive ? Math.max(8, Math.round(rings / 4.5)) : rings);
+function pixelateTex(tex) {
+  if (!pixelActive) return tex;
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestMipmapLinearFilter;
+  return tex;
+}
+
 // 截面 z 处的一圈轮廓点（超椭圆，上半部收窄，轮拱处挖掉）
 function loftRing(at, z, seg, arches = [], archInner = 0) {
   let [y0, y1, wb, wt, n] = at(z);
@@ -939,6 +960,7 @@ function loftRing(at, z, seg, arches = [], archInner = 0) {
 
 // open: { rear, front } 为 true 时不封口（由 endPanel 做成带贴图的车尾 / 车头面板）
 function loftGeometry(stations, { rings = 90, seg = 44, arches = [], archInner = 0, open = {} } = {}) {
+  rings = pixRings(rings); seg = pixSeg(seg);
   const at = stationInterpolator(stations);
   const zA = stations[0][0], zB = stations[stations.length - 1][0];
   const pos = [], uv = [], idx = [];
@@ -980,12 +1002,13 @@ function loftGeometry(stations, { rings = 90, seg = 44, arches = [], archInner =
 
 // 车身涂装：在 (u, v) 坐标里画色块、条纹、号码
 function livery(stations, draw, size = 1024) {
+  if (pixelActive) size = Math.min(size, 128);
   const zA = stations[0][0], zB = stations[stations.length - 1][0];
   const mid = stations[Math.floor(stations.length / 2)];
   const perim = Math.PI * Math.sqrt(2 * (mid[3] ** 2 + ((mid[2] - mid[1]) / 2) ** 2));
   const aspect = (size / (zB - zA)) / (size / perim);   // u 方向每米像素数 / v 方向每米像素数
   const zu = (z) => (z - zA) / (zB - zA);
-  return canvasTexture(size, (g, w, h) => {
+  const tex = canvasTexture(size, (g, w, h) => {
     const P = {
       g, zu,
       rect(z0, z1, v0, v1, color) {
@@ -1025,11 +1048,14 @@ function livery(stations, draw, size = 1024) {
     };
     draw(P, w, h);
   });
+  return pixelateTex(tex);
 }
 
 // 车尾 / 车头的端面面板：沿放样端面的轮廓做一圈斜边，中间往车身里凹进去一点，
 // 用平面贴图（从车外看过去：X 向右、Y 向上，单位米），draw(P) 里画饰板、格栅、牌照、分缝线
 function endPanel(stations, end, draw, { recess = 0.035, bevel = 0.05, size = 512, seg = 44 } = {}) {
+  seg = pixSeg(seg);
+  if (pixelActive) size = 64;
   const at = stationInterpolator(stations);
   const rear = end === 'rear';
   const z = rear ? stations[0][0] : stations[stations.length - 1][0];
@@ -1094,8 +1120,9 @@ function endPanel(stations, end, draw, { recess = 0.035, bevel = 0.05, size = 51
       },
     };
     draw(P);
-  }, { height: Math.max(64, Math.round((size * H) / (2 * W))) });
+  }, { height: Math.max(pixelActive ? 16 : 64, Math.round((size * H) / (2 * W))) });
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  pixelateTex(tex);
   return mesh(g, paintMaterial(tex));
 }
 
@@ -1109,7 +1136,7 @@ function sideLines(P, lines, color = '#0000004a') {
 }
 
 function paintMaterial(map) {
-  return new THREE.MeshPhysicalMaterial({ color: 0xffffff, map, metalness: 0.3, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.06 });
+  return new THREE.MeshPhysicalMaterial({ color: 0xffffff, map, metalness: 0.3, roughness: 0.3, clearcoat: pixelActive ? 0.3 : 1, clearcoatRoughness: 0.06, flatShading: pixelActive });
 }
 const glassMaterial = (map) => new THREE.MeshPhysicalMaterial({ color: 0xffffff, map, metalness: 0.25, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 });
 
@@ -1749,7 +1776,8 @@ const CAR_BUILDERS = {
         wheels.push(w);
       }
     }
-    return { group: g, wheels, seat: v(0, 0.5, -0.55), pelScale: 1.35, wheelPos: v(0, 0.95, 0.1), wheelTilt: -1.1, wheelR: 0.17, wheelStyle: 'round', exhausts: [v(-0.5, 0.33, -2.21)], tails: [v(0.56, 0.8, -2.09), v(-0.56, 0.8, -2.09)], half: [0.95, 2.1], camH: 2.8, camD: 7.2 };
+    // charLift：其他角色没有鹈鹕的长脖子，坐高一点才能从天窗探出头
+    return { group: g, wheels, seat: v(0, 0.5, -0.55), pelScale: 1.35, charLift: 0.34, wheelPos: v(0, 0.95, 0.1), wheelTilt: -1.1, wheelR: 0.17, wheelStyle: 'round', exhausts: [v(-0.5, 0.33, -2.21)], tails: [v(0.56, 0.8, -2.09), v(-0.56, 0.8, -2.09)], half: [0.95, 2.1], camH: 2.8, camD: 7.2 };
   },
 
   // 美式肌肉车：长车头短车尾的敞篷，镀铬保险杠、圆形大灯、引擎盖进气口、白色赛道条纹、侧排气
@@ -1894,6 +1922,536 @@ const CAR_BUILDERS = {
   },
 };
 
+/* ===== js/models/characters.js ===== */
+// 车手角色库：鹈鹕之外的 19 个角色（猫头鹰、海绵宝宝、派大星、小黄人、河狸、帝企鹅、巴斯光年……），凑够 20 个。
+// 每个角色用椭球 / 盒子 / 圆柱 / 圆锥 / 圆环拼出来，接口和鹈鹕车手一样（group / head / bill / crest / wings），
+// 所以头会转、手握方向盘、第一人称隐藏头部、像素风格下体素化都能直接用。坐标：原点在座椅上，y 朝上，z 朝车头。
+'use strict';
+
+// 角色用的材质按颜色缓存共用
+const charMats = new Map();
+function cmat(color, { r = 0.6, m = 0, e = null, o = 1 } = {}) {
+  const key = `${color}|${r}|${m}|${e}|${o}`;
+  if (!charMats.has(key)) {
+    const mt = new THREE.MeshStandardMaterial({ color, roughness: r, metalness: m, ...(e !== null ? { emissive: e, emissiveIntensity: 1.2 } : {}), ...(o < 1 ? { transparent: true, opacity: o, depthWrite: false } : {}) });
+    mt.userData.shared = true;
+    charMats.set(key, mt);
+  }
+  return charMats.get(key);
+}
+const CONE = new THREE.ConeGeometry(1, 1, 16);
+const TORUS = new THREE.TorusGeometry(1, 0.08, 8, 24);
+CONE.userData.shared = TORUS.userData.shared = true;
+
+// 往 parent 里加零件的小工具：s 椭球、b 盒子、c 圆柱、k 圆锥（尖朝 +y）、t 圆环、eyes 一对眼睛
+function charKit(parent) {
+  const put = (m, x, y, z, rx = 0, ry = 0, rz = 0) => { m.position.set(x, y, z); m.rotation.set(rx, ry, rz); parent.add(m); return m; };
+  return {
+    s: (col, x, y, z, sx, sy, sz, rx, ry, rz, o) => { const m = put(mesh(PG.sphere24, cmat(col, o)), x, y, z, rx, ry, rz); m.scale.set(sx, sy, sz); return m; },
+    b: (col, w, h, d, x, y, z, rx, ry, rz, o) => put(mesh(new THREE.BoxGeometry(w, h, d), cmat(col, o)), x, y, z, rx, ry, rz),
+    c: (col, rt, rb, h, x, y, z, rx, ry, rz, o) => put(mesh(new THREE.CylinderGeometry(rt, rb, h, 18), cmat(col, o)), x, y, z, rx, ry, rz),
+    k: (col, r, h, x, y, z, rx, ry, rz, o) => { const m = put(mesh(CONE, cmat(col, o)), x, y, z, rx, ry, rz); m.scale.set(r, h, r); return m; },
+    t: (col, R, x, y, z, rx, ry, rz, o) => { const m = put(mesh(TORUS, cmat(col, o)), x, y, z, rx, ry, rz); m.scale.setScalar(R); return m; },
+    // 一对眼睛：眼白 + 虹膜 + 瞳孔（x 是离中线的距离，z 是眼白中心，r 是眼白半径）
+    eyes(x, y, z, r, iris = 0x111111, { white = 0xffffff, pupil = 0x111111, irisK = 0.55 } = {}) {
+      for (const s of [-1, 1]) {
+        this.s(white, s * x, y, z, r, r, r * 0.55);
+        this.s(iris, s * x, y, z + r * 0.45, r * irisK, r * irisK, r * 0.2);
+        this.s(pupil, s * x, y, z + r * 0.58, r * irisK * 0.5, r * irisK * 0.5, r * 0.12);
+      }
+    },
+  };
+}
+const torso = (k, col, belly = null, { y = 0.22, w = 0.25, h = 0.32, d = 0.22 } = {}) => {
+  k.s(col, 0, y, -0.04, w, h, d);
+  if (belly !== null) k.s(belly, 0, y - 0.02, 0.08, w * 0.7, h * 0.78, d * 0.6);
+};
+
+const CHARACTERS = [
+  { id: 'pelican', name: '鹈鹕', icon: '🐦', color: 0xe53935 },
+  {
+    id: 'owl', name: '猫头鹰', icon: '🦉', color: 0x9c6b3c, arm: 0x8a5a3a, hand: 0x6a4428,
+    torso: (k) => { torso(k, 0x8a5a3a, 0xe8d6b0); for (const y of [0.12, 0.2, 0.28]) k.b(0xb08a5a, 0.12, 0.012, 0.01, 0, y, 0.2); },
+    head: (k) => {
+      k.s(0x8a5a3a, 0, 0, 0, 0.17, 0.15, 0.15);
+      for (const s of [-1, 1]) k.s(0xe8d6b0, s * 0.07, 0.0, 0.1, 0.08, 0.08, 0.04);
+      k.eyes(0.07, 0.01, 0.125, 0.05, 0xf2b705, { white: 0xf2b705, irisK: 0.7 });
+      k.k(0xf28c28, 0.025, 0.07, 0, -0.045, 0.15, Math.PI / 2 + 0.4);
+      for (const s of [-1, 1]) k.k(0x6a4428, 0.035, 0.09, s * 0.1, 0.14, 0.0, 0, 0, -s * 0.35);
+    },
+  },
+  {
+    id: 'spongebob', name: '海绵宝宝', icon: '🧽', color: 0xf5e04a, arm: 0xf5e04a, hand: 0xf5e04a, headY: 0.73, headScale: 1.15, noNeck: true,
+    torso: (k) => {
+      k.b(0xf4f4f4, 0.42, 0.09, 0.15, 0, 0.445, 0);          // 白衬衫
+      k.b(0xd42020, 0.04, 0.13, 0.012, 0, 0.42, 0.08);       // 红领带
+      k.b(0x1d1d21, 0.43, 0.02, 0.155, 0, 0.39, 0);          // 腰带
+      k.b(0x8a5a2b, 0.42, 0.14, 0.15, 0, 0.32, 0);           // 棕色短裤
+    },
+    head: (k) => {
+      k.b(0xf5e04a, 0.44, 0.42, 0.16, 0, 0, 0);
+      for (const [x, y, z, r] of [[-0.15, 0.13, 0.08, 0.03], [0.16, 0.15, 0.08, 0.025], [-0.17, -0.12, 0.08, 0.025], [0.14, -0.14, 0.08, 0.03], [0.02, 0.17, 0.08, 0.02], [0.22, 0, 0, 0.04], [-0.22, 0.05, 0.02, 0.035]])
+        k.s(0xbfae2a, x, y, z, r, r, 0.012);                 // 海绵上的小洞
+      k.eyes(0.075, 0.06, 0.09, 0.07, 0x3a8ee6);
+      k.c(0xf5e04a, 0.018, 0.022, 0.09, 0, -0.0, 0.12, Math.PI / 2);   // 长鼻子
+      k.b(0x8a1c1c, 0.16, 0.03, 0.012, 0, -0.1, 0.082);      // 大笑的嘴
+      for (const s of [-1, 1]) k.b(0xffffff, 0.035, 0.04, 0.012, s * 0.022, -0.085, 0.088);   // 两颗门牙
+      for (const s of [-1, 1]) k.s(0xe8a040, s * 0.13, -0.06, 0.082, 0.03, 0.02, 0.01);      // 雀斑脸颊
+    },
+  },
+  {
+    id: 'patrick', name: '派大星', icon: '⭐', color: 0xf49ac1, arm: 0xf49ac1, hand: 0xf49ac1, headY: 0.72, headScale: 1.25, noNeck: true,
+    torso: (k) => {
+      k.s(0xf49ac1, 0, 0.3, -0.02, 0.24, 0.24, 0.2);
+      k.c(0x6fbf3a, 0.22, 0.25, 0.16, 0, 0.1, -0.02);        // 绿色短裤
+      for (const [x, y] of [[-0.12, 0.12], [0.08, 0.06], [0.14, 0.14], [-0.04, 0.03]]) k.s(0x8a4fbf, x, y, 0.2, 0.03, 0.03, 0.01);   // 紫色小花
+    },
+    head: (k) => {
+      k.k(0xf49ac1, 0.16, 0.36, 0, 0.02, 0);                 // 星星最上面的一个角
+      for (const s of [-1, 1]) {
+        k.s(0xffffff, s * 0.035, 0.0, 0.07, 0.03, 0.045, 0.02);
+        k.s(0x111111, s * 0.035, -0.005, 0.087, 0.013, 0.018, 0.008);
+        k.b(0x111111, 0.04, 0.008, 0.006, s * 0.04, 0.06, 0.07, 0, 0, s * 0.35);
+      }
+      k.b(0x8a1c1c, 0.07, 0.012, 0.006, 0, -0.07, 0.1);
+    },
+  },
+  {
+    id: 'minion', name: '小黄人', icon: '🟡', color: 0x2f5e9e, arm: 0xf6d23a, hand: 0x1d1d21, headY: 0.6, headScale: 1.15, noNeck: true,
+    torso: (k) => {
+      k.c(0xf6d23a, 0.17, 0.17, 0.34, 0, 0.33, 0);
+      k.c(0x2f5e9e, 0.176, 0.176, 0.2, 0, 0.2, 0);           // 牛仔背带裤
+      k.b(0x2f5e9e, 0.18, 0.14, 0.02, 0, 0.36, 0.165);
+      for (const s of [-1, 1]) k.b(0x2f5e9e, 0.03, 0.16, 0.012, s * 0.1, 0.44, 0.15, -0.2);
+      k.s(0x1d1d21, 0, 0.33, 0.176, 0.025, 0.025, 0.006);    // 口袋上的标志
+    },
+    head: (k) => {
+      k.s(0xf6d23a, 0, 0, 0, 0.17, 0.17, 0.17);
+      k.t(0x1d1d21, 0.172, 0, 0, 0, Math.PI / 2);             // 护目镜绑带
+      k.c(0x9a9a9a, 0.068, 0.068, 0.05, 0, 0, 0.155, Math.PI / 2, 0, 0, { m: 0.8, r: 0.3 });
+      k.s(0xffffff, 0, 0, 0.18, 0.055, 0.055, 0.02);
+      k.s(0x6b3a1a, 0, 0, 0.195, 0.025, 0.025, 0.008);
+      k.s(0x111111, 0, 0, 0.2, 0.012, 0.012, 0.004);
+      k.b(0x3a1a1a, 0.07, 0.014, 0.006, 0, -0.1, 0.14, -0.4);
+      for (const x of [-0.03, 0, 0.03]) k.b(0x111111, 0.004, 0.06, 0.004, x, 0.19, 0, 0, 0, x * 4);   // 几根头发
+    },
+  },
+  {
+    id: 'beaver', name: '河狸', icon: '🦫', color: 0x7a4a2a, arm: 0x7a4a2a, hand: 0x4a2e1a,
+    torso: (k) => { torso(k, 0x7a4a2a, 0xa8784a); k.s(0x4a2e1a, 0, 0.02, -0.34, 0.12, 0.03, 0.2); },   // 扁扁的尾巴
+    head: (k) => {
+      k.s(0x7a4a2a, 0, 0, 0, 0.15, 0.14, 0.15);
+      k.s(0xc8a27a, 0, -0.035, 0.11, 0.08, 0.06, 0.06);
+      k.s(0x111111, 0, -0.005, 0.165, 0.025, 0.018, 0.015);
+      for (const s of [-1, 1]) k.b(0xf28c28, 0.03, 0.05, 0.012, s * 0.017, -0.085, 0.155);
+      for (const s of [-1, 1]) { k.s(0x111111, s * 0.06, 0.045, 0.12, 0.02, 0.022, 0.015); k.s(0x5e3620, s * 0.1, 0.11, -0.01, 0.035, 0.035, 0.02); }
+    },
+  },
+  {
+    id: 'penguin', name: '帝企鹅', icon: '🐧', color: 0x1e88e5, arm: 0x1a1a22, hand: 0x1a1a22,
+    torso: (k) => { torso(k, 0x1a1a22, 0xf4f4f4, { h: 0.3 }); k.s(0xf6d88a, 0, 0.38, 0.07, 0.12, 0.06, 0.08); },
+    head: (k) => {
+      k.s(0x1a1a22, 0, 0, 0, 0.14, 0.14, 0.14);
+      for (const s of [-1, 1]) { k.s(0xf2a33a, s * 0.11, -0.03, 0.03, 0.03, 0.065, 0.05); k.s(0xffffff, s * 0.06, 0.03, 0.115, 0.018, 0.018, 0.01); k.s(0x111111, s * 0.06, 0.03, 0.125, 0.009, 0.009, 0.005); }
+      k.k(0x1a1a22, 0.03, 0.14, 0, -0.02, 0.17, Math.PI / 2);
+      k.s(0xf28c28, 0, -0.038, 0.15, 0.018, 0.01, 0.05);
+    },
+  },
+  {
+    id: 'buzz', name: '巴斯光年', icon: '🚀', color: 0x3aa84a, arm: 0xf2f2f2, hand: 0x6a3fa0,
+    torso: (k) => {
+      k.s(0xf2f2f2, 0, 0.2, -0.04, 0.24, 0.3, 0.22);
+      k.b(0x3aa84a, 0.2, 0.14, 0.02, 0, 0.3, 0.17);           // 胸前绿色面板
+      for (const [x, col] of [[-0.05, 0xd42020], [0, 0x2f5ed0], [0.05, 0x7ad4ff]]) k.s(col, x, 0.3, 0.182, 0.015, 0.015, 0.008);
+      k.t(0x6a3fa0, 0.1, 0, 0.47, 0, Math.PI / 2, 0, 0);       // 紫色领口
+      k.b(0xf2f2f2, 0.5, 0.03, 0.12, 0, 0.36, -0.25);          // 收起来的翅膀
+    },
+    head: (k) => {
+      k.s(0x6a3fa0, 0, 0.02, -0.02, 0.12, 0.13, 0.12);         // 紫色头套
+      k.s(0xf2c9a8, 0, -0.01, 0.03, 0.1, 0.11, 0.1);
+      for (const s of [-1, 1]) { k.s(0xffffff, s * 0.035, 0.02, 0.118, 0.018, 0.014, 0.008); k.s(0x3a6fb0, s * 0.035, 0.02, 0.125, 0.009, 0.009, 0.004); k.b(0x3a2a1a, 0.035, 0.008, 0.006, s * 0.037, 0.045, 0.118); }
+      k.b(0xb0584a, 0.035, 0.008, 0.006, 0, -0.055, 0.12);
+      k.s(0xcfe8ff, 0, 0.02, 0.02, 0.17, 0.18, 0.18, 0, 0, 0, { o: 0.22, r: 0.05 });   // 透明头盔罩
+    },
+  },
+  {
+    id: 'panda', name: '熊猫', icon: '🐼', color: 0xf4f4f4, arm: 0x1a1a1e, hand: 0x1a1a1e,
+    torso: (k) => { torso(k, 0xf4f4f4); k.s(0x1a1a1e, 0, 0.36, -0.04, 0.23, 0.08, 0.21); },
+    head: (k) => {
+      k.s(0xf4f4f4, 0, 0, 0, 0.16, 0.15, 0.15);
+      for (const s of [-1, 1]) {
+        k.s(0x1a1a1e, s * 0.11, 0.11, -0.02, 0.045, 0.045, 0.03);
+        k.s(0x1a1a1e, s * 0.06, 0.02, 0.12, 0.045, 0.035, 0.02, 0, 0, s * 0.4);
+        k.s(0xffffff, s * 0.06, 0.025, 0.137, 0.015, 0.015, 0.006);
+        k.s(0x111111, s * 0.06, 0.025, 0.142, 0.008, 0.008, 0.004);
+      }
+      k.s(0x111111, 0, -0.035, 0.15, 0.025, 0.018, 0.015);
+    },
+  },
+  {
+    id: 'corgi', name: '柯基', icon: '🐕', color: 0xd8893a, arm: 0xd8893a, hand: 0xffffff,
+    torso: (k) => torso(k, 0xd8893a, 0xffffff),
+    head: (k) => {
+      k.s(0xd8893a, 0, 0, 0, 0.14, 0.13, 0.14);
+      k.s(0xffffff, 0, -0.02, 0.1, 0.07, 0.09, 0.07);
+      k.s(0xffffff, 0, -0.05, 0.13, 0.07, 0.05, 0.06);
+      k.s(0x111111, 0, -0.03, 0.19, 0.025, 0.02, 0.02);
+      k.s(0xf28ca0, 0, -0.09, 0.15, 0.025, 0.01, 0.03);
+      for (const s of [-1, 1]) { k.k(0xd8893a, 0.05, 0.13, s * 0.08, 0.15, -0.02, 0, 0, -s * 0.3); k.k(0xf2b8a0, 0.03, 0.09, s * 0.08, 0.14, 0.0, 0, 0, -s * 0.3); k.s(0x111111, s * 0.055, 0.03, 0.12, 0.018, 0.02, 0.012); }
+    },
+  },
+  {
+    id: 'cat', name: '橘猫', icon: '🐱', color: 0xf0962e, arm: 0xf0962e, hand: 0xffffff,
+    torso: (k) => torso(k, 0xf0962e, 0xffffff),
+    head: (k) => {
+      k.s(0xf0962e, 0, 0, 0, 0.15, 0.13, 0.13);
+      for (const s of [-1, 1]) {
+        k.k(0xf0962e, 0.05, 0.09, s * 0.09, 0.12, 0, 0, 0, -s * 0.25);
+        k.k(0xf4a0b8, 0.03, 0.06, s * 0.09, 0.115, 0.012, 0, 0, -s * 0.25);
+        k.s(0x7ac74f, s * 0.055, 0.025, 0.11, 0.025, 0.028, 0.015);
+        k.b(0x111111, 0.006, 0.03, 0.005, s * 0.055, 0.025, 0.124);
+        k.b(0xffffff, 0.08, 0.003, 0.003, s * 0.1, -0.03, 0.1, 0, 0, s * 0.15);
+      }
+      k.s(0xffffff, 0, -0.04, 0.1, 0.07, 0.045, 0.05);
+      k.s(0xf28ca0, 0, -0.02, 0.135, 0.015, 0.012, 0.01);
+      for (const x of [-0.03, 0, 0.03]) k.b(0xc46a1a, 0.012, 0.005, 0.06, x, 0.128, 0.02);   // 额头的花纹
+    },
+  },
+  {
+    id: 'rabbit', name: '兔子', icon: '🐰', color: 0xf4a0b8, arm: 0xf4f4f4, hand: 0xf4f4f4,
+    torso: (k) => torso(k, 0xf4f4f4, 0xfbe4ea),
+    head: (k) => {
+      k.s(0xf4f4f4, 0, 0, 0, 0.14, 0.13, 0.13);
+      for (const s of [-1, 1]) {
+        k.s(0xf4f4f4, s * 0.05, 0.2, -0.02, 0.035, 0.12, 0.025, 0, 0, -s * 0.1);
+        k.s(0xf4a0b8, s * 0.05, 0.2, 0.0, 0.02, 0.09, 0.012, 0, 0, -s * 0.1);
+        k.s(0x111111, s * 0.055, 0.03, 0.11, 0.02, 0.022, 0.012);
+        k.s(0xf8c4d0, s * 0.08, -0.03, 0.1, 0.025, 0.015, 0.01);
+      }
+      k.s(0xf28ca0, 0, -0.01, 0.13, 0.015, 0.012, 0.01);
+      k.b(0xffffff, 0.03, 0.025, 0.006, 0, -0.05, 0.123);
+    },
+  },
+  {
+    id: 'fox', name: '狐狸', icon: '🦊', color: 0xe8762a, arm: 0xe8762a, hand: 0x1d1d21,
+    torso: (k) => { torso(k, 0xe8762a, 0xffffff); k.s(0xe8762a, 0, 0.05, -0.34, 0.08, 0.08, 0.2); k.s(0xffffff, 0, 0.05, -0.52, 0.05, 0.05, 0.06); },
+    head: (k) => {
+      k.s(0xe8762a, 0, 0, 0, 0.14, 0.13, 0.13);
+      k.k(0xe8762a, 0.07, 0.14, 0, -0.03, 0.14, Math.PI / 2);
+      k.s(0x111111, 0, -0.03, 0.21, 0.018, 0.016, 0.014);
+      for (const s of [-1, 1]) {
+        k.s(0xffffff, s * 0.06, -0.05, 0.07, 0.06, 0.05, 0.05);
+        k.k(0xe8762a, 0.05, 0.1, s * 0.08, 0.13, -0.02, 0, 0, -s * 0.3);
+        k.k(0x1d1d21, 0.02, 0.04, s * 0.095, 0.18, -0.02, 0, 0, -s * 0.3);
+        k.s(0x111111, s * 0.05, 0.03, 0.11, 0.018, 0.02, 0.012);
+      }
+    },
+  },
+  {
+    id: 'frog', name: '青蛙', icon: '🐸', color: 0x4caf50, arm: 0x4caf50, hand: 0x4caf50,
+    torso: (k) => torso(k, 0x4caf50, 0xc8e6a0),
+    head: (k) => {
+      k.s(0x4caf50, 0, 0, 0, 0.17, 0.11, 0.14);
+      for (const s of [-1, 1]) {
+        k.s(0x4caf50, s * 0.08, 0.09, 0.05, 0.05, 0.05, 0.05);
+        k.s(0xffffff, s * 0.08, 0.1, 0.085, 0.035, 0.035, 0.02);
+        k.s(0x111111, s * 0.08, 0.1, 0.103, 0.018, 0.018, 0.008);
+        k.s(0xf28ca0, s * 0.1, -0.02, 0.1, 0.025, 0.015, 0.01);
+      }
+      k.b(0x1f5f22, 0.18, 0.008, 0.006, 0, -0.03, 0.132);
+    },
+  },
+  {
+    id: 'pig', name: '小猪', icon: '🐷', color: 0xf4a8b8, arm: 0xf4a8b8, hand: 0xf4a8b8,
+    torso: (k) => torso(k, 0xf4a8b8, 0xf8c4d0),
+    head: (k) => {
+      k.s(0xf4a8b8, 0, 0, 0, 0.15, 0.14, 0.14);
+      k.c(0xe88aa0, 0.05, 0.05, 0.04, 0, -0.02, 0.14, Math.PI / 2);
+      for (const s of [-1, 1]) {
+        k.s(0x8a3a4a, s * 0.018, -0.02, 0.162, 0.01, 0.014, 0.005);
+        k.k(0xf4a8b8, 0.05, 0.07, s * 0.1, 0.12, 0, 0, 0, -s * 0.6);
+        k.s(0x111111, s * 0.06, 0.04, 0.12, 0.015, 0.018, 0.01);
+      }
+    },
+  },
+  {
+    id: 'koala', name: '考拉', icon: '🐨', color: 0x9a9aa2, arm: 0x9a9aa2, hand: 0x9a9aa2,
+    torso: (k) => torso(k, 0x9a9aa2, 0xf0f0f0),
+    head: (k) => {
+      k.s(0x9a9aa2, 0, 0, 0, 0.15, 0.14, 0.14);
+      for (const s of [-1, 1]) {
+        k.s(0x9a9aa2, s * 0.14, 0.08, -0.01, 0.07, 0.07, 0.03);
+        k.s(0xf0f0f0, s * 0.14, 0.08, 0.012, 0.045, 0.045, 0.01);
+        k.s(0x111111, s * 0.06, 0.035, 0.12, 0.015, 0.018, 0.01);
+      }
+      k.s(0x2a2a2a, 0, -0.01, 0.14, 0.04, 0.055, 0.03);
+    },
+  },
+  {
+    id: 'monkey', name: '猴子', icon: '🐵', color: 0x7a4a2a, arm: 0x7a4a2a, hand: 0xe8c29a,
+    torso: (k) => torso(k, 0x7a4a2a, 0xe8c29a),
+    head: (k) => {
+      k.s(0x7a4a2a, 0, 0, 0, 0.14, 0.14, 0.13);
+      k.s(0xe8c29a, 0, -0.02, 0.07, 0.1, 0.09, 0.08);
+      for (const s of [-1, 1]) {
+        k.s(0xe8c29a, s * 0.045, 0.03, 0.08, 0.05, 0.05, 0.05);
+        k.s(0x7a4a2a, s * 0.14, 0.01, 0, 0.05, 0.05, 0.02);
+        k.s(0xe8c29a, s * 0.145, 0.01, 0.012, 0.03, 0.03, 0.01);
+        k.s(0x111111, s * 0.04, 0.03, 0.128, 0.015, 0.018, 0.01);
+        k.s(0x5a3a2a, s * 0.012, -0.03, 0.148, 0.008, 0.006, 0.004);
+      }
+      k.b(0x5a3a2a, 0.05, 0.008, 0.006, 0, -0.07, 0.14);
+    },
+  },
+  {
+    id: 'dino', name: '恐龙', icon: '🦖', color: 0x2e7d32, arm: 0x4caf50, hand: 0x4caf50,
+    torso: (k) => {
+      torso(k, 0x4caf50, 0xc8e6a0);
+      k.s(0x4caf50, 0, 0.04, -0.3, 0.08, 0.08, 0.2);
+      for (const [y, z] of [[0.44, -0.12], [0.34, -0.2], [0.22, -0.24]]) k.k(0xf28c28, 0.03, 0.07, 0, y, z, -0.6);
+    },
+    head: (k) => {
+      k.s(0x4caf50, 0, 0, 0.03, 0.14, 0.13, 0.17);
+      k.s(0x4caf50, 0, -0.03, 0.15, 0.1, 0.07, 0.09);
+      for (let x = -0.06; x <= 0.061; x += 0.03) k.k(0xffffff, 0.01, 0.022, x, -0.085, 0.2, Math.PI);
+      for (const s of [-1, 1]) { k.s(0xffffff, s * 0.07, 0.05, 0.1, 0.03, 0.03, 0.02); k.s(0x111111, s * 0.075, 0.05, 0.118, 0.015, 0.015, 0.008); k.s(0x1f5f22, s * 0.025, -0.01, 0.235, 0.008, 0.006, 0.004); }
+      for (const [y, z] of [[0.13, 0.02], [0.12, -0.08], [0.08, -0.15]]) k.k(0xf28c28, 0.025, 0.06, 0, y, z, -0.4);
+    },
+  },
+  {
+    id: 'robot', name: '机器人', icon: '🤖', color: 0x90a4ae, arm: 0xb0b8c0, hand: 0x505860, headY: 0.6, headScale: 1.3,
+    torso: (k) => {
+      k.b(0xb0b8c0, 0.34, 0.34, 0.26, 0, 0.22, -0.02, 0, 0, 0, { m: 0.6, r: 0.35 });
+      k.b(0x2a3038, 0.14, 0.1, 0.01, 0, 0.28, 0.115);
+      for (const [x, col] of [[-0.04, 0xff4040], [0, 0x40ff80], [0.04, 0x40c0ff]]) k.s(col, x, 0.28, 0.122, 0.012, 0.012, 0.006, 0, 0, 0, { e: col });
+    },
+    head: (k) => {
+      k.b(0xb0b8c0, 0.26, 0.22, 0.22, 0, 0, 0, 0, 0, 0, { m: 0.6, r: 0.35 });
+      k.b(0x1a2030, 0.2, 0.06, 0.01, 0, 0.02, 0.111);
+      for (const s of [-1, 1]) { k.s(0x40e0ff, s * 0.05, 0.02, 0.116, 0.025, 0.02, 0.008, 0, 0, 0, { e: 0x40e0ff }); k.c(0x808890, 0.03, 0.03, 0.03, s * 0.14, 0, 0, 0, 0, Math.PI / 2, { m: 0.7, r: 0.3 }); }
+      k.c(0x808890, 0.006, 0.006, 0.1, 0, 0.16, 0);
+      k.s(0xff3030, 0, 0.22, 0, 0.022, 0.022, 0.022, 0, 0, 0, { e: 0xff3030 });
+      k.b(0x404850, 0.1, 0.03, 0.005, 0, -0.06, 0.111);
+    },
+  },
+  {
+    id: 'duck', name: '小黄鸭', icon: '🐤', color: 0xf6d23a, arm: 0xf6d23a, hand: 0xf28c28,
+    torso: (k) => torso(k, 0xf6d23a, 0xf8e27a),
+    head: (k) => {
+      k.s(0xf6d23a, 0, 0, 0, 0.14, 0.14, 0.14);
+      k.s(0xf28c28, 0, -0.03, 0.14, 0.08, 0.025, 0.07);
+      for (const s of [-1, 1]) { k.s(0x111111, s * 0.06, 0.04, 0.11, 0.02, 0.022, 0.012); k.s(0xffffff, s * 0.064, 0.047, 0.12, 0.006, 0.006, 0.003); }
+      k.k(0xf6d23a, 0.02, 0.06, 0, 0.15, 0);
+    },
+  },
+];
+const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
+
+// 建一个角色车手（鹈鹕走原来的 createPelican）
+function createDriver(charId, helmetColor, suitColor) {
+  if (!charId || charId === 'pelican') return createPelican(helmetColor, suitColor);
+  const ch = CHAR_BY_ID[charId];
+  const group = new THREE.Group();
+  ch.torso(charKit(group));
+  const head = new THREE.Group();
+  const headZ = ch.headZ ?? 0.08, headY = ch.headY ?? 0.7;
+  head.position.set(0, headY, headZ);
+  group.add(head);
+  // 脖子：从身体顶上连到头，头不会悬空（海绵宝宝、派大星、小黄人头身一体，不需要）
+  if (!ch.noNeck) {
+    const neck = mesh(new THREE.CylinderGeometry(0.075, 0.09, headY - 0.36, 14), cmat(ch.neck ?? ch.arm));
+    neck.position.set(0, (headY + 0.36) / 2, headZ * 0.5);
+    group.add(neck);
+  }
+  const look = new THREE.Group();   // 头上所有看得见的东西：第一人称时整个藏起来
+  look.scale.setScalar(ch.headScale ?? 1.45);   // Q 版大头，坐在车里也认得出
+  head.add(look);
+  ch.head(charKit(look));
+  const bill = new THREE.Group();
+  head.add(bill);
+  // 手臂：肩膀固定，前臂每帧指向方向盘握点（和鹈鹕一样）
+  const wings = [-1, 1].map((s) => {
+    const upper = mesh(PG.sphere24, cmat(ch.arm));
+    const fore = mesh(PG.sphere24, cmat(ch.arm));
+    const hand = mesh(PG.sphere16, cmat(ch.hand));
+    hand.scale.set(0.045, 0.034, 0.06);
+    group.add(upper, fore, hand);
+    return { side: s, shoulder: v(0.2 * s, 0.36, 0.02), elbow: v(0.27 * s, 0.2, 0.2), upper, fore, hand };
+  });
+  return { group, head, bill, pouch: null, crest: look, crestAnim: false, headZ, wings, pouchOffset: 0, pouchVel: 0, headYaw: 0, headPitch: 0 };
+}
+
+/* ===== js/models/voxelize.js ===== */
+// 体素化：把车、鹈鹕这些圆滑的模型变成一格一格的方块（像素方块风格用）。
+// 在每个三角形表面按半个方块的间距采样，落到哪个格子就点亮哪个格子，颜色取自材质贴图（涂装的条纹、号码都会变成像素块）或材质颜色；
+// 最后只生成露在外面的方块面（相邻方块之间的面省掉）。车灯等发光零件单独成一组，保留原材质（刹车灯变亮的效果照常）。
+'use strict';
+
+const VOXEL_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.1 });
+const VOXEL_GLASS = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.1, transparent: true, opacity: 0.55, depthWrite: false });
+VOXEL_MAT.userData.shared = VOXEL_GLASS.userData.shared = true;
+
+// 贴图像素缓存（canvas → ImageData）
+const voxelImages = new WeakMap();
+function texPixels(tex) {
+  const img = tex.image;
+  if (!img || !img.getContext) return null;
+  if (!voxelImages.has(img)) voxelImages.set(img, img.getContext('2d').getImageData(0, 0, img.width, img.height));
+  return voxelImages.get(img);
+}
+const vxColor = new THREE.Color();
+function sampleColor(material, u, v) {
+  const tex = material.map;
+  const data = tex && texPixels(tex);
+  if (data) {
+    let uu = u * tex.repeat.x + tex.offset.x, vv = v * tex.repeat.y + tex.offset.y;
+    uu -= Math.floor(uu); vv -= Math.floor(vv);
+    const x = Math.min(data.width - 1, Math.floor(uu * data.width));
+    const y = Math.min(data.height - 1, Math.floor((tex.flipY ? 1 - vv : vv) * data.height));
+    const i = (y * data.width + x) * 4;
+    if (data.data[i + 3] < 60) return null;   // 透明像素（树叶空隙之类）不点亮
+    vxColor.setRGB(data.data[i] / 255, data.data[i + 1] / 255, data.data[i + 2] / 255, THREE.SRGBColorSpace);
+    return vxColor.multiply(material.color);
+  }
+  return vxColor.copy(material.color ?? vxColor.set(0xffffff));
+}
+
+// 这些材质的方块单独成组、保留原材质（发光、刹车灯效果）
+const voxelKeepMats = () => new Set([PM.taillight, PM.headlight, PM.amber, PM.reverse, PM.reflector]);
+const voxelSkipMats = () => new Set([PM.lens]);   // 透明灯罩：不体素化，免得盖住里面的灯
+
+// meshes 里的三角形 → 体素（坐标以 root 为参照）；返回若干个 Mesh，直接加到 root 下
+function voxelMeshes(meshes, root, size) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const keep = voxelKeepMats(), skip = voxelSkipMats();
+  const cells = new Map();   // "i,j,k" → { color, bucket }
+  const m = new THREE.Matrix4(), a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), p = new THREE.Vector3();
+  for (const mesh of meshes) {
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    if (mats.every((mt) => skip.has(mt))) continue;
+    m.multiplyMatrices(inv, mesh.matrixWorld);
+    const geo = mesh.geometry, pos = geo.attributes.position, uv = geo.attributes.uv, index = geo.index;
+    const triCount = (index ? index.count : pos.count) / 3;
+    const groups = geo.groups.length ? geo.groups : [{ start: 0, count: triCount * 3, materialIndex: 0 }];
+    for (const gr of groups) {
+      const mt = mats[gr.materialIndex ?? 0] ?? mats[0];
+      if (!mt || skip.has(mt)) continue;
+      const bucket = keep.has(mt) ? mt : mt.transparent && mt.opacity < 0.9 ? 'glass' : 'solid';
+      for (let t = gr.start; t < gr.start + gr.count; t += 3) {
+        const ia = index ? index.getX(t) : t, ib = index ? index.getX(t + 1) : t + 1, ic = index ? index.getX(t + 2) : t + 2;
+        a.fromBufferAttribute(pos, ia).applyMatrix4(m);
+        b.fromBufferAttribute(pos, ib).applyMatrix4(m);
+        c.fromBufferAttribute(pos, ic).applyMatrix4(m);
+        const n = Math.max(1, Math.ceil(Math.max(a.distanceTo(b), b.distanceTo(c), c.distanceTo(a)) / (size * 0.5)));
+        for (let i = 0; i <= n; i++) for (let j = 0; j <= n - i; j++) {
+          const wu = i / n, wv = j / n, ww = 1 - wu - wv;
+          p.set(a.x * ww + b.x * wu + c.x * wv, a.y * ww + b.y * wu + c.y * wv, a.z * ww + b.z * wu + c.z * wv);
+          const key = `${Math.floor(p.x / size)},${Math.floor(p.y / size)},${Math.floor(p.z / size)}`;
+          const old = cells.get(key);
+          // 后加的零件盖住先加的（眼睛、车灯、饰条画在表面上）；发光零件不会被普通零件盖住；透明罩不盖任何东西
+          if (old && (bucket === 'glass' || (bucket === 'solid' && old.bucket !== 'solid' && old.bucket !== 'glass'))) continue;
+          let col;
+          if (uv) {
+            const u = uv.getX(ia) * ww + uv.getX(ib) * wu + uv.getX(ic) * wv, v = uv.getY(ia) * ww + uv.getY(ib) * wu + uv.getY(ic) * wv;
+            col = sampleColor(mt, u, v);
+          } else col = sampleColor(mt, 0, 0);
+          if (!col) continue;
+          cells.set(key, { r: col.r, g: col.g, b: col.b, bucket });
+        }
+      }
+    }
+  }
+  return voxelBuild(cells, size);
+}
+
+// 露在外面的方块面 → 每个分组一个 BufferGeometry
+const VOXEL_DIRS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+function voxelFace(dir) {
+  // 每个方向的四个角（单位方块内，逆时针朝外）
+  const [dx, dy, dz] = dir;
+  if (dx) return dx > 0 ? [[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 1]] : [[0, 0, 1], [0, 1, 1], [0, 1, 0], [0, 0, 0]];
+  if (dy) return dy > 0 ? [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]] : [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]];
+  return dz > 0 ? [[1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]] : [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]];
+}
+const VOXEL_FACES = VOXEL_DIRS.map(voxelFace);
+function voxelBuild(cells, size) {
+  const byBucket = new Map();
+  for (const [key, cell] of cells) {
+    const [i, j, k] = key.split(',').map(Number);
+    if (!byBucket.has(cell.bucket)) byBucket.set(cell.bucket, { pos: [], nor: [], col: [], idx: [] });
+    const out = byBucket.get(cell.bucket);
+    VOXEL_DIRS.forEach((d, f) => {
+      const nb = cells.get(`${i + d[0]},${j + d[1]},${k + d[2]}`);
+      if (nb && (nb.bucket !== 'glass' || cell.bucket === 'glass')) return;   // 被挡住的面不生成
+      const base = out.pos.length / 3;
+      for (const [x, y, z] of VOXEL_FACES[f]) {
+        out.pos.push((i + x) * size, (j + y) * size, (k + z) * size);
+        out.nor.push(...d);
+        out.col.push(cell.r, cell.g, cell.b);
+      }
+      out.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    });
+  }
+  const meshes = [];
+  for (const [bucket, o] of byBucket) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(o.pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(o.nor, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(o.col, 3));
+    g.setIndex(o.idx);
+    g.computeBoundingSphere();
+    const material = bucket === 'solid' ? VOXEL_MAT : bucket === 'glass' ? VOXEL_GLASS : bucket;
+    meshes.push(mesh(g, material, bucket !== 'glass'));
+  }
+  return meshes;
+}
+
+// 把分组里的网格（可以筛选）换成体素，体素加回同一个分组
+function voxelizeGroup(group, size, filter = () => true) {
+  const targets = group.children.filter(filter);
+  const meshes = [];
+  for (const o of targets) o.traverse((x) => { if (x.isMesh && !x.isSprite) meshes.push(x); });
+  if (!meshes.length) return;
+  const vox = voxelMeshes(meshes, group, size);
+  for (const o of targets) disposeTree(o);
+  group.add(...vox);
+}
+// 单个网格就地体素化（保留它自己的位置 / 缩放动画）
+function voxelizeInPlace(m, size) {
+  const vox = voxelMeshes([m], m, size);
+  if (!m.geometry.userData.shared) m.geometry.dispose();
+  const merged = vox.length === 1 ? vox[0].geometry : mergeGeometries(vox.map((x) => x.geometry));
+  m.geometry = merged;
+  m.material = VOXEL_MAT;
+}
+
+// ---------------- 车：车身（静态零件）、每个车轮（转动部分 + 刹车盘卡钳）----------------
+function voxelizeCar(built, size = 0.1) {
+  const steers = new Set(built.wheels.map((w) => w.steer));
+  voxelizeGroup(built.group, size, (o) => !steers.has(o));
+  for (const w of built.wheels) {
+    voxelizeGroup(w.spin, size * 0.75);
+    voxelizeGroup(w.steer, size * 0.75, (o) => o !== w.spin);
+  }
+}
+
+// ---------------- 车手（鹈鹕和其他角色）：身体 / 头 / 喙 / 喉囊 / 冠羽各自体素化（保留头、喙、喉囊的动画），手臂换成方块 ----------------
+const PEL_BOX = new THREE.BoxGeometry(2, 2, 2);
+PEL_BOX.userData.shared = true;
+function voxelizePelican(pel, size = 0.035) {
+  const dynamic = new Set([pel.head]);
+  for (const w of pel.wings) { dynamic.add(w.upper); dynamic.add(w.fore); dynamic.add(w.hand); }
+  voxelizeGroup(pel.group, size, (o) => !dynamic.has(o));
+  const hs = size * 0.72;   // 头部用细一点的方块，眼睛、嘴巴才不会丢
+  voxelizeGroup(pel.head, hs, (o) => o !== pel.bill && o !== pel.crest);
+  voxelizeGroup(pel.bill, hs, (o) => o !== pel.pouch);
+  if (pel.pouch) voxelizeInPlace(pel.pouch, hs);
+  if (pel.crest?.isMesh) voxelizeInPlace(pel.crest, hs);
+  else if (pel.crest) voxelizeGroup(pel.crest, hs / (pel.crest.scale.x || 1));   // 其他角色：整个头的外观是一个分组（按它的缩放折算方块大小）
+  for (const w of pel.wings) for (const part of [w.upper, w.fore, w.hand]) part.geometry = PEL_BOX;   // 方块手臂 / 手套
+}
+
 /* ===== js/world/track-geometry.js ===== */
 // 赛道采样数据、投影到赛道坐标、路面/护栏条带几何体
 'use strict';
@@ -1937,7 +2495,7 @@ function buildTrackData(def, offset = [0, 0]) {
   }
   T.bounds = { x0, x1, z0, z1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2 };
   computeBank(T);
-  T.ramps = (def.ramps ?? []).map(({ at, lat }) => ({ s0: at * L, len: RAMP_LEN, lat: lat * def.W, hw: RAMP_HW, H: RAMP_H }));
+  generateRoadFeatures(T);
   return T;
 }
 
@@ -1947,7 +2505,43 @@ function buildTrackData(def, offset = [0, 0]) {
 // =====================================================================
 const BANK_MAX = 0.08;     // 最大倾角（弧度，约 4.6°）
 const BANK_K = 3.4;        // 倾角 = 曲率 × BANK_K
-const RAMP_LEN = 11, RAMP_HW = 3, RAMP_H = 1.3;   // 跳台：长、半宽、高
+const RAMP_LEN = 14, RAMP_HW = 3.5, RAMP_H = 2.2;   // 跳台：长、半宽、高
+
+// 特色路段：跳台（只放在前后都比较直的地方）、加速带、减速带，每次建地图随机摆放；
+// 避开起终点前后、道具箱那几排，彼此之间留出间隔（跳台后面要留落地的距离）
+function generateRoadFeatures(T) {
+  const L = T.L, W = T.W, taken = [];
+  const itemS = ITEM_ROWS.map((f) => f * L);
+  const ok = (s0, len, gap) => s0 > 130 && s0 + len < L - 100
+    && !taken.some(([a, b]) => s0 < b + gap && s0 + len > a - gap)
+    && !itemS.some((si) => si > s0 - 25 && si < s0 + len + 25);
+  const straight = (s0, len, maxK) => {
+    for (let s = s0 - 15; s < s0 + len + 45; s += T.ds * 2) if (Math.abs(T.k[T.wrap(Math.floor(s / T.ds))]) > maxK) return false;
+    return true;
+  };
+  const place = (count, len, gap, maxK = 0) => {
+    const out = [];
+    for (let t = 0; t < count * 60 && out.length < count; t++) {
+      const s0 = Math.random() * L;
+      if (!ok(s0, len, gap) || (maxK && !straight(s0, len, maxK))) continue;
+      taken.push([s0, s0 + len]);
+      out.push(s0);
+    }
+    return out;
+  };
+  // 跳台放在比较直的地方；弯道多的赛道（雪山）放不够 2 个就放宽一点再补
+  const rampS = place(Math.round(L / 380), RAMP_LEN, 90, 1 / 150);
+  if (rampS.length < 2) rampS.push(...place(2 - rampS.length, RAMP_LEN, 90, 1 / 70));
+  T.ramps = rampS.map((s0) => ({ s0, len: RAMP_LEN, lat: rand(-1, 1) * (W - RAMP_HW - 1.5), hw: RAMP_HW, H: RAMP_H }));
+  T.slows = [];   // 减速带已去掉（相关代码保留，数组为空即可）
+  T.pads = place(Math.round(L / 150), 16, 30).map((s0) => ({ s0, len: 16, lat: rand(-1, 1) * (W - 6), hw: 4.5 }));   // 加速带：长 16 米、宽 9 米
+}
+// 车（在自己跑的赛道坐标里）是不是压在某段特色路段上
+function onFeature(T, f, s, lat) {
+  let d = s - f.s0;
+  if (d < 0) d += T.L;
+  return d < f.len && Math.abs(lat - f.lat) < f.hw;
+}
 
 function computeBank(T) {
   const N = T.N, raw = new Float32Array(N);
@@ -1977,7 +2571,7 @@ function flattenBankNear(T, x, z, r) {
 function bankHeight(T, i, lat) {
   const b = T.bk ? T.bk[i] : 0;
   const o = lat * b;
-  return o > 0 ? Math.min(o, (T.W + 2) * Math.abs(b)) : 0;
+  return o > 0 ? Math.min(o, (T.W + 2) * Math.abs(b), 1.0) : 0;   // 路面很宽：外侧最多抬高 1 米
 }
 // 跳台：前缓后陡的曲面（h = H·u^1.5），末端是竖直的台口
 function rampHeight(T, s, lat) {
@@ -2146,6 +2740,7 @@ function applyTheme(theme) {
 // =====================================================================
 let world = null;          // 当前赛道的所有物体
 let T = null;              // 当前赛道数据
+const mainTrack = () => T;  // 给局部变量也叫 T 的函数取全局赛道用
 let startLights = [];      // 门架上的 5 盏发车灯
 let snowfall = null;       // 雪花
 let lampPools = null;
@@ -2170,14 +2765,16 @@ function findSpots(rng, count, minD, maxD, margin = 250) {
     const x = b.x0 - margin + rng() * (b.x1 - b.x0 + margin * 2);
     const z = b.z0 - margin + rng() * (b.z1 - b.z0 + margin * 2);
     const d = distToTrack(T, x, z);
-    if (d >= minD && d <= maxD && (!spotFilter || spotFilter(x, z)) && (!regionFilter || regionFilter(x, z))) spots.push(v(x, 0, z));
+    if (d >= minD && d <= maxD && (!spotFilter || spotFilter(x, z)) && (!regionFilter || regionFilter(x, z))) spots.push(v(x, terrainH(x, z), z));   // 开放世界的旷野有起伏，放在地面上
   }
   return spots;
 }
 
 function buildWorld(def) {
+  if (wantPixel(def)) return buildPixelWorld(def);
   resetWorld();
   worldMode = 'single';
+  pixelActive = false;
   const theme = THEMES[def.theme];
   applyTheme(theme);
   const Tr = buildTrackData(def);
@@ -2252,6 +2849,7 @@ function buildRegion(Tr, theme, { barriers }) {
 
   buildStartArea(theme);
   buildRamps(theme);
+  buildRoadFeatures(false);
   const builders = { seaside: buildSeaside, canyon: buildCanyon, snow: buildSnow, night: buildNight, sunset: buildSunset };
   builders[def.theme](rng, theme);
 }
@@ -2277,7 +2875,7 @@ function buildStartArea(theme) {
 
   // 发车格
   const slotMat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2, ...LAYER(5) });
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < GRID_SLOTS; i++) {
     const g = gridSlot(i);
     const p = trackPoint(T, g.s, g.lat);
     const m = mesh(new THREE.PlaneGeometry(3.2, 0.3).rotateX(-Math.PI / 2), slotMat, false);
@@ -2350,12 +2948,8 @@ function buildStartArea(theme) {
   }
   stand.add(box(length, 0.3, 13, mat(0xf4f4f4, { roughness: 0.5 }), 0, 9.5, -6));
   for (const x of [-length / 2, 0, length / 2]) stand.add(box(0.4, 9.5, 0.4, steel, x, 4.75, -11.5));
-  // 观众是一只只坐着的小鹈鹕：身体、翅膀、长脖子、头、粉色长喙和橙色喉囊（顶点色），外加一顶帽子和围巾（每只颜色不同）
-  const { bird, gear } = spectatorGeometry();
-  const crowd = instancedIn(stand, bird, SPECTATOR_MAT, crowdM, null, false);
-  crowd.userData.base = crowdM.map((m) => m.clone());
-  crowd.userData.partner = instancedIn(stand, gear, SPECTATOR_GEAR_MAT, crowdM, crowdC, false);
-  crowds.push(crowd);
+  // 观众：20 个角色随机坐（鹈鹕戴帽子围巾，其他角色举手欢呼）
+  buildMixedCrowd(stand, crowdM, crowdC, false);
   // 门架立柱、看台都是实心障碍物
   gantry.updateMatrixWorld(true);
   for (const s of [-1, 1]) { const p = gantry.localToWorld(v(s * span, 0, 0)); addObstacle(p.x, p.z, 0.6); }
@@ -2778,6 +3372,85 @@ function spectatorGeometry() {
   return spectatorGeo;
 }
 
+// ---------------- 看台上的其他角色观众：用车手模型摆个欢呼姿势，降低面数后合并成一个顶点色几何体（像素风格再体素化） ----------------
+// 球、圆柱、圆锥、圆环按原参数重建成低面数版本；几何体被平移过就把平移补回去，被旋转 / 拉伸过（外包盒对不上）就保留原样
+function lowPolyGeometry(g) {
+  const p = g.parameters;
+  let low = null;
+  if (g.type === 'SphereGeometry') low = new THREE.SphereGeometry(p.radius, 8, 6, p.phiStart, p.phiLength, p.thetaStart, p.thetaLength);
+  else if (g.type === 'CylinderGeometry') low = new THREE.CylinderGeometry(p.radiusTop, p.radiusBottom, p.height, 8, 1, p.openEnded, p.thetaStart, p.thetaLength);
+  else if (g.type === 'ConeGeometry') low = new THREE.ConeGeometry(p.radius, p.height, 8, 1, p.openEnded, p.thetaStart, p.thetaLength);
+  else if (g.type === 'TorusGeometry') low = new THREE.TorusGeometry(p.radius, p.tube, 5, 12, p.arc);
+  if (!low) return g;
+  g.computeBoundingBox(); low.computeBoundingBox();
+  const s0 = g.boundingBox.getSize(v()), s1 = low.boundingBox.getSize(v());
+  if (s0.distanceTo(s1) > 0.02 * Math.max(1e-3, s0.length())) { low.dispose(); return g; }
+  const d = g.boundingBox.getCenter(v()).sub(low.boundingBox.getCenter(v()));
+  if (d.lengthSq() > 1e-10) low.translate(d.x, d.y, d.z);
+  return low;
+}
+// 把一个角色分组里的网格合并：只留位置、法线和顶点色（颜色取自材质；体素化后的网格自带顶点色）
+function flattenToColored(group) {
+  group.updateMatrixWorld(true);
+  const parts = [];
+  group.traverse((o) => {
+    if (!o.isMesh || !o.visible || o.material.transparent) return;
+    let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    g.applyMatrix4(o.matrixWorld);
+    const n = g.attributes.position.count;
+    if (!g.attributes.color) {
+      const c = o.material.color ?? new THREE.Color(0xffffff), arr = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+      g.setAttribute('color', new THREE.Float32BufferAttribute(arr, 3));
+    }
+    if (!g.attributes.normal) g.computeVertexNormals();
+    for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'color'].includes(k)) g.deleteAttribute(k);
+    parts.push(g);
+  });
+  const out = mergeGeometries(parts);
+  parts.forEach((g) => g.dispose());
+  return out;
+}
+const SPECTATOR_SUITS = [0xd42020, 0x1d6f8f, 0xf2b705, 0x2e9d4a, 0x7a3fb0, 0xf07613, 0x333333];
+const charSpectatorGeo = new Map();
+function characterSpectatorGeometry(id, pixel) {
+  const key = `${id}|${pixel}`;
+  if (charSpectatorGeo.has(key)) return charSpectatorGeo.get(key);
+  const pel = createDriver(id, 0xffffff, pick(SPECTATOR_SUITS));
+  const made = [];
+  pel.group.traverse((o) => { if (o.isMesh) { const low = lowPolyGeometry(o.geometry); if (low !== o.geometry) { o.geometry = low; made.push(low); } } });
+  if (pixel) voxelizePelican(pel, 0.1);   // 观众方块大一点，面数少
+  // 欢呼：一只手举过头顶，一只手放在腿上
+  poseWings(pel, [v(0.3, 0.82, 0.14), v(-0.16, 0.1, 0.24)]);
+  const geo = flattenToColored(pel.group);
+  made.forEach((g) => g.dispose());
+  geo.userData.shared = true;
+  charSpectatorGeo.set(key, geo);
+  return geo;
+}
+// 按座位随机分角色：鹈鹕用原来的观众模型（帽子、围巾每只不同颜色），其他角色各一个实例化网格；都登记到 crowds 里跟着欢呼跳
+function buildMixedCrowd(stand, crowdM, crowdC, pixel) {
+  const byChar = new Map();
+  crowdM.forEach((m, i) => {
+    const id = pick(CHARACTERS).id;
+    if (!byChar.has(id)) byChar.set(id, { m: [], c: [] });
+    byChar.get(id).m.push(m);
+    byChar.get(id).c.push(crowdC[i]);
+  });
+  for (const [id, { m, c }] of byChar) {
+    let crowd;
+    if (id === 'pelican') {
+      const { bird, gear } = pixel ? pixelSpectatorGeometry() : spectatorGeometry();
+      crowd = instancedIn(stand, bird, SPECTATOR_MAT, m, null, false);
+      crowd.userData.partner = instancedIn(stand, gear, SPECTATOR_GEAR_MAT, m, c, false);
+    } else {
+      crowd = instancedIn(stand, characterSpectatorGeometry(id, pixel), SPECTATOR_MAT, m, null, false);
+    }
+    crowd.userData.base = m.map((x) => x.clone());
+    crowds.push(crowd);
+  }
+}
+
 // 跳台：黄黑斜纹的楔形坡，顶面是 h = H·u^1.5 的曲面，末端是竖直台口；两侧立一对黄色标志柱
 const rampTex = canvasTexture(128, (g, w, h) => {
   g.fillStyle = '#f2c230'; g.fillRect(0, 0, w, h);
@@ -2790,7 +3463,7 @@ const rampTex = canvasTexture(128, (g, w, h) => {
   }
 }, { height: 128 });
 rampTex.userData.shared = true;
-function buildRamps() {
+function buildRamps(mats = {}) {
   const n = 12;
   for (const r of T.ramps) {
     // 顶面两条边、底边（路面高度）的采样点：[x, 顶面 y, z, 底面 y]
@@ -2815,7 +3488,7 @@ function buildRamps() {
     top.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     top.setIndex(idx);
     top.computeVertexNormals();
-    world.add(mesh(top, new THREE.MeshStandardMaterial({ map: rampTex, roughness: 0.6, side: THREE.DoubleSide }), false));
+    world.add(mesh(top, mats.top ?? new THREE.MeshStandardMaterial({ map: rampTex, roughness: 0.6, side: THREE.DoubleSide }), false));
     // 两个侧面 + 末端台口
     const side = [], sIdx = [];
     const wall = (pts) => {
@@ -2828,7 +3501,7 @@ function buildRamps() {
     sg.setAttribute('position', new THREE.Float32BufferAttribute(side, 3));
     sg.setIndex(sIdx);
     sg.computeVertexNormals();
-    world.add(mesh(sg, mat(0x3a3d42, { roughness: 0.7, side: THREE.DoubleSide })));
+    world.add(mesh(sg, mats.side ?? mat(0x3a3d42, { roughness: 0.7, side: THREE.DoubleSide })));
     // 跳台前两侧的黄色标志柱
     for (const c of [-1, 1]) {
       const lat = r.lat + c * (r.hw + 0.5), p = trackPoint(T, r.s0 - 3, lat);
@@ -2898,6 +3571,1067 @@ function asphaltMaterial(base, width, len, { center = 'dash', extra = {} } = {})
   bump.userData.shared = false;
   bump.repeat.set(width / 1.5, len / 1.5);
   return new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.2, roughness: 0.88, ...extra });
+}
+
+// =====================================================================
+// 特色路段的外观：加速带（发光箭头，往前流动）、减速带（黄黑斜纹 + 三道凸起的减速条）、
+// 每段特色路段前 45 米的路边警示牌（正对来车）。pixel 为 true 时用像素方块风格的贴图
+// =====================================================================
+function featurePatch(Tr, f, yOff, vRepeat) {
+  const pos = [], uv = [], idx = [];
+  const n = Math.max(2, Math.ceil(f.len));
+  for (let j = 0; j <= n; j++) {
+    const s = f.s0 + (f.len * j) / n;
+    for (const [u, lat] of [[0, f.lat - f.hw], [1, f.lat + f.hw]]) {
+      const p = trackPoint(Tr, s, lat);
+      pos.push(p.x, bankHeight(Tr, p.i, lat) + yOff, p.z);
+      uv.push(u, (j / n) * vRepeat);
+    }
+  }
+  for (let j = 0; j < n; j++) { const a = j * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+const FEATURE_SIGNS = { ramp: ['🛫', '跳台', '#f2c230'], pad: ['⚡', '加速带', '#27c7ff'], slow: ['🐢', '减速带', '#ff9a1f'], items: ['🎁', '道具箱', '#b04dff'] };
+const signTexCache = new Map();
+function signTexture(kind, pixel) {
+  const key = kind + pixel;
+  if (signTexCache.has(key)) return signTexCache.get(key);
+  const [icon, text, col] = FEATURE_SIGNS[kind];
+  const size = pixel ? 64 : 256;
+  const tex = canvasTexture(size, (g, w, h) => {
+    g.fillStyle = '#1d1d21'; g.fillRect(0, 0, w, h);
+    g.fillStyle = col; g.fillRect(w * 0.06, h * 0.06, w * 0.88, h * 0.88);
+    g.fillStyle = '#111'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `${h * 0.42}px sans-serif`; g.fillText(icon, w / 2, h * 0.38);
+    g.font = `900 ${h * 0.2}px "PingFang SC", sans-serif`; g.fillText(text, w / 2, h * 0.78);
+  });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  if (pixel) { tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestMipmapLinearFilter; }
+  tex.userData.shared = true;
+  const m = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35, roughness: 0.6, side: THREE.DoubleSide });
+  m.userData.shared = true;
+  signTexCache.set(key, m);
+  return m;
+}
+function buildRoadFeatures(pixel = false) {
+  const Tr = T;
+  // 加速带：深蓝底 + 青色箭头（往前流动）
+  const padTex = canvasTexture(pixel ? 16 : 128, (g, w, h) => {
+    g.fillStyle = '#0a2a5a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#27e0ff';
+    // 箭头尖朝画布上方 = 贴图 v 增大的方向 = 车的前进方向
+    g.beginPath(); g.moveTo(w * 0.15, h * 0.8); g.lineTo(w * 0.5, h * 0.45); g.lineTo(w * 0.85, h * 0.8); g.lineTo(w * 0.85, h * 0.55); g.lineTo(w * 0.5, h * 0.2); g.lineTo(w * 0.15, h * 0.55); g.closePath(); g.fill();
+  });
+  if (pixel) { padTex.magFilter = THREE.NearestFilter; }
+  padTex.repeat.set(1, 1);
+  const padMat = new THREE.MeshStandardMaterial({ map: padTex, emissive: 0xffffff, emissiveMap: padTex, emissiveIntensity: 0.9, roughness: 0.4, ...LAYER(6) });
+  for (const f of Tr.pads) world.add(mesh(featurePatch(Tr, f, 0.05, f.len / 2.5), padMat, false));
+  (world.userData.padTex ??= []).push(padTex);
+  // 减速带：黄黑斜纹 + 三道凸起的黄色减速条
+  const slowTex = canvasTexture(pixel ? 16 : 64, (g, w, h) => {
+    g.fillStyle = '#1d1d21'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#f2c230';
+    for (let k = -2; k < 4; k++) { g.beginPath(); g.moveTo(k * w / 2, 0); g.lineTo(k * w / 2 + w / 4, 0); g.lineTo(k * w / 2 + w / 4 + h, h); g.lineTo(k * w / 2 + h, h); g.closePath(); g.fill(); }
+  });
+  if (pixel) slowTex.magFilter = THREE.NearestFilter;
+  slowTex.repeat.set(4, 1);
+  const slowMat = new THREE.MeshStandardMaterial({ map: slowTex, roughness: 0.7, ...LAYER(6) });
+  const barMat = mat(0xf2c230, { roughness: 0.6 });
+  for (const f of Tr.slows) {
+    world.add(mesh(featurePatch(Tr, f, 0.05, 2), slowMat, false));
+    for (const k of [0.2, 0.5, 0.8]) {
+      const p = trackPoint(Tr, f.s0 + f.len * k, f.lat);
+      const bar = box(f.hw * 2, 0.1, 0.35, barMat, p.x, bankHeight(Tr, p.i, f.lat) + 0.05, p.z);
+      bar.rotation.y = p.heading;
+      world.add(bar);
+    }
+  }
+  // 警示牌：特色路段前 45 米，立在路的那一侧外面，正对来车
+  const post = new THREE.CylinderGeometry(0.08, 0.08, 3, 8).translate(0, 1.5, 0);
+  const signs = [
+    ...Tr.ramps.map((f) => ['ramp', f]), ...Tr.pads.map((f) => ['pad', f]), ...Tr.slows.map((f) => ['slow', f]),
+  ];
+  for (const [kind, f] of signs) {
+    const side = f.lat >= 0 ? 1 : -1;
+    const lat = side * (Tr.B + 1.5), p = trackPoint(Tr, f.s0 - 45, lat);
+    const g = new THREE.Group();
+    g.position.set(p.x, 0, p.z);
+    g.rotation.y = p.heading + Math.PI;   // 牌面朝来车
+    g.add(mesh(post, pixel ? blockMat('logSide') : PM.steel));
+    const board = mesh(new THREE.PlaneGeometry(2.2, 2.2), signTexture(kind, pixel));
+    board.position.y = 3.6;
+    g.add(board);
+    world.add(g);
+    addObstacle(p.x, p.z, 0.3);
+  }
+}
+
+/* ===== js/world/pixel-world.js ===== */
+// 像素方块风格（仿《我的世界》）：16×16 像素的方块贴图，方块地形 / 树 / 房子 / 看台 / 门架，方形太阳和方块云。
+// 五张地图各有一套方块配色和布景（海滨、峡谷、雪山、夜城、落日），自由驾驶的开放世界也整片变成像素风格。
+// 车和鹈鹕在像素世界里会被体素化成一格一格的方块（见 models/voxelize.js）。
+'use strict';
+
+const PIXEL_TRACKS = TRACKS.map((t) => t.id);
+let pixelActive = false;   // 当前世界是不是像素风格（建车时据此体素化）
+const wantPixel = (def) => settings.style === 'pixel' && PIXEL_TRACKS.includes(def.id) && !isFree();
+const wantPixelOpen = () => settings.style === 'pixel';
+
+// =====================================================================
+// 方块贴图：每种 16×16 像素，近看是清晰的像素格（最近点采样），远处用多级纹理避免闪烁
+// =====================================================================
+const PX = 16;
+function pixelTexture(draw, { w = PX, h = PX, repeat = [1, 1], seed = 1, alpha = false } = {}) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const g = canvas.getContext('2d');
+  const rnd = seeded(seed);
+  draw(g, w, h, rnd);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = alpha ? THREE.NearestMipmapNearestFilter : THREE.LinearMipmapLinearFilter;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(...repeat);
+  tex.anisotropy = MAX_ANISO;
+  return tex;
+}
+// 底色 + 随机杂色像素
+function speckle(g, w, h, rnd, base, dots, density = 0.5, y0 = 0, y1 = h) {
+  g.fillStyle = base; g.fillRect(0, y0, w, y1 - y0);
+  for (let y = y0; y < y1; y++) for (let x = 0; x < w; x++) {
+    if (rnd() < density) { g.fillStyle = dots[Math.floor(rnd() * dots.length)]; g.fillRect(x, y, 1, 1); }
+  }
+}
+
+const TILE = {
+  grassTop: (g, w, h, r) => speckle(g, w, h, r, '#5e9c3a', ['#4f8a2f', '#6db043', '#579535', '#7cbc4a'], 0.55),
+  dirt: (g, w, h, r) => speckle(g, w, h, r, '#866043', ['#6d4c33', '#9b7253', '#77563b', '#5d4028'], 0.5),
+  grassSide: (g, w, h, r) => {
+    TILE.dirt(g, w, h, r);
+    speckle(g, w, h, r, '#5e9c3a', ['#4f8a2f', '#6db043'], 0.4, 0, 3);
+    for (let x = 0; x < w; x++) if (r() < 0.55) { g.fillStyle = r() < 0.5 ? '#5e9c3a' : '#4f8a2f'; g.fillRect(x, 3, 1, 1 + Math.floor(r() * 2)); }
+  },
+  sand: (g, w, h, r) => speckle(g, w, h, r, '#dbd3a0', ['#cfc68f', '#e6dfb3', '#d4cb96'], 0.5),
+  stone: (g, w, h, r) => speckle(g, w, h, r, '#7d7d7d', ['#6e6e6e', '#8f8f8f', '#747474'], 0.45),
+  gravel: (g, w, h, r) => speckle(g, w, h, r, '#837f7e', ['#6a6664', '#9a9695', '#5b5756', '#a8a3a0'], 0.8),
+  cobble: (g, w, h, r) => {
+    speckle(g, w, h, r, '#7a7a7a', ['#6a6a6a', '#8c8c8c'], 0.4);
+    g.fillStyle = '#4e4e4e';
+    for (const [x, y, ww, hh] of [[0, 4, 16, 1], [0, 9, 16, 1], [0, 14, 16, 1], [5, 0, 1, 4], [11, 0, 1, 4], [3, 5, 1, 4], [9, 5, 1, 4], [14, 5, 1, 4], [6, 10, 1, 4], [12, 10, 1, 4]]) g.fillRect(x, y, ww, hh);
+  },
+  stoneBricks: (g, w, h, r) => {
+    speckle(g, w, h, r, '#7a7a7a', ['#6f6f6f', '#858585'], 0.35);
+    g.fillStyle = '#545454';
+    g.fillRect(0, 7, 16, 1); g.fillRect(0, 15, 16, 1); g.fillRect(7, 0, 1, 7); g.fillRect(15, 8, 1, 7);
+    g.fillStyle = '#909090'; g.fillRect(0, 0, 16, 1); g.fillRect(0, 8, 16, 1);
+  },
+  planks: (g, w, h, r) => {
+    speckle(g, w, h, r, '#a2824f', ['#977747', '#ad8c57', '#9a7b49'], 0.4);
+    g.fillStyle = '#7c6139';
+    for (const y of [3, 7, 11, 15]) g.fillRect(0, y, 16, 1);
+    for (const [x, y] of [[4, 0], [12, 4], [2, 8], [9, 12]]) g.fillRect(x, y, 1, 3);
+  },
+  darkPlanks: (g, w, h, r) => {
+    speckle(g, w, h, r, '#4a3420', ['#3f2c1a', '#553c25'], 0.4);
+    g.fillStyle = '#2e2013';
+    for (const y of [3, 7, 11, 15]) g.fillRect(0, y, 16, 1);
+    for (const [x, y] of [[6, 0], [13, 4], [3, 8], [10, 12]]) g.fillRect(x, y, 1, 3);
+  },
+  logSide: (g, w, h, r) => {
+    speckle(g, w, h, r, '#6b5233', ['#56422a', '#7a5f3c', '#4d3a24'], 0.35);
+    g.fillStyle = '#4d3a24';
+    for (let x = 1; x < 16; x += 3) for (let y = 0; y < 16; y++) if (r() < 0.7) g.fillRect(x, y, 1, 1);
+  },
+  logTop: (g, w, h, r) => {
+    g.fillStyle = '#6b5233'; g.fillRect(0, 0, 16, 16);
+    for (const [c, s] of [['#a78556', 13], ['#937347', 10], ['#b08e5d', 7], ['#937347', 4], ['#a78556', 2]]) { g.fillStyle = c; g.fillRect((16 - s) / 2, (16 - s) / 2, s, s); }
+  },
+  birchSide: (g, w, h, r) => {
+    speckle(g, w, h, r, '#d8d7d2', ['#c9c8c2', '#e6e5df'], 0.3);
+    g.fillStyle = '#2b2b28';
+    for (let i = 0; i < 7; i++) g.fillRect(Math.floor(r() * 14), Math.floor(r() * 16), 2 + Math.floor(r() * 3), 1);
+  },
+  leaves: (g, w, h, r) => {
+    g.clearRect(0, 0, w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (r() < 0.18) continue;   // 树叶之间的空隙（透明）
+      g.fillStyle = ['#3f7d2a', '#357023', '#4a8c31', '#2f6420'][Math.floor(r() * 4)];
+      g.fillRect(x, y, 1, 1);
+    }
+  },
+  birchLeaves: (g, w, h, r) => {
+    g.clearRect(0, 0, w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (r() < 0.18) continue;
+      g.fillStyle = ['#6a9b3c', '#5d8d33', '#77a847'][Math.floor(r() * 3)];
+      g.fillRect(x, y, 1, 1);
+    }
+  },
+  glass: (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = 'rgba(200,230,245,0.25)'; g.fillRect(1, 1, 14, 14);
+    g.fillStyle = '#dbeef6';
+    g.fillRect(0, 0, 16, 1); g.fillRect(0, 15, 16, 1); g.fillRect(0, 0, 1, 16); g.fillRect(15, 0, 1, 16);
+    g.fillStyle = 'rgba(255,255,255,0.8)';
+    for (let i = 0; i < 4; i++) { g.fillRect(3 + i, 6 - i, 1, 1); g.fillRect(9 + i, 12 - i, 1, 1); }
+  },
+  water: (g, w, h, r) => {
+    g.fillStyle = '#3f76e4'; g.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (r() < 0.25) { g.fillStyle = r() < 0.5 ? '#4f86f0' : '#3568d0'; g.fillRect(x, y, 1, 1); }
+    }
+    g.fillStyle = '#7aa4f5';
+    for (let i = 0; i < 5; i++) g.fillRect(Math.floor(r() * 12), Math.floor(r() * 16), 3 + Math.floor(r() * 2), 1);
+  },
+  redstoneLamp: (g, w, h, r) => {
+    speckle(g, w, h, r, '#5a3a22', ['#4a2f1b', '#6b472b'], 0.4);
+    g.fillStyle = '#8a5a30';
+    for (const [x, y] of [[2, 2], [9, 3], [4, 9], [11, 10], [7, 6]]) g.fillRect(x, y, 3, 3);
+  },
+};
+
+const wool = (base) => (g, w, h, r) => {
+  speckle(g, w, h, r, base, [shade(base, -0.08), shade(base, 0.06)], 0.35);
+  g.fillStyle = shade(base, -0.12);
+  for (let i = 0; i < 10; i++) g.fillRect(Math.floor(r() * 15), Math.floor(r() * 15), 2, 1);
+};
+function shade(hex, k) {
+  const c = new THREE.Color(hex);
+  c.offsetHSL(0, 0, k);
+  return `#${c.getHexString()}`;
+}
+
+
+// 其他地图用到的方块
+const sp = (base, dots, density = 0.5) => (g, w, h, r) => speckle(g, w, h, r, base, dots, density);
+Object.assign(TILE, {
+  redSand: sp('#be6a2b', ['#a95c24', '#cf7a36', '#b3632a'], 0.5),
+  snow: sp('#f2f6f8', ['#e2eaee', '#ffffff', '#d8e2e8'], 0.4),
+  snowSide: (g, w, h, r) => { TILE.dirt(g, w, h, r); speckle(g, w, h, r, '#f2f6f8', ['#e2eaee', '#ffffff'], 0.4, 0, 4); for (let x = 0; x < w; x++) if (r() < 0.5) { g.fillStyle = '#f2f6f8'; g.fillRect(x, 4, 1, 1); } },
+  andesite: sp('#8a8a8c', ['#77777a', '#9d9da0', '#6f6f72'], 0.55),
+  podzolTop: sp('#4d7a2c', ['#3f6a24', '#5b8a34', '#6a5a2a'], 0.55),
+  spruceLog: (g, w, h, r) => { speckle(g, w, h, r, '#3b2a18', ['#2e2012', '#48341f'], 0.4); g.fillStyle = '#2a1d10'; for (let x = 1; x < 16; x += 3) for (let y = 0; y < 16; y++) if (r() < 0.7) g.fillRect(x, y, 1, 1); },
+  spruceLeaves: (g, w, h, r) => { g.clearRect(0, 0, w, h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (r() < 0.15) continue; g.fillStyle = ['#2f4f2f', '#27442a', '#385a37'][Math.floor(r() * 3)]; g.fillRect(x, y, 1, 1); } },
+  snowLeaves: (g, w, h, r) => { TILE.spruceLeaves(g, w, h, r); speckle(g, w, h, r, '#f2f6f8', ['#ffffff', '#e2eaee'], 0.4, 0, 5); },
+  sprucePlanks: (g, w, h, r) => { speckle(g, w, h, r, '#6b4d2c', ['#5e4326', '#785733'], 0.4); g.fillStyle = '#4a3520'; for (const y of [3, 7, 11, 15]) g.fillRect(0, y, 16, 1); },
+  cactusSide: (g, w, h, r) => { speckle(g, w, h, r, '#3f8a2a', ['#357a22', '#4d9a33'], 0.4); g.fillStyle = '#2a5f1c'; for (const x of [2, 7, 12]) g.fillRect(x, 0, 1, 16); g.fillStyle = '#e8e2b0'; for (let i = 0; i < 8; i++) g.fillRect(Math.floor(r() * 16), Math.floor(r() * 16), 1, 1); },
+  cactusTop: (g, w, h, r) => { speckle(g, w, h, r, '#4d9a33', ['#3f8a2a', '#5aa83d'], 0.4); g.fillStyle = '#2a5f1c'; g.strokeStyle = '#2a5f1c'; g.strokeRect(1.5, 1.5, 13, 13); },
+  glowstone: (g, w, h, r) => { speckle(g, w, h, r, '#c9953f', ['#f5d67a', '#ffe9a8', '#a5732c'], 0.6); },
+  seaLantern: (g, w, h, r) => { speckle(g, w, h, r, '#b9d9d2', ['#e3f3ee', '#9ac4bb'], 0.4); g.fillStyle = '#eaf8f4'; g.fillRect(4, 4, 8, 8); },
+  concrete: sp('#9a9b98', ['#8e8f8c', '#a5a6a3'], 0.3),
+  blackConcrete: sp('#1c1d22', ['#16171b', '#24252b'], 0.3),
+  quartz: sp('#ebe6de', ['#e0dbd2', '#f4f0ea'], 0.3),
+  // 地面的深浅变化（大片斑块，开起来看得出移动和方向）
+  grassTopDark: sp('#4c8530', ['#3f7427', '#58933a', '#467c2c'], 0.55),
+  grassTopLight: sp('#72b048', ['#65a23e', '#80bd55', '#6aa843'], 0.55),
+  coarseDirt: sp('#7a5a3c', ['#6a4c31', '#8a6a4a', '#5e4430', '#96764f'], 0.6),
+  redSandDark: sp('#a85a22', ['#96501e', '#b8662c'], 0.5),
+  snowDirty: sp('#dfe7ec', ['#d0dae0', '#eef3f6', '#c8d2d8'], 0.45),
+});
+const TERRACOTTA = ['#a15b3a', '#8f4f33', '#d1b1a1', '#b9853b', '#9a6a4a', '#c46a3c', '#6f4a3a'];
+TERRACOTTA.forEach((c, i) => { TILE[`terracotta${i}`] = sp(c, [shade(c, -0.05), shade(c, 0.04)], 0.35); });
+// 高楼的窗户：深色墙面 + 亮着 / 没亮的窗格（发光贴图单独一张）
+function windowTiles(seed) {
+  const lit = [];
+  const draw = (emissive) => (g, w, h, r) => {
+    if (!emissive) speckle(g, w, h, r, '#2a2f3a', ['#252a34', '#30364a'], 0.3); else { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); }
+    for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
+      const on = emissive ? lit[y * 2 + x] : (lit[y * 2 + x] = r() < 0.5);
+      g.fillStyle = on ? pick(['#ffd98a', '#fff1c4', '#9fd8ff']) : emissive ? '#000' : '#141824';
+      g.fillRect(2 + x * 7, 2 + y * 7, 5, 5);
+    }
+  };
+  return [pixelTexture(draw(false), { seed }), pixelTexture(draw(true), { seed })];
+}
+
+// 方块材质（按名字缓存，所有像素世界共用）
+const blockMats = new Map();
+const GLOW = { glowstone: 1.2, seaLantern: 1.0 };
+function blockMat(name) {
+  if (blockMats.has(name)) return blockMats.get(name);
+  const drawer = TILE[name] ?? wool(name);
+  const alpha = ['leaves', 'birchLeaves', 'spruceLeaves', 'snowLeaves', 'glass'].includes(name);
+  const tex = pixelTexture(drawer, { seed: [...name].reduce((a, c) => a * 31 + c.charCodeAt(0), 7), alpha });
+  tex.userData.shared = true;
+  const m = new THREE.MeshStandardMaterial({
+    map: tex, roughness: 0.92,
+    ...(alpha ? { alphaTest: name === 'glass' ? 0.1 : 0.5, transparent: name === 'glass', side: THREE.DoubleSide } : {}),
+    ...(GLOW[name] ? { emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: GLOW[name] } : {}),
+  });
+  m.userData.shared = true;
+  blockMats.set(name, m);
+  return m;
+}
+// 六个面贴图不同的方块（面顺序：+x -x +y -y +z -z）
+const FACES = {
+  grass: ['grassSide', 'grassSide', 'grassTop', 'dirt', 'grassSide', 'grassSide'],
+  snowGrass: ['snowSide', 'snowSide', 'snow', 'dirt', 'snowSide', 'snowSide'],
+  log: ['logSide', 'logSide', 'logTop', 'logTop', 'logSide', 'logSide'],
+  birch: ['birchSide', 'birchSide', 'logTop', 'logTop', 'birchSide', 'birchSide'],
+  spruce: ['spruceLog', 'spruceLog', 'logTop', 'logTop', 'spruceLog', 'spruceLog'],
+  cactus: ['cactusSide', 'cactusSide', 'cactusTop', 'cactusTop', 'cactusSide', 'cactusSide'],
+};
+const blockMaterial = (type) => (FACES[type] ? FACES[type].map((n) => blockMat(n)) : blockMat(type));
+// 不透明的方块才会挡住相邻方块的面
+const SEE_THROUGH = new Set(['leaves', 'birchLeaves', 'spruceLeaves', 'snowLeaves', 'glass']);
+
+// 一批方块：add(类型, x, y, z) 收集起来（(x, y, z) 是方块的最小角），build 时每种类型合成一个网格，只生成露在外面的面
+class BlockSet {
+  // lift：开放世界里按地形把方块整列抬高（unit 为方块边长，缩放过的分组用）；local 为 true 时是局部坐标（门架、看台），不抬
+  constructor({ local = false, unit = 1 } = {}) {
+    this.byType = new Map(); this.solid = new Set();
+    this.lift = !local && worldMode === 'open' ? (x, z) => Math.floor(terrainH((x + 0.5) * unit, (z + 0.5) * unit) / unit) : null;
+    this.liftCache = new Map();
+  }
+  add(type, x, y, z) {
+    if (this.lift) {
+      const k = `${x},${z}`;
+      if (!this.liftCache.has(k)) this.liftCache.set(k, this.lift(x, z));
+      y += this.liftCache.get(k);
+    }
+    if (!this.byType.has(type)) this.byType.set(type, []);
+    this.byType.get(type).push(x, y, z);
+    if (!SEE_THROUGH.has(type)) this.solid.add(`${x},${y},${z}`);
+  }
+  // chunk：按地块（局部坐标单位）拆成多个网格，远处 / 视野外的地块可以单独不画
+  build(parent, { shadow = true, chunk = 800 } = {}) {
+    const uvOf = (f, [x, y, z]) => (f < 2 ? [f === 0 ? 1 - z : z, y] : f < 4 ? [x, z] : [f === 4 ? x : 1 - x, y]);
+    const parts = [];
+    for (const [type, all] of this.byType) {
+      const byChunk = new Map();
+      for (let i = 0; i < all.length; i += 3) {
+        const k = `${Math.floor(all[i] / chunk)},${Math.floor(all[i + 2] / chunk)}`;
+        if (!byChunk.has(k)) byChunk.set(k, []);
+        byChunk.get(k).push(all[i], all[i + 1], all[i + 2]);
+      }
+      for (const xyz of byChunk.values()) parts.push([type, xyz]);
+    }
+    for (const [type, xyz] of parts) {
+      const perDir = VOXEL_DIRS.map(() => ({ pos: [], nor: [], uv: [] }));
+      for (let i = 0; i < xyz.length; i += 3) {
+        const x = xyz[i], y = xyz[i + 1], z = xyz[i + 2];
+        VOXEL_DIRS.forEach((d, f) => {
+          if (this.solid.has(`${x + d[0]},${y + d[1]},${z + d[2]}`)) return;
+          const o = perDir[f];
+          for (const c of VOXEL_FACES[f]) { o.pos.push(x + c[0], y + c[1], z + c[2]); o.nor.push(...d); o.uv.push(...uvOf(f, c)); }
+        });
+      }
+      let pos = [], nor = [], uv = [];
+      const idx = [];
+      const g = new THREE.BufferGeometry();
+      perDir.forEach((o, f) => {
+        const start = idx.length, base = pos.length / 3;
+        for (let q = 0; q < o.pos.length / 12; q++) { const b = base + q * 4; idx.push(b, b + 1, b + 2, b, b + 2, b + 3); }
+        pos = pos.concat(o.pos); nor = nor.concat(o.nor); uv = uv.concat(o.uv);   // 数组很大，不能用 push(...) 展开
+        if (idx.length > start) g.addGroup(start, idx.length - start, FACES[type] ? f : 0);
+      });
+      if (!idx.length) continue;
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setIndex(idx);
+      g.computeBoundingSphere();
+      const m = mesh(g, FACES[type] ? blockMaterial(type) : [blockMaterial(type)], shadow && type !== 'glass');
+      parent.add(m);
+    }
+    this.byType.clear();
+    this.solid.clear();
+  }
+}
+// 贴图按米平铺的长方体（高楼、大块地面用）
+function tiledBox(w, h, d, material) {
+  const g = new THREE.BoxGeometry(w, h, d).translate(0, h / 2, 0);
+  const uv = g.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * dims[f][0], uv.getY(i) * dims[f][1]); }
+  return mesh(g, material);
+}
+
+// =====================================================================
+// 各主题的天空、地面方块
+// =====================================================================
+// 地面混合：[方块, 权重]，按大范围噪声分片，同一片是同一种
+const GROUND_MIX = {
+  seaside: [['grassTop', 5], ['grassTopDark', 2], ['grassTopLight', 2], ['coarseDirt', 0.6]],
+  canyon: [['redSand', 5], ['redSandDark', 2], ['terracotta2', 0.8], ['coarseDirt', 0.5]],
+  snow: [['snow', 5], ['snowDirty', 2], ['stone', 0.5]],
+  night: [['stone', 3], ['andesite', 2], ['cobble', 1], ['gravel', 1]],
+  sunset: [['podzolTop', 3], ['grassTop', 2], ['grassTopDark', 2], ['coarseDirt', 1]],
+};
+const groundNoise = (x, z) => 0.5 + 0.5 * (0.55 * Math.sin(x * 0.0071 + 1.7) * Math.cos(z * 0.0083 + 0.3) + 0.45 * Math.sin((x - z) * 0.0113 + 2.1) * Math.cos((x + z) * 0.0061));
+function groundTile(theme, x, z) {
+  const mix = GROUND_MIX[theme], total = mix.reduce((a, [, w]) => a + w, 0);
+  let n = clamp(groundNoise(x, z), 0, 0.999) * total;
+  for (const [t, w] of mix) { n -= w; if (n < 0) return t; }
+  return mix[0][0];
+}
+const PIX_THEME = {
+  seaside: { sky: 0x7ea8ff, fog: 0xb7cfff, fogD: 0.0016, ground: 'grassTop', sun: [0xfff6e0, 4.2], hemi: [0xd6e4ff, 0x7a9a55, 1.1], exposure: 0.62, env: 0.7 },
+  canyon: { sky: 0x8ab4ff, fog: 0xe9c9a2, fogD: 0.0017, ground: 'redSand', sun: [0xffe8c8, 4.6], hemi: [0xdfe6ff, 0xb0704a, 1.0], exposure: 0.6, env: 0.7 },
+  snow: { sky: 0xa3c2ff, fog: 0xdce8ff, fogD: 0.002, ground: 'snow', sun: [0xf2f6ff, 3.6], hemi: [0xe0ecff, 0xb8c8d8, 1.2], exposure: 0.55, env: 0.8 },
+  night: { sky: 0x0b1030, fog: 0x121834, fogD: 0.0026, ground: 'stone', sun: [0x8fa8ff, 0.9], hemi: [0x3a4a80, 0x141820, 0.55], exposure: 0.95, env: 0.25, night: true },
+  sunset: { sky: 0xff9e6a, fog: 0xf2b58c, fogD: 0.0018, ground: 'podzolTop', sun: [0xffc08a, 3.8], hemi: [0xffd0b0, 0x6a5a3a, 1.0], exposure: 0.62, env: 0.6 },
+};
+
+// =====================================================================
+// 单张地图
+// =====================================================================
+function buildPixelWorld(def) {
+  resetWorld();
+  worldMode = 'single';
+  pixelActive = true;
+  world.userData.pixel = true;
+  const th = PIX_THEME[def.theme];
+  applyPixelSky({ [def.theme]: 1 });
+  const Tr = buildTrackData(def);
+  T = Tr;
+  const shoreZ = def.theme === 'seaside' ? T.bounds.z1 + 60 : Infinity;
+  pixelGround((x, z) => shoreTile(z, shoreZ) ?? groundTile(def.theme, x, z), T.bounds.cx - 3500, T.bounds.cx + 3500, T.bounds.cz - 3500, T.bounds.cz + 3500);
+  buildPixelRegion(Tr, def.theme, { barriers: true });
+  pixelSkyObjects();
+}
+
+// 一个区域（单张地图或开放世界里的一块）：赛道、起点、跳台 + 按主题的布景
+function buildPixelRegion(Tr, theme, { barriers }) {
+  T = Tr;
+  spotFilter = null;
+  const rng = seeded([...Tr.def.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 20260930));
+  buildPixelTrack(barriers);
+  buildPixelStart();
+  buildRamps({ top: blockMat('planks'), side: blockMat('logSide') });
+  buildRoadFeatures(true);
+  const blocks = new BlockSet();
+  PIX_DECOR[theme](rng, blocks);
+  blocks.build(world);
+  spotFilter = null;
+}
+
+// 开放世界能不能摆一个半径 r 的大东西（单张地图不限制）
+const pixFree = (x, z, r) => worldMode !== 'open' || (nearestRegion(x, z) === buildingRegion && roadClear(x, z, r));
+
+// ---------------- 各主题的布景 ----------------
+const PIX_DECOR = {
+  seaside(rng, blocks) {
+    const shoreZ = T.bounds.z1 + 60;
+    if (worldMode === 'open') oceanZ = shoreZ + 46;
+    // 沙滩和大海是地面格子的一部分（见 shoreTile），这里不再叠平面，免得远处闪烁
+    const height = pixelHills(rng, blocks, { count: 14, filter: (x, z) => z < shoreZ - 60, top: 'grass', side: 'dirt', core: 'stone' });
+    pixelTrees(rng, blocks, height, { count: 170, filter: (x, z) => z < shoreZ - 6, kinds: ['oak', 'oak', 'birch'] });
+    pixelHouses(rng, blocks, height, { count: 26, filter: (x, z) => z < shoreZ - 15, wall: 'planks', post: 'log', roof: 'darkPlanks', base: 'cobble' });
+    for (let i = 0; i < 60; i++) {   // 沙滩上的羊毛遮阳伞
+      const x = Math.round(T.bounds.cx + (rng() - 0.5) * 900), z = Math.round(shoreZ + 6 + rng() * 36);
+      if (!pixFree(x, z, 2)) continue;
+      for (let y = 0; y < 3; y++) blocks.add('planks', x, y, z);
+      const col = pick(['#a12722', '#f8c627', '#35399d', '#e9ecec', '#f07613', '#169c9c']);
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) blocks.add(col, x + dx, 3, z + dz);
+    }
+  },
+  canyon(rng, blocks) {
+    // 陶瓦台地（仿《我的世界》的恶地）：和经典版一样多、一样大的山——近处 3 米的方块，远处巨型台地用 8 米的方块
+    pixelMesas(rng, { count: 32, minD: 45, maxD: 200, margin: 250, rMin: 10, rMax: 35, hMin: 15, hMax: 60, unit: 3 });
+    pixelMesas(rng, { count: 45, minD: 280, maxD: 900, margin: 900, rMin: 40, rMax: 130, hMin: 60, hMax: 180, unit: 8 });
+    // 仙人掌、枯灌木、石块
+    for (const p of findSpots(rng, 120, T.B + 4, 160)) {
+      const x = Math.round(p.x), z = Math.round(p.z);
+      if (!pixFree(x, z, 1)) continue;
+      addObstacle(x + 0.5, z + 0.5, 0.5);
+      if (rng() < 0.75) { const h = 2 + Math.floor(rng() * 3); for (let y = 0; y < h; y++) blocks.add('cactus', x, y, z); }
+      else blocks.add(rng() < 0.5 ? 'cobble' : 'terracotta4', x, 0, z);
+    }
+  },
+  snow(rng, blocks) {
+    const height = pixelHills(rng, blocks, { count: 12, top: 'snowGrass', side: 'dirt', core: 'stone', tall: 1.5 });
+    pixelTrees(rng, blocks, height, { count: 220, kinds: ['spruce'] });
+    pixelHouses(rng, blocks, height, { count: 14, wall: 'sprucePlanks', post: 'spruce', roof: 'snow', base: 'cobble' });
+  },
+  night(rng, blocks) {
+    // 高楼：深色墙面 + 亮着的窗户（发光），贴图按米平铺；路边萤石路灯
+    const [wTex, wEmit] = windowTiles(41);
+    const bMat = new THREE.MeshStandardMaterial({ map: wTex, emissiveMap: wEmit, emissive: 0xffffff, emissiveIntensity: 1.1, roughness: 0.8 });
+    for (const [n, minD, maxD, margin, hMin, hMax] of [[140, T.B + 12, 300, 250, 16, 70], [70, 330, 900, 700, 40, 160]]) {
+      for (const p of findSpots(rng, n, minD, maxD, margin)) {
+        const w = 10 + Math.floor(rng() * 16), d = 10 + Math.floor(rng() * 16), h = hMin + Math.floor(rng() * (hMax - hMin));
+        const x = Math.round(p.x), z = Math.round(p.z);
+        if (!pixFree(x, z, Math.max(w, d) * 0.72)) continue;
+        const b = tiledBox(w, h, d, bMat);
+        b.position.set(x, 0, z);
+        world.add(b);
+        addObstacle(x, z, (w + d) / 4);
+      }
+    }
+    for (let i = 0; i < T.N; i += 12) for (const s of [-1, 1]) {
+      const lat = s * (T.B + 1.5), x = Math.round(T.px[i] + T.nx[i] * lat), z = Math.round(T.pz[i] + T.nz[i] * lat);
+      if (!pixFree(x, z, 1)) continue;
+      for (let y = 0; y < 4; y++) blocks.add('darkPlanks', x, y, z);
+      blocks.add('glowstone', x, 4, z);
+    }
+  },
+  sunset(rng, blocks) {
+    const height = pixelHills(rng, blocks, { count: 16, top: 'grass', side: 'andesite', core: 'stone', tall: 1.8 });
+    pixelTrees(rng, blocks, height, { count: 200, kinds: ['spruce', 'spruce', 'oak'] });
+    // 羊毛广告牌
+    for (const p of findSpots(rng, 10, T.B + 8, 40)) {
+      const x = Math.round(p.x), z = Math.round(p.z);
+      if (!pixFree(x, z, 4)) continue;
+      const cols = pick([['#a12722', '#f8c627'], ['#35399d', '#e9ecec'], ['#f07613', '#1d1d21']]);
+      for (let y = 0; y < 3; y++) blocks.add('log', x, y, z);
+      for (let dx = -3; dx <= 3; dx++) for (let y = 3; y < 6; y++) blocks.add(cols[(dx + y) % 2 ? 0 : 1], x + dx, y, z);
+    }
+  },
+};
+
+// ---------------- 天空 ----------------
+let pixelEnvTarget = null, pixelEnvScene = null;
+// weights：{ 主题: 权重 }（单张地图就是 { 主题: 1 }，开放世界按离各区域的远近混合）
+function applyPixelSky(weights) {
+  const acc = { fogD: 0, sunI: 0, hemiI: 0, exposure: 0, env: 0, night: 0 };
+  const skyC = new THREE.Color(0, 0, 0), fog = new THREE.Color(0, 0, 0), sunC = new THREE.Color(0, 0, 0), hC = new THREE.Color(0, 0, 0), hG = new THREE.Color(0, 0, 0), tmp = new THREE.Color();
+  for (const [id, k] of Object.entries(weights)) {
+    const th = PIX_THEME[id];
+    skyC.add(tmp.set(th.sky).multiplyScalar(k)); fog.add(tmp.set(th.fog).multiplyScalar(k));
+    sunC.add(tmp.set(th.sun[0]).multiplyScalar(k)); hC.add(tmp.set(th.hemi[0]).multiplyScalar(k)); hG.add(tmp.set(th.hemi[1]).multiplyScalar(k));
+    acc.fogD += th.fogD * k; acc.sunI += th.sun[1] * k; acc.hemiI += th.hemi[2] * k; acc.exposure += th.exposure * k; acc.env += th.env * k; acc.night += (th.night ? 1 : 0) * k;
+  }
+  if (!pixelEnvScene) { pixelEnvScene = new THREE.Scene(); pixelEnvScene.background = new THREE.Color(0x9cbcff); }
+  if (!pixelEnvTarget) pixelEnvTarget = pmrem.fromScene(pixelEnvScene);
+  sky.removeFromParent();   // 经典的天空着色器不用了，换成纯色天空
+  SUN_DIR.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 55), THREE.MathUtils.degToRad(150));
+  LIGHT_DIR.copy(SUN_DIR);
+  scene.background = skyC;
+  scene.environment = pixelEnvTarget.texture;
+  scene.environmentIntensity = acc.env;
+  renderer.toneMappingExposure = acc.exposure;
+  scene.fog.color.copy(fog);
+  scene.fog.density = acc.fogD;
+  sun.color.copy(sunC); sun.intensity = acc.sunI;
+  hemi.color.copy(hC); hemi.groundColor.copy(hG); hemi.intensity = acc.hemiI;
+  if (world?.userData.sunSprite) {
+    world.userData.sunSprite.material.opacity = 1 - acc.night;
+    world.userData.moonSprite.material.opacity = acc.night;
+  }
+  return acc.night;
+}
+
+function pixelSkyObjects() {
+  // 方形太阳 / 月亮：跟着镜头走，永远在天上同一个方向
+  const follow = new THREE.Group();
+  const square = (c1, c2, c3) => pixelTexture((g, w, h) => {
+    g.fillStyle = c1; g.fillRect(0, 0, w, h); g.fillStyle = c2; g.fillRect(2, 2, w - 4, h - 4); g.fillStyle = c3; g.fillRect(5, 5, w - 10, h - 10);
+  }, { seed: 3 });
+  const disc = (tex, dir) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshBasicMaterial({ map: tex, fog: false, depthWrite: false, transparent: true }));
+    m.position.copy(dir).multiplyScalar(1200);
+    m.lookAt(0, 0, 0);
+    m.userData.noCull = true;   // 跟着镜头走，不参与按距离隐藏
+    follow.add(m);
+    return m;
+  };
+  world.userData.sunSprite = disc(square('#fffbe0', '#fff3a8', '#ffffff'), SUN_DIR);
+  world.userData.moonSprite = disc(square('#c9ced8', '#e4e8ee', '#b8bec8'), v(-SUN_DIR.x, SUN_DIR.y, -SUN_DIR.z));
+  world.userData.moonSprite.material.opacity = 0;
+  world.add(follow);
+  world.userData.skyFollow = follow;
+  // 方块云：一层扁平的白色方块，按世界坐标的噪声分布，只摆镜头周围一圈（跟着镜头更新），慢慢往一个方向飘
+  const cloudMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.35, transparent: true, opacity: 0.88 }), 2500);
+  cloudMesh.count = 0;
+  cloudMesh.frustumCulled = false;
+  cloudMesh.userData.noCull = true;
+  world.add(cloudMesh);
+  world.userData.clouds = { mesh: cloudMesh, t: 0, key: '' };
+}
+const CLOUD = 16, CLOUD_R = 900;
+const cloudNoise = (x, z) => Math.sin(x * 0.011 + 1.3) * Math.cos(z * 0.013 + 0.4) + Math.sin(x * 0.027 + z * 0.019) * 0.6;
+const cloudM = new THREE.Matrix4();
+function updatePixelSky(dt) {
+  const ud = world?.userData;
+  if (!ud?.pixel) return;
+  updatePixelCull(dt);
+  ud.skyFollow.position.copy(camera.position);
+  if (ud.water) ud.water.offset.y = (ud.water.offset.y + dt * 0.03) % 1;
+  const cl = ud.clouds;
+  cl.t += dt;
+  const drift = cl.t * 1.8;
+  const cx = Math.round(camera.position.x / CLOUD), cz = Math.round(camera.position.z / CLOUD), shift = Math.floor(drift / CLOUD);
+  const key = `${cx},${cz},${shift}`;
+  cl.mesh.position.x = drift - shift * CLOUD;
+  if (key === cl.key) return;
+  cl.key = key;
+  let n = 0;
+  const R = Math.round(CLOUD_R / CLOUD);
+  for (let i = -R; i <= R && n < 2500; i++) for (let j = -R; j <= R && n < 2500; j++) {
+    const gx = (cx + i) * CLOUD, gz = (cz + j) * CLOUD;
+    if (i * i + j * j > R * R || cloudNoise(gx - shift * CLOUD, gz) < 0.75) continue;
+    cl.mesh.setMatrixAt(n++, cloudM.makeScale(CLOUD, 4, CLOUD).setPosition(gx, 105, gz));
+  }
+  cl.mesh.count = n;
+  cl.mesh.instanceMatrix.needsUpdate = true;
+}
+
+// =====================================================================
+// 开放世界（自由驾驶）：底下一整片草方块，每个区域铺上自己的地面方块；连接公路也是像素路面
+// =====================================================================
+function buildPixelLink(R) {
+  world.add(mesh(ribbon(R, 0, R.N - 1, -R.W, R.W, 0.028, 24), pixelRoadMaterial(R.W * 2, 24, 2.5), false));
+  const gravel = new THREE.MeshStandardMaterial({ map: pixelTexture(TILE.gravel, { seed: 22, repeat: [2.5, 1] }), roughness: 1, ...LAYER(1.5) });
+  world.add(mesh(ribbon(R, 0, R.N - 1, R.W, R.W + 2.5, 0.012, 1), gravel, false), mesh(ribbon(R, 0, R.N - 1, -R.W - 2.5, -R.W, 0.012, 1), gravel, false));
+}
+
+// ---------------- 赛道 ----------------
+// 混凝土方块路面：每块色调略有不同；白色边线、中间白色虚线（3 块线 3 块空）
+function pixelRoadMaterial(width, len, layer = 3) {
+  const blocksW = Math.round(width), blocksL = Math.round(len);
+  const road = pixelTexture((g, w, h, r) => {
+    for (let by = 0; by < blocksL; by++) for (let bx = 0; bx < blocksW; bx++) {
+      g.fillStyle = shade('#4e5157', (r() - 0.5) * 0.04);
+      g.fillRect(bx * PX, by * PX, PX, PX);
+      for (let i = 0; i < 40; i++) { g.fillStyle = r() < 0.5 ? '#44474d' : '#5a5d63'; g.fillRect(bx * PX + Math.floor(r() * PX), by * PX + Math.floor(r() * PX), 1, 1); }
+    }
+    g.fillStyle = '#e9ecec';
+    g.fillRect(PX * 0.5, 0, PX / 4, h); g.fillRect(w - PX * 0.75, 0, PX / 4, h);
+    for (let by = 0; by < blocksL; by += 6) g.fillRect(w / 2 - PX / 8, by * PX, PX / 4, PX * 3);
+  }, { w: blocksW * PX, h: blocksL * PX, seed: 21 });
+  return new THREE.MeshStandardMaterial({ map: road, roughness: 0.9, ...LAYER(layer) });
+}
+function buildPixelTrack(barriers) {
+  const roadLen = loopPeriod(T, 24);
+  world.add(mesh(ribbon(T, 0, T.N, -T.W, T.W, 0.03, roadLen), pixelRoadMaterial(T.W * 2, roadLen), false));
+  // 缓冲区：砂砾（u 横跨缓冲区宽度，v 以米计）
+  const shW = T.B + 0.5 - T.W;
+  const gravelMat = new THREE.MeshStandardMaterial({ map: pixelTexture(TILE.gravel, { seed: 22, repeat: [shW, 1] }), roughness: 1, ...LAYER(2) });
+  world.add(mesh(ribbon(T, 0, T.N, T.W, T.B + 0.5, 0.015, 1), gravelMat, false), mesh(ribbon(T, 0, T.N, -T.B - 0.5, -T.W, 0.015, 1), gravelMat, false));
+  const dirtSkirt = new THREE.MeshStandardMaterial({ map: pixelTexture(TILE.dirt, { seed: 23 }), roughness: 1, side: THREE.DoubleSide });
+  for (const side of [-1, 1]) world.add(mesh(wallRibbon(T, side * (T.B + 0.5), 0, 0.015, 1), dirtSkirt, false));
+  // 路缘：红白羊毛相间（每块 1 米）
+  const curbTex = pixelTexture((g, w, h, r) => { wool('#a12722')(g, w, PX, r); g.save(); g.translate(0, PX); wool('#e9ecec')(g, w, PX, r); g.restore(); }, { w: PX, h: PX * 2, seed: 24, repeat: [1.4, 1] });
+  const curbMat = new THREE.MeshStandardMaterial({ map: curbTex, roughness: 0.9, ...LAYER(4) });
+  let runStart = -1;
+  const isCorner = (i) => Math.abs(T.k[i]) > 1 / 140;
+  for (let i = 0; i <= T.N; i++) {
+    const on = i < T.N && isCorner(i);
+    if (on && runStart < 0) runStart = i;
+    if (!on && runStart >= 0) {
+      const a = runStart - 6, count = i - runStart + 12;
+      world.add(mesh(ribbon(T, a, count, T.W - 0.3, T.W + 1.1, 0.04, 2), curbMat, false), mesh(ribbon(T, a, count, -T.W - 1.1, -T.W + 0.3, 0.04, 2), curbMat, false));
+      runStart = -1;
+    }
+  }
+  if (!barriers) return;
+  // 护栏：一格高的石砖墙（每米一块）
+  const wallMat = new THREE.MeshStandardMaterial({ map: pixelTexture(TILE.stoneBricks, { seed: 25 }), roughness: 0.9, side: THREE.DoubleSide });
+  for (const side of [-1, 1]) world.add(mesh(wallRibbon(T, side * T.B, 0, 1.0, 1), wallMat));
+}
+
+// ---------------- 起终点：方块门架、红石灯发车灯、看台和方块鹈鹕观众 ----------------
+function buildPixelStart() {
+  const h0 = T.heading[0];
+  const p0 = v(T.px[0], 0, T.pz[0]);
+  const fwd = v(T.tx[0], 0, T.tz[0]);
+  const left = v(T.nx[0], 0, T.nz[0]);
+  // 起终点黑白格、发车格
+  const checker = pixelTexture((g, w, h) => {
+    for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? '#1d1d21' : '#e9ecec'; g.fillRect(i * 4, j * 4, 4, 4); }
+  }, { w: 64, h: 16, seed: 31, repeat: [T.W / 4, 1] });
+  const line = mesh(new THREE.PlaneGeometry(T.W * 2, 2).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: checker, roughness: 0.8, ...LAYER(5) }), false);
+  line.position.copy(p0).setY(0.045);
+  line.rotation.y = h0;
+  world.add(line);
+  const slotMat = new THREE.MeshBasicMaterial({ color: 0xe9ecec, ...LAYER(5) });
+  for (let i = 0; i < GRID_SLOTS; i++) {
+    const gs = gridSlot(i), p = trackPoint(T, gs.s, gs.lat);
+    const m = mesh(new THREE.PlaneGeometry(3, 0.5).rotateX(-Math.PI / 2), slotMat, false);
+    m.position.set(p.x, 0.045, p.z);
+    m.rotation.y = p.heading;
+    m.translateZ(2.8);
+    world.add(m);
+  }
+  // 门架：两根石砖柱 + 一排横梁；横幅是像素字
+  const gantry = new THREE.Group();
+  gantry.position.copy(p0);
+  gantry.rotation.y = h0;
+  world.add(gantry);
+  const span = Math.ceil(T.W + 2);
+  const gb = new BlockSet({ local: true });
+  for (const x of [-span - 1, span]) for (let y = 0; y < 9; y++) gb.add('stoneBricks', x, y, -0.5);
+  for (let x = -span - 1; x <= span; x++) gb.add('stoneBricks', x, 9, -0.5);
+  gb.build(gantry);
+  const banner = pixelTexture((g, w, h) => {
+    g.fillStyle = '#a12722'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#f8c627'; g.fillRect(0, 0, w, 1); g.fillRect(0, h - 1, w, 1);
+    g.fillStyle = '#ffffff'; g.font = 'bold 11px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('PELICAN GP', w / 2, h / 2 + 1);
+  }, { w: 96, h: 16, seed: 32 });
+  banner.wrapS = banner.wrapT = THREE.ClampToEdgeWrapping;
+  const bannerMat = new THREE.MeshStandardMaterial({ map: banner, roughness: 0.8, side: THREE.DoubleSide });
+  for (const [z, ry] of [[-0.52, Math.PI], [0.52, 0]]) {
+    const b = mesh(new THREE.PlaneGeometry(span * 2 - 2, 2.2), bannerMat, false);
+    b.position.set(0, 10.6, z);
+    b.rotation.y = ry;
+    gantry.add(b);
+  }
+  gantry.add(box(span * 2 - 2, 2.2, 1, blockMat('darkPlanks'), 0, 10.6, 0));
+  // 发车灯：5 个红石灯方块（亮起时发红光）
+  startLights = [];
+  const lampTex = pixelTexture(TILE.redstoneLamp, { seed: 33 });
+  for (let i = 0; i < 5; i++) {
+    const m = new THREE.MeshStandardMaterial({ map: lampTex, color: 0xffffff, emissive: 0xff3a1a, emissiveMap: lampTex, emissiveIntensity: 0, roughness: 0.6 });
+    gantry.add(box(0.9, 0.9, 0.9, m, (i - 2) * 1.1, 8.3, -0.3));
+    startLights.push(m);
+  }
+  // 看台：沿起跑直道外侧，7 级石砖台阶，顶上木板雨棚，台阶上坐满方块鹈鹕
+  let side = 1;
+  const test = (sd) => distToTrack(T, p0.x + left.x * sd * (T.B + 30), p0.z + left.z * sd * (T.B + 30));
+  if (test(-1) > test(1)) side = -1;
+  const stand = new THREE.Group();
+  stand.position.copy(p0).addScaledVector(left, side * (T.B + 4)).addScaledVector(fwd, -10);
+  stand.rotation.y = h0 + (side > 0 ? Math.PI / 2 : -Math.PI / 2);
+  stand.rotateY(Math.PI);
+  world.add(stand);
+  world.userData.stands.push(stand.position.clone());
+  const sb = new BlockSet({ local: true });
+  const L = 36, rows = 7;
+  const crowdM = [], crowdC = [];
+  for (let r = 0; r < rows; r++) {
+    for (let x = -L / 2; x < L / 2; x++) {
+      const seat = ['#35399d', '#a12722', '#f8c627'][r % 3];   // 每级台阶顶上一排彩色羊毛座位
+      for (let y = 0; y <= r; y++) sb.add(y === r ? seat : 'stoneBricks', x, y, -r - 1);
+      if (rng01() < 0.78) {
+        crowdM.push(compose(v(x + 0.5, r + 1, -r - 0.5), new THREE.Euler(0, (rng01() - 0.5) * 0.5, 0)));
+        crowdC.push(new THREE.Color(pick([0xa12722, 0xf8c627, 0x35399d, 0x169c9c, 0xf07613, 0xe9ecec, 0x5e9c3a])));
+      }
+    }
+  }
+  for (const x of [-L / 2, L / 2 - 1]) for (let y = 0; y < 10; y++) sb.add('log', x, y, -rows - 1);
+  for (let x = -L / 2; x < L / 2; x++) for (let z = -rows - 1; z <= -1; z++) sb.add('darkPlanks', x, 10, z);
+  sb.build(stand);
+  buildMixedCrowd(stand, crowdM, crowdC, true);   // 20 个角色随机坐（体素化）
+  // 开放世界里门架立柱、看台是实心障碍物
+  gantry.updateMatrixWorld(true);
+  for (const x of [-span - 0.5, span + 0.5]) { const p = gantry.localToWorld(v(x, 0, 0)); addObstacle(p.x, p.z, 0.8); }
+  stand.updateMatrixWorld(true);
+  for (let x = -L / 2 + 3; x <= L / 2 - 3; x += 6) { const p = stand.localToWorld(v(x, 0, -rows / 2 - 1)); addObstacle(p.x, p.z, rows / 2 + 1.5); }
+}
+
+// 方块鹈鹕观众：白色身体、长脖子、方脑袋、粉色长嘴和橙色喉囊、黑眼睛；帽子单独一块（每只颜色不同）
+let pixelSpectatorGeo = null;
+function pixelSpectatorGeometry() {
+  if (pixelSpectatorGeo) return pixelSpectatorGeo;
+  const part = (w, h, d, x, y, z, color) => {
+    const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z).toNonIndexed();
+    const c = new THREE.Color(color), cols = [];
+    for (let i = 0; i < g.attributes.position.count; i++) cols.push(c.r, c.g, c.b);
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    return g;
+  };
+  const bird = mergeGeometries([
+    part(0.5, 0.45, 0.55, 0, 0.22, 0, 0xf1efe8), part(0.1, 0.3, 0.4, 0.28, 0.25, -0.02, 0x2a2a2e), part(0.1, 0.3, 0.4, -0.28, 0.25, -0.02, 0x2a2a2e),
+    part(0.16, 0.4, 0.16, 0, 0.62, 0.12, 0xf1efe8), part(0.3, 0.26, 0.3, 0, 0.9, 0.14, 0xf1efe8),
+    part(0.12, 0.07, 0.42, 0, 0.9, 0.48, 0xe8a3a3), part(0.1, 0.1, 0.3, 0, 0.82, 0.42, 0xf5a623),
+    part(0.31, 0.05, 0.05, 0, 0.94, 0.25, 0x111111),
+  ]);
+  const gear = new THREE.BoxGeometry(0.34, 0.1, 0.34).translate(0, 1.08, 0.14);
+  bird.userData.shared = gear.userData.shared = true;
+  pixelSpectatorGeo = { bird, gear };
+  return pixelSpectatorGeo;
+}
+
+
+// ---------------- 地形：方块山丘（顶层 top、靠近表面 side、深处 core），只放露在外面的方块 ----------------
+function pixelHills(rng, blocks, { count, filter = null, top, side, core, tall = 1, spots = null, nearTrack = true }) {
+  const H = new Map();   // "x,z" → 这一格的高度（方块数）
+  const key = (x, z) => `${x},${z}`;
+  spotFilter = filter;
+  for (const c of spots ?? findSpots(rng, count, T.B + 70, 320, 300)) {
+    const R = 14 + rng() * 18, peak = Math.round((4 + rng() * 11) * tall);
+    const cx = Math.round(c.x), cz = Math.round(c.z);
+    if (!pixFree(cx, cz, R + 3)) continue;
+    addObstacle(cx, cz, R * 0.85);
+    for (let x = Math.floor(cx - R); x <= cx + R; x++) for (let z = Math.floor(cz - R); z <= cz + R; z++) {
+      const d = Math.hypot(x - cx, z - cz) / R;
+      if (d >= 1) continue;
+      const h = Math.round(peak * (1 - d * d) ** 0.9 + Math.sin(x * 0.23 + cz) * Math.cos(z * 0.19 + cx) * 1.2);   // 缓慢起伏，台阶成片
+      if (h > 0 && (!nearTrack || distToTrack(T, x, z) > T.B + 8)) H.set(key(x, z), Math.max(H.get(key(x, z)) ?? 0, h));
+    }
+  }
+  spotFilter = null;
+  for (const [k, h] of H) {
+    const [x, z] = k.split(',').map(Number);
+    const low = Math.min(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => H.get(key(x + dx, z + dz)) ?? 0));
+    blocks.add(top, x, h - 1, z);
+    for (let y = Math.max(0, Math.min(low, h - 1)); y < h - 1; y++) blocks.add(y < h - 4 ? core : side, x, y, z);
+  }
+  return (x, z) => H.get(key(Math.round(x), Math.round(z))) ?? 0;
+}
+
+// ---------------- 树：橡树、白桦（圆树冠）、云杉（尖塔形，雪地里树冠带雪） ----------------
+function pixelTrees(rng, blocks, height, { count, filter = null, kinds, spots = null }) {
+  spotFilter = filter;
+  const snowy = T.def.theme === 'snow';
+  for (const p of spots ?? findSpots(rng, count, T.B + 5, 140)) {
+    const x = Math.round(p.x), z = Math.round(p.z), y0 = height(x, z);
+    if (!pixFree(x, z, 1.5)) continue;
+    addObstacle(x + 0.5, z + 0.5, 0.6);
+    const kind = kinds[Math.floor(rng() * kinds.length)];
+    if (kind === 'spruce') {
+      const h = 7 + Math.floor(rng() * 4);
+      for (let y = 0; y < h; y++) blocks.add('spruce', x, y0 + y, z);
+      for (let y = 2; y <= h; y++) {
+        const r = y === h ? 0 : (h - y) % 2 === 0 ? 1 : Math.min(2, 1 + Math.floor((h - y) / 3));
+        const leaf = snowy && (h - y) % 2 === 1 ? 'snowLeaves' : 'spruceLeaves';
+        for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+          if ((dx || dz) === 0 && y < h) continue;
+          if (Math.abs(dx) + Math.abs(dz) > r + (r > 1 ? 1 : 0)) continue;
+          blocks.add(leaf, x + dx, y0 + y, z + dz);
+        }
+      }
+      blocks.add(snowy ? 'snowLeaves' : 'spruceLeaves', x, y0 + h + 1, z);
+      continue;
+    }
+    const birch = kind === 'birch', h = 4 + Math.floor(rng() * 3);
+    const leaf = birch ? 'birchLeaves' : 'leaves';
+    for (let y = 0; y < h; y++) blocks.add(birch ? 'birch' : 'log', x, y0 + y, z);
+    for (let y = h - 2; y <= h + 1; y++) {
+      const r = y >= h ? 1 : 2;
+      for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+        if (dx === 0 && dz === 0 && y < h) continue;
+        if (Math.abs(dx) === r && Math.abs(dz) === r && (y === h + 1 || rng() < 0.5)) continue;   // 去掉一些角，树冠圆一点
+        if (y === h + 1 && Math.abs(dx) + Math.abs(dz) > 1) continue;
+        blocks.add(leaf, x + dx, y0 + y, z + dz);
+      }
+    }
+  }
+  spotFilter = null;
+}
+
+// ---------------- 房子：地基、墙 + 角柱、玻璃窗、门洞、两坡阶梯屋顶（材料按主题） ----------------
+function pixelHouses(rng, blocks, height, { count, filter = null, wall, post, roof, base }) {
+  spotFilter = filter;
+  for (const p of findSpots(rng, count, 40, 220)) {
+    const w = 5 + Math.floor(rng() * 3), d = 5 + Math.floor(rng() * 3), wallH = 4;
+    const x0 = Math.round(p.x - w / 2), z0 = Math.round(p.z - d / 2), y0 = height(p.x, p.z);
+    if (!pixFree(p.x, p.z, Math.max(w, d))) continue;
+    addObstacle(p.x, p.z, Math.max(w, d) * 0.6);
+    const doorSide = Math.floor(rng() * 4);
+    for (let x = 0; x < w; x++) for (let z = 0; z < d; z++) {
+      const edgeX = x === 0 || x === w - 1, edgeZ = z === 0 || z === d - 1;
+      blocks.add(base, x0 + x, y0, z0 + z);
+      if (!edgeX && !edgeZ) continue;
+      for (let y = 1; y <= wallH; y++) {
+        const corner = edgeX && edgeZ;
+        const mid = (edgeZ && x === Math.floor(w / 2)) || (edgeX && z === Math.floor(d / 2));
+        const doorHere = y <= 2 && mid && ((doorSide === 0 && z === 0) || (doorSide === 1 && z === d - 1) || (doorSide === 2 && x === 0) || (doorSide === 3 && x === w - 1));
+        if (doorHere) continue;
+        const window = !corner && y === 2 && (edgeZ ? x % 2 === 1 : z % 2 === 1) && !mid;
+        blocks.add(corner ? post : window ? 'glass' : wall, x0 + x, y0 + y, z0 + z);
+      }
+    }
+    // 两坡屋顶：沿 x 方向的屋脊，每往上一层两边各收进一格；两头是山墙
+    for (let k = 0; k <= Math.ceil(d / 2); k++) {
+      const za = -1 + k, zb = d - k;
+      if (za > zb) break;
+      for (let x = -1; x <= w; x++) {
+        blocks.add(roof, x0 + x, y0 + wallH + 1 + k, z0 + za);
+        if (zb !== za) blocks.add(roof, x0 + x, y0 + wallH + 1 + k, z0 + zb);
+      }
+      if (k > 0) for (const x of [0, w - 1]) for (let z = za + 1; z < zb; z++) blocks.add(wall, x0 + x, y0 + wallH + k, z0 + z);
+    }
+  }
+  spotFilter = null;
+}
+
+// 陶瓦台地：平顶、边缘两三级台阶，一层层不同颜色的陶瓦；unit 是方块边长（米），远处的大山用大方块控制面数
+function pixelMesas(rng, { count, minD, maxD, margin, rMin, rMax, hMin, hMax, unit, spots = null, nearTrack = true }) {
+  const H = new Map(), key = (x, z) => `${x},${z}`;
+  for (const p of spots ?? findSpots(rng, count, minD, maxD, margin)) {
+    const r = rMin + rng() * (rMax - rMin), rz = r * (0.7 + rng() * 0.6), h = hMin + rng() * (hMax - hMin), rot = rng() * 6;
+    if (!pixFree(p.x, p.z, Math.max(r, rz) * 1.3)) continue;
+    addObstacle(p.x, p.z, Math.min(r, rz) * 1.15);
+    const cx = p.x / unit, cz = p.z / unit, R = r / unit, Rz = rz / unit, top = Math.max(2, Math.round(h / unit));
+    const c = Math.cos(rot), sn = Math.sin(rot), ext = Math.ceil(Math.max(R, Rz) * 1.3);
+    for (let gx = Math.floor(cx - ext); gx <= cx + ext; gx++) for (let gz = Math.floor(cz - ext); gz <= cz + ext; gz++) {
+      const dx = gx + 0.5 - cx, dz = gz + 0.5 - cz;
+      const lx = dx * c - dz * sn, lz = dx * sn + dz * c;
+      const d = Math.hypot(lx / R, lz / Rz) + Math.sin(gx * 0.9 + gz * 0.7) * 0.05 + Math.sin(gx * 0.31 - gz * 0.43) * 0.06;
+      if (d >= 1.25) continue;
+      // 平顶 → 往外两级台阶（高度 60%、30%）
+      const hh = d < 0.9 ? top : d < 1.08 ? Math.round(top * 0.6) : Math.max(1, Math.round(top * 0.3));
+      if (nearTrack && unit <= 3 && distToTrack(T, (gx + 0.5) * unit, (gz + 0.5) * unit) < T.B + 6) continue;   // 近处的台地不能压到赛道
+      H.set(key(gx, gz), Math.max(H.get(key(gx, gz)) ?? 0, hh));
+    }
+  }
+  const blocks = new BlockSet({ unit });
+  for (const [k, h] of H) {
+    const [x, z] = k.split(',').map(Number);
+    const low = Math.min(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => H.get(key(x + dx, z + dz)) ?? 0));
+    for (let y = Math.max(0, Math.min(low, h - 1)); y < h; y++) blocks.add(`terracotta${Math.floor((y * unit) / 3) % TERRACOTTA.length}`, x, y, z);   // 每 3 米一层颜色
+  }
+  const g = new THREE.Group();
+  g.scale.setScalar(unit);
+  blocks.build(g, { chunk: 800 / unit });
+  world.add(g);
+}
+
+// =====================================================================
+// 地面：40 米见方的格子拼起来，每一格只有一种地面方块（不叠平面，远处不会因为深度冲突而闪烁）；
+// 贴图 uv 按米计，一米一格像素方块
+// =====================================================================
+function shoreTile(z, shoreZ) {
+  if (z > shoreZ + 50) return 'water';
+  if (z > shoreZ) return 'sand';
+  return null;
+}
+// 地面用的方块材质：和方块共用贴图，但带顶点色（斑马纹深浅）
+const groundMats = new Map();
+function groundMat(t) {
+  if (!groundMats.has(t)) { const m = blockMat(t).clone(); m.vertexColors = true; m.userData.shared = true; groundMats.set(t, m); }
+  return groundMats.get(t);
+}
+function pixelGround(typeAt, x0, x1, z0, z1, cell = 25) {
+  const byType = new Map();
+  for (let x = x0; x < x1; x += cell) for (let z = z0; z < z1; z += cell) {
+    const t = typeAt(x + cell / 2, z + cell / 2);
+    if (!byType.has(t)) byType.set(t, []);
+    byType.get(t).push(x, z);
+  }
+  // 格子四个角的高度（旷野地形），同一个角只算一次
+  const hCache = new Map();
+  const H = (x, z) => { const k = `${x},${z}`; if (!hCache.has(k)) hCache.set(k, terrainH(x, z)); return hCache.get(k); };
+  const stripes = worldMode === 'open';
+  for (const [t, xz] of byType) {
+    const n = xz.length / 2, pos = new Float32Array(n * 12), uv = new Float32Array(n * 8), col = new Float32Array(n * 12), idx = [];
+    for (let i = 0; i < n; i++) {
+      const x = xz[i * 2], z = xz[i * 2 + 1];
+      pos.set([x, H(x, z), z, x, H(x, z + cell), z + cell, x + cell, H(x + cell, z + cell), z + cell, x + cell, H(x + cell, z), z], i * 12);
+      const k = stripes && t !== 'water' && t !== 'sand' ? zebraShade(x + cell / 2, z + cell / 2) : 1;   // 旷野的斑马纹
+      col.fill(k, i * 12, i * 12 + 12);
+      uv.set([x, -z, x, -z - cell, x + cell, -z - cell, x + cell, -z], i * 8);
+      const b = i * 4;
+      idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    g.computeBoundingSphere();
+    const m = mesh(g, groundMat(t), false);
+    world.add(m);
+  }
+  if (byType.has('water')) world.userData.water = blockMat('water').map;
+}
+
+// ---------------- 开放世界：地面、野外、信标 ----------------
+function buildPixelOpenGround() {
+  const shoreZ = regionTracks.seaside.bounds.z1 + 60;
+  const c = WORLD_CENTER, half = 3800;
+  pixelGround((x, z) => shoreTile(z, shoreZ) ?? groundTile(TRACK_BY_ID[nearestRegion(x, z)].theme, x, z), c[0] - half, c[0] + half, c[1] - half, c[1] + half);
+}
+
+// 区域之间的野外：按所在地形撒山丘、树林、台地、高楼，开在路外也看得出方向和速度
+function pixelWild(rng) {
+  const shoreZ = regionTracks.seaside.bounds.z1 + 60;
+  const byRegion = {};
+  for (let i = 0; i < 600; i++) {
+    const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * (WORLD_RADIUS - 120);
+    const x = WORLD_CENTER[0] + Math.cos(a) * r, z = WORLD_CENTER[1] + Math.sin(a) * r;
+    if (z > shoreZ - 40) continue;
+    if (Object.values(REGION_POS).some(([rx, rz]) => Math.hypot(x - rx, z - rz) < 560)) continue;
+    if (!roadClear(x, z, 16)) continue;
+    (byRegion[nearestRegion(x, z)] ??= []).push(v(x, 0, z));
+  }
+  // 按 600 米见方的地块分开建（每块单独合并），远处的整块可以按距离隐藏
+  const chunks = [];
+  for (const [id, list] of Object.entries(byRegion)) {
+    const m = new Map();
+    for (const p of list) { const k = `${Math.floor(p.x / 600)},${Math.floor(p.z / 600)}`; if (!m.has(k)) m.set(k, []); m.get(k).push(p); }
+    for (const spots of m.values()) chunks.push([id, spots]);
+  }
+  for (const [id, spots] of chunks) {
+    buildingRegion = id;
+    T = regionTracks[id];
+    const theme = TRACK_BY_ID[id].theme;
+    const blocks = new BlockSet();
+    const hillSpots = spots.filter((_, i) => i % 4 === 0), rest = spots.filter((_, i) => i % 4 !== 0);
+    // 每个点周围一小片树林（4～8 棵）
+    const grove = (kinds) => rest.flatMap((p) => Array.from({ length: 4 + Math.floor(rng() * 5) }, () => v(p.x + (rng() - 0.5) * 30, 0, p.z + (rng() - 0.5) * 30))).map((p) => ({ p, kinds }));
+    if (theme === 'canyon') {
+      pixelMesas(rng, { spots: hillSpots, rMin: 10, rMax: 28, hMin: 12, hMax: 45, unit: 3, nearTrack: false });
+      for (const p of rest) for (let k = 0; k < 5; k++) {
+        const x = Math.round(p.x + (rng() - 0.5) * 30), z = Math.round(p.z + (rng() - 0.5) * 30);
+        if (!pixFree(x, z, 1)) continue;
+        addObstacle(x + 0.5, z + 0.5, 0.5);
+        const h = 2 + Math.floor(rng() * 3);
+        for (let y = 0; y < h; y++) blocks.add('cactus', x, y, z);
+      }
+    } else if (theme === 'night') {
+      const [wTex, wEmit] = windowTiles(47);
+      const bMat = new THREE.MeshStandardMaterial({ map: wTex, emissiveMap: wEmit, emissive: 0xffffff, emissiveIntensity: 1.1, roughness: 0.8 });
+      for (const p of spots) {
+        const w = 10 + Math.floor(rng() * 14), d = 10 + Math.floor(rng() * 14), h = 20 + Math.floor(rng() * 70);
+        if (!pixFree(p.x, p.z, Math.max(w, d) * 0.75)) continue;
+        const b = tiledBox(w, h, d, bMat);
+        b.position.set(Math.round(p.x), 0, Math.round(p.z));
+        world.add(b);
+        addObstacle(p.x, p.z, (w + d) / 4);
+      }
+    } else {
+      const hill = theme === 'snow' ? { top: 'snowGrass', side: 'dirt', core: 'stone', tall: 1.5 } : theme === 'sunset' ? { top: 'grass', side: 'andesite', core: 'stone', tall: 1.8 } : { top: 'grass', side: 'dirt', core: 'stone' };
+      const height = pixelHills(rng, blocks, { spots: hillSpots, ...hill, nearTrack: false });
+      const kinds = theme === 'seaside' ? ['oak', 'oak', 'birch'] : theme === 'snow' ? ['spruce'] : ['spruce', 'spruce', 'oak'];
+      pixelTrees(rng, blocks, height, { spots: grove(kinds).map((g) => g.p), kinds });
+    }
+    blocks.build(world);
+  }
+  buildingRegion = null;
+}
+
+// 信标光柱（仿《我的世界》的信标）：每个区域中心一道彩色光柱，很远就能看到，用来辨认方向
+const BEACON_COLORS = { seaside: 0x5ad0ff, canyon: 0xff8a3a, snow: 0xf4f8ff, night: 0xb04dff, sunset: 0xffd24a };
+function pixelBeacons() {
+  const blocks = new BlockSet();
+  for (const d of TRACKS) {
+    let [x, z] = REGION_POS[d.id];
+    // 中心压在路上就往外挪一点
+    for (let k = 0; k < 40 && !roadClear(x, z, 6); k++) { x += 15 * Math.cos(k); z += 15 * Math.sin(k); }
+    x = Math.round(x); z = Math.round(z);
+    addObstacle(x + 0.5, z + 0.5, 2.5);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) blocks.add('quartz', x + dx, 0, z + dz);
+    blocks.add('seaLantern', x, 1, z);   // 信标本体：发光方块
+    const col = BEACON_COLORS[d.theme];
+    const beam = mesh(new THREE.BoxGeometry(4, 700, 4).translate(0, 350, 0), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), false);
+    beam.position.set(x + 0.5, 1, z + 0.5);
+    beam.userData.noCull = true;   // 信标就是要从远处看到的
+    world.add(beam);
+  }
+  blocks.build(world);
+}
+
+// 开放世界按距离隐藏：离镜头 1400 米以外（早被雾遮住了）的方块堆、楼、树不画，省下大量三角形
+function collectPixelCullables() {
+  const list = [];
+  const sphere = new THREE.Sphere();
+  world.updateMatrixWorld(true);
+  world.traverse((o) => {
+    if (!o.isMesh || !o.geometry.boundingSphere || o.userData.noCull) return;
+    sphere.copy(o.geometry.boundingSphere).applyMatrix4(o.matrixWorld);
+    if (sphere.radius > 700) return;   // 地面、公路这类很长的东西一直画
+    list.push({ o, c: sphere.center.clone(), r: sphere.radius });
+  });
+  world.userData.cull = { list, t: 0 };
+}
+function updatePixelCull(dt) {
+  const cu = world?.userData.cull;
+  if (!cu) return;
+  cu.t -= dt;
+  if (cu.t > 0) return;
+  cu.t = 0.25;
+  const p = camera.position, far = 1400;
+  for (const it of cu.list) it.o.visible = it.c.distanceTo(p) - it.r < far;
 }
 
 /* ===== js/world/open-world.js ===== */
@@ -3094,10 +4828,12 @@ function signBoard(text, sub) {
   return g;
 }
 
-function buildLinkVisuals(R, roadMat, shoulderMat, postGeo, postMat) {
-  world.add(mesh(ribbon(R, 0, R.N - 1, -R.W, R.W, 0.028, 24), roadMat, false));
-  world.add(mesh(ribbon(R, 0, R.N - 1, R.W, R.W + 2.5, 0.012, 8), shoulderMat, false));
-  world.add(mesh(ribbon(R, 0, R.N - 1, -R.W - 2.5, -R.W, 0.012, 8), shoulderMat, false));
+function buildLinkVisuals(R, roadMat, shoulderMat, postGeo, postMat, { roads = true } = {}) {
+  if (roads) {
+    world.add(mesh(ribbon(R, 0, R.N - 1, -R.W, R.W, 0.028, 24), roadMat, false));
+    world.add(mesh(ribbon(R, 0, R.N - 1, R.W, R.W + 2.5, 0.012, 8), shoulderMat, false));
+    world.add(mesh(ribbon(R, 0, R.N - 1, -R.W - 2.5, -R.W, 0.012, 8), shoulderMat, false));
+  }
   // 路边反光桩
   const posts = [];
   for (let i = 30; i < R.N - 30; i += 12) {
@@ -3117,10 +4853,38 @@ function buildLinkVisuals(R, roadMat, shoulderMat, postGeo, postMat) {
   }
 }
 
-// 开放世界的地面：一整块地，颜色按区域混合（海滨草地 → 峡谷红土 → 雪地 → 城市）
+// =====================================================================
+// 旷野地形：离路（赛道、公路）60 米以外才开始鼓起来，160 米外完全起伏；海边、区域中心附近保持平的。
+// 只往上鼓（大起伏 + 山脊 + 小土包），坡度平缓车能开上去；路面、区域布景附近高度为 0，接缝自然
+// =====================================================================
+let terrainShoreZ = Infinity;
+function terrainH(x, z) {
+  if (worldMode !== 'open') return 0;
+  const q = nearestRoad(x, z, 170);
+  let m = smoothstep(60, 160, q ? q.d - q.road.W : 170);
+  if (m <= 0) return 0;
+  m *= smoothstep(terrainShoreZ - 40, terrainShoreZ - 160, z);
+  if (m <= 0) return 0;
+  const h1 = Math.sin(x * 0.0071 + 1.3) * Math.cos(z * 0.0083 + 0.7);            // 大起伏
+  const h2 = Math.sin(x * 0.019 - z * 0.014 + 2.1);                               // 斜着的山脊
+  const h3 = Math.sin((x + z) * 0.043) * Math.cos((x - z) * 0.037);               // 小土包
+  const raw = 16 * Math.max(0, h1 + 0.25) + 4.5 * (h2 * 0.5 + 0.5) + 2.2 * (h3 * 0.5 + 0.5);
+  return raw * m;
+}
+// 地形的坡度（x、z 方向每米升高多少）
+function terrainGrad(x, z) {
+  const h = terrainH(x, z);
+  return [terrainH(x + 1, z) - h, terrainH(x, z + 1) - h, h];
+}
+// 旷野地面的斑马纹：斜着一深一浅相间的宽条带（每条约 18 米），开起来看得出速度和方向
+const zebraShade = (x, z) => (Math.floor((x + z) / 25) % 2 === 0 ? 1 : 0.8);
+
+// 开放世界的地面：一整块地，颜色按区域混合（海滨草地 → 峡谷红土 → 雪地 → 城市），旷野有起伏
 function buildOpenGround() {
-  const geo = new THREE.PlaneGeometry(7600, 7600, 152, 152).rotateX(-Math.PI / 2).translate(WORLD_CENTER[0], 0, WORLD_CENTER[1]);
+  const geo = new THREE.PlaneGeometry(7600, 7600, 304, 304).rotateX(-Math.PI / 2).translate(WORLD_CENTER[0], 0, WORLD_CENTER[1]);
   const pos = geo.attributes.position, colors = [];
+  for (let i = 0; i < pos.count; i++) pos.setY(i, terrainH(pos.getX(i), pos.getZ(i)));
+  geo.computeVertexNormals();
   const cols = Object.fromEntries(TRACKS.map((d) => [d.id, new THREE.Color(THEMES[d.theme].ground[0])]));
   const c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
@@ -3130,13 +4894,22 @@ function buildOpenGround() {
     colors.push(c.r * 1.15, c.g * 1.15, c.b * 1.15);
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  const detail = noiseTexture(256, '#dedede', [['#c4c4c4', 0.8], ['#f4f4f4', 0.6], ['#b0b0b0', 0.4]], [760, 760]);
+  // 细节纹理里画上斑马纹（一深一浅两条），整张贴图斜 45° 铺
+  const detail = canvasTexture(256, (g, w, h) => {
+    g.fillStyle = '#e6e6e6'; g.fillRect(0, 0, w, h / 2);
+    g.fillStyle = '#b8b8b8'; g.fillRect(0, h / 2, w, h / 2);
+    for (let i = 0; i < w * h * 0.25; i++) { g.fillStyle = pick(['#c4c4c480', '#f4f4f480', '#a8a8a880']); g.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); }
+  }, { repeat: [7600 / 36, 7600 / 36] });
+  detail.center.set(0.5, 0.5);
+  detail.rotation = Math.PI / 4;
   world.add(mesh(geo, new THREE.MeshStandardMaterial({ map: detail, vertexColors: true, roughness: 1 }), false));
 }
 
 function buildOpenWorld() {
   resetWorld();
   worldMode = 'open';
+  const px = pixelActive = wantPixelOpen();
+  world.userData.pixel = px;
   // 1. 各地图的赛道挪到自己的区域
   for (const d of TRACKS) {
     const local = buildTrackData(d);
@@ -3151,7 +4924,29 @@ function buildOpenWorld() {
   for (const R of [...Object.values(regionTracks), ...links]) {
     for (let i = 0; i < R.N; i++) roadGrid.insert(R.px[i], R.pz[i], 0, { r: R, i });
   }
-  // 3. 地面、公路
+  terrainShoreZ = regionTracks.seaside.bounds.z1 + 60;
+  // 3. 地面、公路（像素风格：草方块地面 + 各区域的地面方块 + 像素路面）
+  if (px) {
+    buildPixelOpenGround();
+    const postGeo = merge([[new THREE.BoxGeometry(0.4, 1.2, 0.4), compose(v(0, 0.6, 0))]]);
+    for (const R of links) {
+      buildPixelLink(R);
+      buildLinkVisuals(R, null, null, postGeo, blockMat('logSide'), { roads: false });
+    }
+    for (const d of TRACKS) {
+      buildingRegion = d.id;
+      regionFilter = (x, z) => nearestRegion(x, z) === d.id && roadClear(x, z, 2);
+      buildPixelRegion(regionTracks[d.id], d.theme, { barriers: false });
+    }
+    buildingRegion = null;
+    regionFilter = null;
+    pixelWild(seeded(777));
+    pixelBeacons();
+    pixelSkyObjects();
+    collectPixelCullables();
+    blend.lastEnv = -99;
+    return;
+  }
   buildOpenGround();
   const roadMat = asphaltMaterial('#4b4e53', 13, 24, { center: 'yellow', extra: LAYER(2.5) });
   const shoulderMat = new THREE.MeshStandardMaterial({ map: noiseTexture(128, '#9a9588', [['#85806f', 0.8], ['#b3ad9e', 0.6]], [1, 1], 0.5), roughness: 1, ...LAYER(1.5) });
@@ -3181,6 +4976,14 @@ const envSceneBlend = new THREE.Scene();
 const blendColor = new THREE.Color();
 function applyBlendedTheme(x, z, force = false) {
   const w = regionWeights(x, z);
+  if (world?.userData.pixel) {   // 像素风格：纯色天空按区域混合（开往夜城会慢慢天黑）
+    const tw = {};
+    for (const d of TRACKS) tw[d.theme] = (tw[d.theme] ?? 0) + w[d.id];
+    const night = applyPixelSky(tw);
+    if (player?.headlight) player.headlight.intensity = 220 * clamp(night * 1.3, 0, 1);
+    regionNotice(w);
+    return w;
+  }
   const acc = { exposure: 0, fogD: 0, sunI: 0, hemiI: 0, elev: 0, azim: 0, turb: 0, ray: 0, mie: 0, env: 0 };
   const fogC = new THREE.Color(0, 0, 0), sunC = new THREE.Color(0, 0, 0), hemiC = new THREE.Color(0, 0, 0), hemiG = new THREE.Color(0, 0, 0);
   for (const d of TRACKS) {
@@ -3235,13 +5038,17 @@ function applyBlendedTheme(x, z, force = false) {
     blend.lastEnv = elapsed;
     blend.envW = w;
   }
-  // 进入新区域时提示一下
+  regionNotice(w);
+  return w;
+}
+
+// 进入新区域时提示一下
+function regionNotice(w) {
   const top = Object.keys(w).reduce((a, b) => (w[a] > w[b] ? a : b));
   if (w[top] > 0.6 && top !== blend.region) {
     if (blend.region && raceState === 'racing') showMessage(`📍 ${TRACK_BY_ID[top].name}`, 2);
     blend.region = top;
   }
-  return w;
 }
 
 // ---------------- 开放世界的碰撞：障碍物、世界边界、海岸线 ----------------
@@ -3282,6 +5089,26 @@ function collideObstacles(c) {
       if (d < min && d > 1e-4) hitSurface(c, ox / d, oz / d, min - d);
     }
   });
+}
+
+// 开放世界里撞车后按 R：就在原地扶正重新出发（卡在障碍物里就先挪出来，不能开进海里、不能出世界边界）
+function restartInPlace(c) {
+  for (let k = 0; k < 4; k++) {
+    let moved = false;
+    obstacles.query(c.x, c.z, 8, (o) => {
+      const dx = c.x - o.x, dz = c.z - o.z, d = Math.hypot(dx, dz) || 0.01, need = o.r + c.built.half[1] + 0.5;
+      if (d < need) { c.x = o.x + (dx / d) * need; c.z = o.z + (dz / d) * need; moved = true; }
+    });
+    if (!moved) break;
+  }
+  if (c.z > oceanZ - 3) c.z = oceanZ - 3;
+  const dx = c.x - WORLD_CENTER[0], dz = c.z - WORLD_CENTER[1], dist = Math.hypot(dx, dz);
+  if (dist > WORLD_RADIUS - 5) { c.x = WORLD_CENTER[0] + (dx / dist) * (WORLD_RADIUS - 5); c.z = WORLD_CENTER[1] + (dz / dist) * (WORLD_RADIUS - 5); }
+  Object.assign(c, { vx: 0, vz: 0, vF: 0, vL: 0, steer: 0, yawRate: 0, accel: 0, drift: 0, state: 'drive', crashT: 0, ghost: 2, stuckT: 0, wrongT: 0, skidLast: null, vy: 0, air: false, airT: 0 });
+  c.tumble.position.set(0, 0, 0);
+  c.tumble.rotation.set(0, 0, 0);
+  c.y = surfaceY(c);
+  snapInterp(c);
 }
 
 // 按 R：回到最近的一条路上（赛道或连接公路），车头朝向原来大致的方向
@@ -4464,19 +6291,17 @@ function updateParticles(dt) {
 // =====================================================================
 // 赛车手：车 + 鹈鹕 + 运动状态
 // =====================================================================
-const NPC_PROFILES = [
-  ['小白', 0xe53935, '#e53935'], ['阿蓝', 0x1e88e5, '#1e88e5'], ['胖虎', 0x43a047, '#43a047'], ['闪电', 0xfdd835, '#e0b800'],
-  ['小橙', 0xfb8c00, '#fb8c00'], ['豆豆', 0x8e24aa, '#8e24aa'], ['阿青', 0x00acc1, '#00acc1'], ['糖糖', 0xf06292, '#f06292'],
-];
+const GRID_SLOTS = 11;      // 发车格数量（玩家 + 10 个对手）
 const NITRO_CHARGE = 10;   // 充能时间（秒）：每 10 秒可以用一次
 const NITRO_BURN = 2.8;    // 喷射持续时间
 const CRASH_SPEED = 19;    // 撞墙时垂直于墙的速度超过这个值（m/s ≈ 68 km/h）就会翻车
 const flameGeo = new THREE.ConeGeometry(0.13, 1, 12, 1, true).rotateX(-Math.PI / 2).translate(0, 0, -0.5);
 flameGeo.userData.shared = true;
 
-function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false, helmet = null, look = {} }) {
+function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false, helmet = null, look = {}, character = 'pelican' }) {
   const spec = CAR_BY_ID[carId];
   const built = CAR_BUILDERS[carId](color, { pattern: 'stock', accent: null, ...look });
+  if (pixelActive) voxelizeCar(built);   // 像素方块世界：车变成一格一格的方块
   const root = new THREE.Group();
   const tumble = new THREE.Group();
   const body = new THREE.Group();
@@ -4496,8 +6321,10 @@ function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false
     return sp;
   });
 
-  const pel = createPelican(helmet ?? (isPlayer ? 0xffffff : color), color);
+  const pel = createDriver(character, helmet ?? (isPlayer ? 0xffffff : color), color);
+  if (pixelActive) voxelizePelican(pel);
   pel.group.position.copy(built.seat);
+  if (character !== 'pelican') pel.group.position.y += built.charLift ?? 0;
   pel.group.scale.setScalar(built.pelScale);
   body.add(pel.group);
 
@@ -4505,6 +6332,7 @@ function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false
   swPivot.position.copy(built.wheelPos);
   swPivot.rotation.x = built.wheelTilt;
   const sw = makeSteeringWheel(built.wheelR, built.wheelStyle);
+  if (pixelActive) voxelizeGroup(sw, 0.03);
   swPivot.add(sw);
   body.add(swPivot);
 
@@ -4538,7 +6366,7 @@ function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false
   }
 
   return {
-    spec, built, root, tumble, body, pel, swPivot, sw, flames, tag, headlight, tailMat, tailGlows, brakeGlow: 0, name: name ?? '你', css, isPlayer, carId,
+    spec, built, root, tumble, body, pel, swPivot, sw, flames, tag, headlight, tailMat, tailGlows, brakeGlow: 0, name: name ?? '你', css, isPlayer, carId, character, color,
     x: 0, z: 0, heading: 0, vx: 0, vz: 0, vF: 0, vL: 0, steer: 0, yawRate: 0, accel: 0,
     pitch: 0, roll: 0, wheelRot: 0,
     idx: 0, s: 0, lat: 0, lapCount: 0, maxLap: 0, lapStart: 0, lapTimes: [], bestLap: Infinity,
@@ -4550,6 +6378,7 @@ function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false
     flatT: 0, isPolice: false, active: true, parked: false, busted: false,
     y: 0, vy: 0, air: false, airT: 0, bankSlope: 0, bankRoll: 0,   // 竖直方向：路面高度、腾空
     turboT: 0, turboK: 1, mtT: 0, mtLen: 0, mtKind: '',            // 小喷：加速剩余时间 / 极速倍率；小喷窗口
+    slowT: 0, padCd: 0,                                            // 减速带减速剩余时间、加速带冷却
     px0: 0, pz0: 0, py0: 0, ph0: 0,                                // 上一个物理步的位置（渲染插值用）
     ctl: { steer: 0, throttle: false, reverse: false, brake: false },
   };
@@ -4567,6 +6396,7 @@ function gridSlot(i) {
 }
 
 function placeRacer(c, s, lat, heading = null) {
+  const T = c.trk ?? mainTrack();   // 自由驾驶时每辆车可以在不同区域的赛道上跑
   const p = trackPoint(T, s, lat);
   c.x = p.x; c.z = p.z;
   c.heading = heading ?? p.heading;
@@ -4607,7 +6437,7 @@ function stepCar(c, dt) {
   const vL = c.vx * fz - c.vz * fx;
   const off = c.off;
   const boost = c.nitroTime > 0;
-  const vmax = (sp.vmax / 3.6) * c.perf * (boost ? 1.22 : 1) * (off ? (isFree() ? Math.max(sp.offroad, 0.72) : sp.offroad) : 1) * (c.flatT > 0 ? 0.6 : 1) * (c.starT > 0 ? 1.15 : 1) * (c.zapT > 0 ? 0.65 : 1) * (c.turboT > 0 ? c.turboK : 1);   // 扎胎 / 被闪电劈中跑不快，无敌星更快   // 自由驾驶时野地里也能开得比较快
+  const vmax = (sp.vmax / 3.6) * c.perf * (boost ? 1.22 : 1) * (off ? (isFree() ? Math.max(sp.offroad, 0.72) : sp.offroad) : 1) * (c.flatT > 0 ? 0.6 : 1) * (c.starT > 0 ? 1.15 : 1) * (c.zapT > 0 ? 0.65 : 1) * (c.turboT > 0 ? c.turboK : 1) * (c.slowT > 0 ? 0.55 : 1);   // 扎胎 / 被闪电劈中跑不快，无敌星更快   // 自由驾驶时野地里也能开得比较快
 
   // 漂移：玩家高速大角度转弯时踩着油门（或点一下刹车），车尾滑出去；松开方向或减速后慢慢收回
   const wantDrift = c.isPlayer && !c.finished && !off && Math.abs(c.steer) > 0.55 && vF > 15 && (ctl.throttle || ctl.brake);
@@ -4624,6 +6454,7 @@ function stepCar(c, dt) {
   if (ctl.brake && Math.abs(vF) > 0.3) a -= Math.sign(vF) * sp.brake * (both ? 0.6 : 1.2);
   if (boost && !ctl.brake) a += sp.accel * 0.6;
   if (c.turboT > 0 && !ctl.brake) a += sp.accel * 0.5;   // 小喷 / 起步加速 / 落地喷
+  if (c.gradF && !c.air) a -= 6 * c.gradF;   // 旷野的坡：上坡减速、下坡加速
   if (c.drift > 0.3 && ctl.throttle) a += sp.accel * 0.25 * c.drift * Math.max(0, 1 - (vF / vmax) ** 2);   // 漂移中踩油门能保住速度
   a -= Math.sign(vF) * (0.15 + 0.00008 * vF * vF + (off ? (isFree() ? 1.2 : 2.5) : 0));   // 松开油门时靠惯性滑行，掉速很慢
   if (vF > vmax) a -= (vF - vmax) * 1.3;
@@ -4682,6 +6513,8 @@ function carTimers(c, dt) {
   if (c.flatT > 0) c.flatT = Math.max(0, c.flatT - dt);
   if (c.turboT > 0) c.turboT = Math.max(0, c.turboT - dt);
   if (c.mtT > 0) c.mtT = Math.max(0, c.mtT - dt);
+  if (c.slowT > 0) c.slowT = Math.max(0, c.slowT - dt);
+  if (c.padCd > 0) c.padCd = Math.max(0, c.padCd - dt);
   c.nitroCharge = Math.min(1, c.nitroCharge + dt / NITRO_CHARGE);
 }
 
@@ -4710,7 +6543,17 @@ function surfaceY(c) {
   let R = T, i = c.idx;
   if (worldMode === 'open') {
     const q = nearestRoad(c.x, c.z, 30);
-    if (!q || !q.road.bk) { c.bankSlope = 0; return 0; }
+    const onRoad = q && Math.abs(trackCoords(q.road, c.x, c.z, q.i).lat) <= q.road.B + 0.5;
+    if (!onRoad) {
+      // 旷野：按地形高度走，坡度决定车身侧倾和上下坡的加减速
+      const [gx, gz, h] = terrainGrad(c.x, c.z);
+      const [fx, fz] = forwardOf(c.heading);
+      c.bankSlope = gx * fz - gz * fx;
+      c.gradF = gx * fx + gz * fz;
+      return h;
+    }
+    c.gradF = 0;
+    if (!q.road.bk) { c.bankSlope = 0; return 0; }
     R = q.road; i = q.i;
   }
   const tc = trackCoords(R, c.x, c.z, i);
@@ -4750,6 +6593,27 @@ function updateVertical(c, dt) {
   c.y = gy;
 }
 
+// 特色路段：压上加速带给一段加速；压上减速带立刻掉速，之后一秒多跑不快
+function roadFeatures(c) {
+  if (c.air || c.state !== 'drive') return;
+  const T = c.trk ?? mainTrack();
+  if (!T.pads) return;
+  for (const f of T.pads) {
+    if (c.padCd > 0 || !onFeature(T, f, c.s, c.lat)) continue;
+    c.padCd = 0.8;
+    giveTurbo(c, 1.2, 1.15, 6);
+    carEvent(c, 'pad');
+  }
+  for (const f of T.slows) {
+    if (!onFeature(T, f, c.s, c.lat)) continue;
+    if (c.slowT <= 0) {
+      c.vx *= 0.8; c.vz *= 0.8;
+      carEvent(c, 'slow');
+    }
+    c.slowT = 1.2;
+  }
+}
+
 // 数值出错（NaN / 无穷大）时把车放回路上，免得整局卡死
 function sanitizeCar(c) {
   if (Number.isFinite(c.x + c.z + c.vx + c.vz + c.heading + c.y + c.vy)) return;
@@ -4769,6 +6633,7 @@ function useNitro(c) {
 
 // ---------------- 赛道进度与圈数 ----------------
 function updateProgress(c) {
+  const T = c.trk ?? mainTrack();
   const prevS = c.s;
   c.idx = projectNear(T, c.x, c.z, c.idx);
   const tc = trackCoords(T, c.x, c.z, c.idx);
@@ -4956,6 +6821,7 @@ function updateCrash(c, dt) {
 
 // 放回赛道中心附近：朝向沿赛道，速度清零，短暂无碰撞（半透明闪烁）
 function resetToTrack(c) {
+  const T = c.trk ?? mainTrack();
   c.idx = projectGlobal(T, c.x, c.z);
   const s = trackCoords(T, c.x, c.z, c.idx).s;
   let lat = 0;
@@ -5068,6 +6934,15 @@ function handleCarEvents() {
       if (bonus) drift.total += bonus;
       showMessage(`${e.perfect ? '✨ 完美' : '💨 '}${name}${e.dbl ? ' · 双喷！' : '！'}${bonus ? `<small>+${bonus} 分</small>` : ''}`, 0.9);
       turboStats[e.perfect ? 'perfect' : 'normal']++;
+    } else if (e.type === 'pad') {
+      if (!c.isPlayer) continue;
+      sound.turbo(false);
+      shake = Math.max(shake, 0.2);
+    } else if (e.type === 'slow') {
+      if (!c.isPlayer) continue;
+      sound.bump(8);
+      shake = Math.max(shake, 0.45);
+      showMessage('🐢 压到减速带了', 0.9);
     } else if (e.type === 'startBoost') {
       if (!c.isPlayer) continue;
       sound.turbo(true);
@@ -5085,6 +6960,7 @@ const turboStats = { normal: 0, perfect: 0 };
 
 // ---------------- AI 驾驶：沿走线跑，提前按弯道曲率减速，超车时换线 ----------------
 function aiControl(c, dt) {
+  const T = c.trk ?? mainTrack();   // 自由驾驶时这辆车跑的赛道
   const sp = c.spec;
   const spd = Math.max(c.vF, 0);
   // 人为失误：隔几秒掷一次骰子，可能晚刹车冲进弯、走大线出界、或者手抖画龙
@@ -5109,7 +6985,7 @@ function aiControl(c, dt) {
   // 让道 / 超车：前方近处有车挡在同一条线上就往旁边让
   c.avoid *= Math.exp(-0.7 * dt);
   for (const o of racers) {
-    if (o === c || o.ghost > 0) continue;
+    if (o === c || o.ghost > 0 || (o.trk ?? mainTrack()) !== T) continue;
     let gap = o.progress - c.progress;
     if (gap < -T.L / 2) gap += T.L;
     if (gap <= 0 || gap > 14 + spd * 0.35) continue;
@@ -5126,7 +7002,19 @@ function aiControl(c, dt) {
   let desired = clamp(kAhead * 320, -1, 1) * T.W * 0.5 + c.laneBias * T.W * 0.3 + c.avoid;
   desired = clamp(desired, -T.W * 0.8, T.W * 0.8);
   if (c.mistake === 'wide') desired = -Math.sign(kAhead || 1) * (T.W + 3);   // 走线太大，冲出路面
-  // 躲避前方的钉刺带（空中追捕里的逃犯）：换线更快，可以开进缓冲区
+  // 躲减速带：看到前方减速带挡在行车线上，按车技决定会不会换线绕开（每段只判断一次）
+  for (const f of T.slows ?? []) {
+    let d = f.s0 - c.s;
+    if (d < 0) d += T.L;
+    if (d > 20 + spd * 1.2 || d < 5 || c.slowSeen === f) continue;
+    c.slowSeen = f;
+    if (Math.abs(c.aiLat - f.lat) < f.hw + 1.5 && Math.random() < 0.35 + c.skill * 0.45) {
+      const left = f.lat + f.hw + 2.5, right = f.lat - f.hw - 2.5, lim = T.W - 1.5;
+      const opts = [left, right].filter((x) => Math.abs(x) < lim);
+      if (opts.length) { c.dodgeLat = opts.reduce((a, b) => (Math.abs(a - c.aiLat) < Math.abs(b - c.aiLat) ? a : b)); c.dodgeT = d / Math.max(spd, 5) + 0.6; }
+    }
+  }
+  // 躲避前方的钉刺带（空中追捕里的逃犯）、减速带：换线更快，可以开进缓冲区
   const dodging = c.dodgeT > 0;
   if (dodging) { c.dodgeT -= dt; desired = c.dodgeLat; }
   c.aiLat += (desired - c.aiLat) * Math.min(1, dt * (dodging ? 4 : 1.6));
@@ -5313,7 +7201,9 @@ const store = {
   get(key, fallback) { try { const x = localStorage.getItem(key); return x ? JSON.parse(x) : fallback; } catch { return fallback; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 隐私模式等情况下忽略 */ } },
 };
-const settings = Object.assign({ track: 'seaside', car: 'gt', color: null, difficulty: 'normal', laps: 3, mode: 'race', livery: 'stock', accent: null, mirror: true }, store.get('pelican-racing-settings', {}));
+const settings = Object.assign({ track: 'seaside', car: 'gt', color: null, difficulty: 'normal', laps: 3, mode: 'race', livery: 'stock', accent: null, mirror: true, style: 'classic' }, store.get('pelican-racing-settings', {}));
+if (!['classic', 'pixel'].includes(settings.style)) settings.style = 'classic';
+if (!CHAR_BY_ID[settings.character]) settings.character = 'pelican';
 if (!TRACK_BY_ID[settings.track]) settings.track = 'seaside';
 if (!CAR_BY_ID[settings.car]) settings.car = 'gt';
 if (!['race', 'items', 'timetrial', 'drift', 'pursuit', 'heli', 'free'].includes(settings.mode)) settings.mode = 'race';
@@ -5333,13 +7223,15 @@ const shuffle = (list) => {
 };
 
 let npcLineup = null;   // 同一局菜单里换车时保持对手不变
+// 对手数量：名次赛 / 道具赛 / 警匪追逐 10 辆，空中追捕 6 辆（逃犯 + 路上的车），自由驾驶 16 辆（分到五个区域），计时赛 / 漂移赛没有
+const npcCount = () => (isSolo() ? 0 : isFree() ? 16 : isHeliMode() ? 6 : 10);
 function setupRace({ newRivals = false } = {}) {
   freeRoam = false;
   const def = TRACK_BY_ID[settings.track];
   if (settings.mode === 'free') {
-    if (worldMode !== 'open' || !world) buildOpenWorld();
+    if (worldMode !== 'open' || !world || !!world.userData.pixel !== wantPixelOpen()) buildOpenWorld();
     T = regionTracks[def.id];   // 从选中的地图出发
-  } else if (worldMode !== 'single' || !T || T.def !== def) {
+  } else if (worldMode !== 'single' || !T || T.def !== def || !!world?.userData.pixel !== wantPixel(def)) {   // 换了地图或画面风格就重建
     buildWorld(def);
   }
   racers.forEach(removeRacer);
@@ -5347,20 +7239,20 @@ function setupRace({ newRivals = false } = {}) {
   const diff = DIFFICULTY[settings.difficulty];
 
   player = createRacer({
-    carId: settings.car, color: settings.color ?? CAR_BY_ID[settings.car].color, isPlayer: true, helmet: 0xffffff,
+    carId: settings.car, color: settings.color ?? CAR_BY_ID[settings.car].color, isPlayer: true, helmet: 0xffffff, character: settings.character,
     look: { pattern: settings.livery ?? 'stock', accent: settings.accent ?? null },
   });
   player.headlight.intensity = worldMode === 'single' && THEMES[def.theme].night ? 220 : 0;
+  // 对手：每场从 20 个角色里随机挑（车型、涂装也随机）
   if (!npcLineup || newRivals) {
-    const cars = shuffle(CARS.map((c) => c.id));
-    npcLineup = shuffle(NPC_PROFILES).slice(0, 4).map((p, i) => ({
-      profile: p, car: cars[i], bias: rand(-0.7, 0.7), jitter: rand(-0.025, 0.025),
-      look: { pattern: Math.random() < 0.4 ? 'stock' : pick(LIVERIES.slice(1))[0], accent: null },   // 对手的涂装也随机
+    npcLineup = shuffle(CHARACTERS).slice(0, 16).map((ch) => ({
+      ch, car: pick(CARS).id, bias: rand(-0.7, 0.7), jitter: rand(-0.025, 0.025),
+      look: { pattern: Math.random() < 0.4 ? 'stock' : pick(LIVERIES.slice(1))[0], accent: null },
     }));
   }
   // 计时赛、漂移赛是单人模式，没有对手
-  const npcs = isSolo() ? [] : npcLineup.map(({ profile: [name, hex, css], car, bias, jitter, look }) => {
-    const c = createRacer({ carId: car, color: hex, name, css, look });
+  const npcs = npcLineup.filter((e) => e.ch.id !== settings.character).slice(0, npcCount()).map(({ ch, car, bias, jitter, look }, i) => {
+    const c = createRacer({ carId: car, color: ch.color, name: ch.name, css: hexCss(ch.color), look, character: ch.id });
     c.skill = diff.skill + jitter;
     c.basePerf = diff.perf + jitter;
     c.errRate = diff.err;
@@ -5374,9 +7266,11 @@ function setupRace({ newRivals = false } = {}) {
   });
   racers = [...npcs, player];
   racers.forEach((c, i) => {
-    if (isFree() && !c.isPlayer) {   // 自由驾驶：对手分散在整条赛道上
+    if (isFree() && !c.isPlayer) {   // 自由驾驶：对手分散到五个区域的赛道上，各跑各的
+      if (worldMode === 'open') c.trk = regionTracks[TRACKS[i % TRACKS.length].id];
+      const Tc = c.trk ?? T, k = Math.floor(i / TRACKS.length);
       c.lapCount = 1;
-      placeRacer(c, T.L * (i + 1) / (racers.length + 0.5), rand(-0.4, 0.4) * T.W);
+      placeRacer(c, Tc.L * (k + 0.5) / 4 + rand(0, 30), rand(-0.4, 0.4) * Tc.W);
       return;
     }
     const slot = gridSlot(isFree() || isSolo() ? 0 : i);
@@ -5389,6 +7283,8 @@ function setupRace({ newRivals = false } = {}) {
   rec = { frames: [], acc: 0 };
   startLights.forEach((m) => { m.emissiveIntensity = 0; });
   clearSkids();
+  clearMobs();
+  clearWalker();
   turboStats.normal = turboStats.perfect = 0;
   carEvents.length = 0;
   if (settings.mode === 'pursuit') setupPursuit(); else clearPursuit();
@@ -6026,7 +7922,7 @@ function flashLightbar(c) {
 'use strict';
 
 const MODES = [
-  ['race', '🏁 名次赛', '和 4 位鹈鹕对手比名次'],
+  ['race', '🏁 名次赛', '和 10 位对手比名次（每场从 20 个角色里随机挑选）'],
   ['items', '🍄 道具赛', '撞碎道具箱拿道具（最多存 3 个）：香蕉皮、龟壳、蘑菇、闪电、无敌星、护盾，X 使用、Z 换顺序'],
   ['timetrial', '⏱ 计时赛', '独自跑圈挑战纪录，和自己最快单圈的幽灵车比'],
   ['drift', '🌀 漂移赛', '独自跑圈拿漂移分：连续漂移倍率越来越高，撞墙清零'],
@@ -6046,7 +7942,7 @@ const modeHud = $('modeHud');
 // 计时赛：记录每圈的行驶轨迹，最快的一圈存成幽灵车，下次比赛时半透明地跟着跑；每 1/4 圈显示和纪录的差距
 // =====================================================================
 const ghost = { data: null, model: null, cur: [], sampleT: 0, cp: [], cpNext: 0, delta: null, deltaT: 0 };
-const ghostKey = (id) => `pelican-racing-ghost-${id}`;
+const ghostKey = (id) => `pelican-racing-ghost2-${id}`;   // 赛道加宽后换一份存档，旧的幽灵车会开到路外
 const CHECKPOINTS = [0.25, 0.5, 0.75];
 
 function setupTimeTrial() {
@@ -6236,7 +8132,8 @@ const ITEM_ODDS = [
   { banana: 16, green: 24, red: 24, shield: 10, mushroom: 20, star: 6 },
   { green: 12, red: 32, mushroom: 28, lightning: 16, star: 12 },
 ];
-const ITEM_ROWS = [0.2, 0.45, 0.68, 0.9];   // 道具箱在一圈里的位置
+const ITEM_ROWS = [0.12, 0.24, 0.36, 0.48, 0.6, 0.72, 0.84, 0.95];   // 道具箱在一圈里的位置（8 排）
+const ITEM_LANES = [-0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75];        // 每排 7 个
 const ITEM_SLOTS = 3;                        // 最多同时存几个道具（含正在抽取的）
 const itemCount = (c) => c.items.length + c.pending.length;
 let itemBoxes = [], bananas = [], shells = [];
@@ -6287,7 +8184,7 @@ function makeShell(color) {
 function setupItems() {
   clearItems();
   for (const f of ITEM_ROWS) {
-    for (const lat of [-0.6, -0.2, 0.2, 0.6]) {
+    for (const lat of ITEM_LANES) {
       const p = trackPoint(T, T.L * f, lat * T.W);
       const m = new THREE.Mesh(boxGeo, boxMat);
       const y0 = 1.1 + bankHeight(T, p.i, lat * T.W);
@@ -6347,9 +8244,11 @@ function useItem(c) {
     c.nitroTime = Math.max(c.nitroTime, 1.6);   // 借用氮气的加速和尾焰，不消耗氮气充能
     c.vx += fx * 8; c.vz += fz * 8;
   } else if (id === 'lightning') {
+    // 闪电：只有抽到闪电的人才能放；谁放的在屏幕上写清楚
     for (const o of racers) if (o !== c && hitByItem(o, 'lightning', c)) o.zapT = 4;
     flashScreen();
     sound.thunder();
+    showMessage(c.isPlayer ? '⚡ 你放了闪电！<small>其他车全部打滑、变小、变慢</small>' : `⚡ ${c.name} 放了闪电！`, 1.5);
   } else if (id === 'shield') {
     c.shieldT = 8;
     if (!c.shieldBubble) {
@@ -6564,7 +8463,8 @@ function aiUseItem(c, dt) {
     } else if (id === 'red') use ||= racers.some((o) => o !== c && o.progress - c.progress > 0 && o.progress - c.progress < 160);
     else if (id === 'mushroom') use ||= Math.abs(T.k[T.wrap(c.idx + 20)]) < 1 / 200;
     else if (id === 'shield') use ||= shells.some((s) => s.target === c || (s.owner !== c && (s.x - c.x) ** 2 + (s.z - c.z) ** 2 < 900)) || racers.some((o) => o !== c && c.progress - o.progress > 0 && c.progress - o.progress < 15);
-    else use = true;   // 闪电、无敌星：拿到就用
+    else if (id === 'lightning') use ||= c.itemAiT < -2 && standings()[0] !== c;   // 闪电：拿到后过一会儿再放，第一名不放
+    else use = true;   // 无敌星：拿到就用
     // 最前面的道具暂时用不上、后面还有别的：换一下顺序
     if (!use && c.items.length > 1 && Math.random() < 0.3) { swapItems(c); c.itemAiT = rand(0.5, 1.5); return; }
   }
@@ -6900,6 +8800,552 @@ function heliHud() {
     <div class="combo dim">↑↓ 前进/减速 · ←→ 转向 · Q/E 升降 · 空格 投放 · T 切换视角</div>`;
 }
 
+/* ===== js/game/mobs.js ===== */
+// 自由驾驶的旷野里随机出现《我的世界》里的生物：史蒂夫、苦力帕、墨影人（末影人）、僵尸、骷髅、薯条猫（橘猫）、猪、牛、羊、鸡。
+// 方块拼成，脸是 8×8 的像素画。它们在玩家附近的旷野里刷出来、四处走动，离远了就消失再刷新；
+// 僵尸和苦力帕会朝玩家走过来，苦力帕靠近后闪白、嘶嘶响然后爆炸（附近的车会被炸得打滑）；墨影人时不时瞬移；动物见车开近会跑开。
+// 开车撞到生物：它"噗"地一下化成烟（撞到苦力帕会直接爆炸）。
+'use strict';
+
+const MOB_MAX = 26;
+let mobs = [];
+let mobSpawnT = 0;
+
+// ---------------- 像素贴图 ----------------
+// 8×8 像素画：每行一个字符串，字符查调色板
+function artTex(rows, pal) {
+  return pixelTexture((g) => {
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); }));
+  }, { w: rows[0].length, h: rows.length });
+}
+const noiseTex = (base, dots, seed = 1) => pixelTexture((g, w, h, r) => speckle(g, w, h, r, base, dots, 0.45), { w: 8, h: 8, seed });
+const mobMats = new Map();
+// 材质缓存：key 相同就共用；make 返回贴图（或颜色数字）
+function mobMat(key, make, extra = {}) {
+  if (!mobMats.has(key)) {
+    const t = make();
+    const m = typeof t === 'number' ? new THREE.MeshStandardMaterial({ color: t, roughness: 0.85, ...extra }) : new THREE.MeshStandardMaterial({ map: t, roughness: 0.85, ...extra, ...(extra.emissive !== undefined ? { emissiveMap: t } : {}) });
+    m.userData.shared = true;
+    if (m.map) m.map.userData.shared = true;
+    mobMats.set(key, m);
+  }
+  return mobMats.get(key);
+}
+const mobGeos = new Map();
+function mobBox(w, h, d) {
+  const k = `${w},${h},${d}`;
+  if (!mobGeos.has(k)) { const g = new THREE.BoxGeometry(w, h, d); g.userData.shared = true; mobGeos.set(k, g); }
+  return mobGeos.get(k);
+}
+// 一个方块零件：mats 是一个材质，或者 6 个面的材质 [+x -x +y -y +z(前) -z(后)]
+function mobPart(parent, w, h, d, x, y, z, mats) {
+  const m = new THREE.Mesh(mobBox(w, h, d), mats);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  parent.add(m);
+  return m;
+}
+// 关节：肢体绕上端转动（腿、手臂）
+function mobLimb(parent, w, h, d, x, y, z, mats) {
+  const pivot = new THREE.Group();
+  pivot.position.set(x, y, z);
+  parent.add(pivot);
+  mobPart(pivot, w, h, d, 0, -h / 2, 0, mats);
+  return pivot;
+}
+const sixFaces = (front, side, top, back = side, bottom = top) => [side, side, top, bottom, front, back];
+
+// ---------------- 各种生物的贴图 ----------------
+const MOB_ART = {
+  steveFace: artTex(['hhhhhhhh', 'hhhhhhhh', 'hssssssh', 'ssssssss', 'swbssbws', 'sssnnsss', 'ssmmmmss', 'ssssssss'],
+    { h: '#3b2615', s: '#c69c6d', w: '#ffffff', b: '#523d89', n: '#9c6b4b', m: '#6a4230' }),
+  steveSide: artTex(['hhhhhhhh', 'hhhhhhhh', 'hhhhhsss', 'hhhhssss', 'hhhsssss', 'hhhsssss', 'hhssssss', 'hhssssss'], { h: '#3b2615', s: '#c69c6d' }),
+  steveArm: artTex(['cccccccc', 'cccccccc', 'cccccccc', 'ssssssss', 'ssssssss', 'ssssssss', 'ssssssss', 'ssssssss'], { c: '#00a8a8', s: '#c69c6d' }),
+  steveLeg: artTex(['bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', 'gggggggg', 'gggggggg'], { b: '#3c44aa', g: '#6b6b6b' }),
+  zombieFace: artTex(['gggggggg', 'gdggggdg', 'gggggggg', 'gggggggg', 'gkkggkkg', 'ggggdggg', 'gggkkggg', 'gggggggg'], { g: '#52893a', d: '#3d6b2a', k: '#1b1b1b' }),
+  creeperFace: artTex(['lcclclcc', 'clcclcll', 'ckkcckkc', 'ckkcckkc', 'cclkkclc', 'clkkkkcc', 'clkkkklc', 'cckcckcl'], { c: '#5aab3a', l: '#7fd05a', k: '#111111' }),
+  enderFace: artTex(['eeeeeeee', 'eeeeeeee', 'eeeeeeee', 'eeeeeeee', 'qppeeppq', 'eeeeeeee', 'eeeeeeee', 'eeeeeeee'], { e: '#161616', p: '#cc00fa', q: '#e079fa' }),
+  skullFace: artTex(['bbbbbbbb', 'bbbbbbbb', 'bbbbbbbb', 'bkkbbkkb', 'bkkbbkkb', 'bbbkkbbb', 'bbbbbbbb', 'bkdkdkdb'], { b: '#bcbcbc', k: '#3a3a3a', d: '#8a8a8a' }),
+  ribs: artTex(['bbbbbbbb', 'kkkbbkkk', 'bbbbbbbb', 'kkkbbkkk', 'bbbbbbbb', 'kkkbbkkk', 'bbbbbbbb', 'bbbbbbbb'], { b: '#bcbcbc', k: '#4a4a4a' }),
+  pigFace: artTex(['pppppppp', 'pppppppp', 'pppppppp', 'pkwppwkp', 'pppppppp', 'pppppppp', 'pppppppp', 'pppppppp'], { p: '#f0a5a2', k: '#111111', w: '#ffffff' }),
+  snout: artTex(['nnnnnnnn', 'nnnnnnnn', 'nkknnkkn', 'nkknnkkn', 'nnnnnnnn', 'nnnnnnnn'], { n: '#e98e8b', k: '#6b3a3a' }),
+  cowFace: artTex(['kkwwwwkk', 'kkwwwwkk', 'kkkwwkkk', 'kwkkkkwk', 'kkkkkkkk', 'kkkkkkkk', 'kkkkkkkk', 'kkkkkkkk'], { k: '#2e2a26', w: '#e8e8e8' }),
+  cowHide: artTex(['kkkwwwkk', 'kkwwwwwk', 'wwwwkkww', 'wwwkkkkw', 'kkwwkkww', 'kwwwwwwk', 'wwkkwwww', 'wkkkwwwk'], { k: '#2e2a26', w: '#e8e8e8' }),
+  sheepFace: artTex(['wwwwwwww', 'wggggggw', 'gggggggg', 'gwkggkwg', 'gggggggg', 'ggggnggg', 'gggggggg', 'gggggggg'], { w: '#eeeeee', g: '#b8a894', k: '#111111', n: '#e4a0a0' }),
+  catFace: artTex(['odoodood', 'oooooooo', 'oooooooo', 'okgoogko', 'oowppwoo', 'owwwwwwo', 'oowwwwoo', 'oooooooo'], { o: '#e89a3a', d: '#b86a1a', g: '#3cb043', k: '#111111', p: '#f28ca0', w: '#f4e4c4' }),
+  catFur: artTex(['oooooooo', 'dddooodd', 'oooooooo', 'oodddooo', 'oooooooo', 'ddoooddd', 'oooooooo', 'ooodddoo'], { o: '#e89a3a', d: '#b86a1a' }),
+  chickFace: artTex(['wwwwwwww', 'wwwwwwww', 'wkwwwwkw', 'wwwwwwww', 'wwwwwwww', 'wwwwwwww', 'wwwwwwww', 'wwwwwwww'], { w: '#f4f4f4', k: '#111111' }),
+};
+const M = (key, color, dots = []) => mobMat(key, () => (dots.length ? noiseTex(color, dots, key.length * 7) : new THREE.Color(color).getHex()));
+const A = (key, extra) => mobMat(key, () => MOB_ART[key], extra);
+
+// ---------------- 身体结构 ----------------
+// 人形（史蒂夫、僵尸、骷髅、墨影人）：两腿、身体、两臂、头；返回可动的部件
+function humanoid(g, o) {
+  const legW = o.legW ?? 0.25, legL = o.legL ?? 0.75, armW = o.armW ?? 0.25, armL = o.armL ?? 0.75, bodyH = o.bodyH ?? 0.75;
+  const legs = [-1, 1].map((s) => mobLimb(g, legW, legL, legW, (s * 0.25) / 2, legL, 0, o.leg));
+  mobPart(g, 0.5, bodyH, 0.25, 0, legL + bodyH / 2, 0, o.body);
+  const arms = [-1, 1].map((s) => mobLimb(g, armW, armL, armW, s * (0.25 + armW / 2), legL + bodyH - 0.05, 0, o.arm));
+  const head = new THREE.Group();
+  head.position.set(0, legL + bodyH, 0);
+  g.add(head);
+  mobPart(head, 0.5, 0.5, 0.5, 0, 0.25, 0, o.head);
+  if (o.armsForward) for (const a of arms) a.rotation.x = -Math.PI / 2;
+  return { legs, arms, head, height: legL + bodyH + 0.5, quad: false };
+}
+// 四足动物：身体横着，四条腿，头在前面
+function quadruped(g, o) {
+  const legH = o.legH, legW = o.legW ?? 0.25, [bw, bh, bl] = o.body;
+  const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => mobLimb(g, legW, legH, legW, sx * (bw / 2 - legW / 2), legH, sz * (bl / 2 - legW / 2), o.leg));
+  mobPart(g, bw, bh, bl, 0, legH + bh / 2, 0, o.bodyMat);
+  const head = new THREE.Group();
+  head.position.set(0, legH + bh * (o.headUp ?? 0.7), bl / 2);
+  g.add(head);
+  const [hw, hh, hd] = o.head;
+  mobPart(head, hw, hh, hd, 0, 0, hd / 2, o.headMat);
+  if (o.extra) o.extra(head, g);
+  return { legs, arms: [], head, height: legH + bh + hh * 0.5, quad: true };
+}
+
+const MOB_TYPES = {
+  steve: {
+    name: '史蒂夫', weight: 2, speed: 1.4,
+    build: (g) => humanoid(g, {
+      head: sixFaces(A('steveFace'), A('steveSide'), M('hair', '#3b2615', ['#2e1e10']), M('hair', '#3b2615', ['#2e1e10']), M('skin', '#c69c6d', ['#b98f63'])),
+      body: M('shirt', '#00a8a8', ['#009a9a', '#00b4b4']), arm: A('steveArm'), leg: A('steveLeg'),
+    }),
+  },
+  zombie: {
+    name: '僵尸', weight: 3, speed: 1.1, chase: 30, chaseSpeed: 1.9,
+    build: (g) => humanoid(g, {
+      head: sixFaces(A('zombieFace'), M('zskin', '#52893a', ['#3d6b2a', '#5f9a44'])), body: M('shirt', '#00a8a8', ['#009a9a', '#00b4b4']),
+      arm: M('zskin', '#52893a', ['#3d6b2a', '#5f9a44']), leg: M('pants', '#3c44aa', ['#343b98']), armsForward: true,
+    }),
+  },
+  skeleton: {
+    name: '骷髅', weight: 2, speed: 1.3,
+    build: (g) => humanoid(g, { head: sixFaces(A('skullFace'), M('bone', '#bcbcbc', ['#a8a8a8'])), body: A('ribs'), arm: M('bone', '#bcbcbc', ['#a8a8a8']), leg: M('bone', '#bcbcbc', ['#a8a8a8']), armW: 0.12, legW: 0.12 }),
+  },
+  enderman: {
+    name: '墨影人', weight: 2, speed: 1.2, teleport: true,
+    build: (g) => humanoid(g, {
+      head: sixFaces(A('enderFace', { emissive: 0xffffff }), M('ender', '#161616', ['#202020'])), body: M('ender', '#161616', ['#202020']),
+      arm: M('ender', '#161616', ['#202020']), leg: M('ender', '#161616', ['#202020']), armW: 0.12, legW: 0.12, armL: 1.45, legL: 1.45,
+    }),
+  },
+  creeper: {
+    name: '苦力帕', weight: 3, speed: 1.2, chase: 25, chaseSpeed: 2.4, creeper: true,
+    build: (g) => {
+      const skin = M('creeper', '#5aab3a', ['#7fd05a', '#4a8f2f', '#3d7a26']);
+      const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => mobLimb(g, 0.25, 0.37, 0.25, sx * 0.125, 0.37, sz * 0.19, skin));
+      mobPart(g, 0.5, 0.75, 0.25, 0, 0.37 + 0.375, 0, skin);
+      const head = new THREE.Group();
+      head.position.set(0, 1.12, 0);
+      g.add(head);
+      mobPart(head, 0.5, 0.5, 0.5, 0, 0.25, 0, sixFaces(A('creeperFace'), skin));
+      return { legs, arms: [], head, height: 1.62, quad: true };
+    },
+  },
+  cat: {
+    name: '薯条猫', weight: 2, speed: 1.6, flee: true,
+    build: (g) => quadruped(g, {
+      legH: 0.3, legW: 0.1, body: [0.3, 0.3, 0.8], bodyMat: A('catFur'), leg: M('catleg', '#e89a3a', ['#b86a1a']),
+      head: [0.35, 0.3, 0.3], headMat: sixFaces(A('catFace'), A('catFur')), headUp: 0.9,
+      extra: (head, body) => {
+        for (const s of [-1, 1]) mobPart(head, 0.08, 0.1, 0.06, s * 0.1, 0.19, 0.08, M('catleg', '#e89a3a', ['#b86a1a']));
+        const tail = mobPart(body, 0.07, 0.07, 0.5, 0, 0.62, -0.6, A('catFur'));
+        tail.rotation.x = 0.6;
+      },
+    }),
+  },
+  pig: {
+    name: '猪', weight: 2, speed: 1.0, flee: true,
+    build: (g) => quadruped(g, {
+      legH: 0.35, body: [0.6, 0.55, 1.0], bodyMat: M('pig', '#f0a5a2', ['#e8958f', '#f5b3b0']), leg: M('pig', '#f0a5a2', ['#e8958f', '#f5b3b0']),
+      head: [0.5, 0.5, 0.5], headMat: sixFaces(A('pigFace'), M('pig', '#f0a5a2', ['#e8958f', '#f5b3b0'])),
+      extra: (head) => mobPart(head, 0.26, 0.18, 0.08, 0, -0.07, 0.53, sixFaces(A('snout'), M('snoutS', '#e98e8b'))),
+    }),
+  },
+  cow: {
+    name: '牛', weight: 2, speed: 0.9, flee: true,
+    build: (g) => quadruped(g, {
+      legH: 0.6, body: [0.75, 0.75, 1.1], bodyMat: A('cowHide'), leg: A('cowHide'),
+      head: [0.5, 0.5, 0.35], headMat: sixFaces(A('cowFace'), M('cowH', '#2e2a26', ['#3a3530'])),
+      extra: (head) => {
+        mobPart(head, 0.3, 0.18, 0.06, 0, -0.1, 0.37, M('cowNose', '#c9a28a', ['#b8907a']));
+        for (const s of [-1, 1]) mobPart(head, 0.06, 0.15, 0.06, s * 0.22, 0.3, 0.12, M('horn', '#e0dccc'));
+      },
+    }),
+  },
+  sheep: {
+    name: '羊', weight: 2, speed: 0.9, flee: true,
+    build: (g) => quadruped(g, {
+      legH: 0.5, body: [0.8, 0.75, 1.1], bodyMat: M('wool', '#eeeeee', ['#dcdcdc', '#f8f8f8']), leg: M('sheepLeg', '#b8a894', ['#a89884']),
+      head: [0.38, 0.38, 0.45], headMat: sixFaces(A('sheepFace'), M('wool', '#eeeeee', ['#dcdcdc', '#f8f8f8'])),
+    }),
+  },
+  chicken: {
+    name: '鸡', weight: 2, speed: 1.2, flee: true,
+    build: (g) => quadruped(g, {
+      legH: 0.25, legW: 0.06, body: [0.38, 0.35, 0.45], bodyMat: M('feather', '#f4f4f4', ['#e4e4e4']), leg: M('chickLeg', '#e8b923'),
+      head: [0.25, 0.35, 0.2], headMat: sixFaces(A('chickFace'), M('feather', '#f4f4f4', ['#e4e4e4'])), headUp: 1.2,
+      extra: (head) => {
+        mobPart(head, 0.25, 0.1, 0.12, 0, 0.02, 0.26, M('beak', '#e8b923'));
+        mobPart(head, 0.12, 0.12, 0.06, 0, -0.1, 0.23, M('wattle', '#d42020'));
+      },
+    }),
+  },
+};
+const MOB_POOL = Object.entries(MOB_TYPES).flatMap(([id, t]) => Array(t.weight).fill(id));
+
+// ---------------- 刷出 / 清除 ----------------
+function spawnMob(id, x, z) {
+  const t = MOB_TYPES[id];
+  const group = new THREE.Group();
+  const parts = t.build(group);
+  group.position.set(x, 0, z);
+  scene.add(group);
+  const mob = { id, t, group, ...parts, x, z, heading: Math.random() * Math.PI * 2, turnT: 0, phase: Math.random() * 6, fuse: 0, tpT: 5 + Math.random() * 8, fleeT: 0 };
+  group.rotation.y = mob.heading;
+  mobs.push(mob);
+  return mob;
+}
+function removeMob(m) {
+  m.group.removeFromParent();   // 几何体、材质都是共用的，不用释放
+  mobs.splice(mobs.indexOf(m), 1);
+}
+function clearMobs() {
+  for (const m of [...mobs]) removeMob(m);
+  mobSpawnT = 0;
+}
+// 能不能站在 (x, z)：旷野里、不在路上、不在障碍物里、不在海里、不出世界边界
+function mobSpotOk(x, z) {
+  if (z > oceanZ - 5 || Math.hypot(x - WORLD_CENTER[0], z - WORLD_CENTER[1]) > WORLD_RADIUS - 20) return false;
+  if (!roadClear(x, z, 3)) return false;
+  let blocked = false;
+  obstacles.query(x, z, 3, (o) => { if (Math.hypot(o.x - x, o.z - z) < o.r + 1) blocked = true; });
+  return !blocked;
+}
+
+// 死亡的烟（像《我的世界》里生物消失时那一团白烟）
+function mobPoof(m) {
+  for (let k = 0; k < 14; k++) emit(smokePool, v(m.x + rand(-0.5, 0.5), rand(0.3, m.height), m.z + rand(-0.5, 0.5)), { vel: v(rand(-1, 1), rand(0.5, 2), rand(-1, 1)), life: 0.9, size0: 0.6, size1: 1.8, color: 0xf0f0f0, alpha: 0.7 });
+}
+function creeperBoom(m) {
+  for (let k = 0; k < 40; k++) emit(smokePool, v(m.x + rand(-1.5, 1.5), rand(0.2, 2.5), m.z + rand(-1.5, 1.5)), { vel: v(rand(-5, 5), rand(1, 6), rand(-5, 5)), life: 1.4, size0: 1.5, size1: 5, color: pick([0x707070, 0x9a9a9a, 0xd8d8d8]), alpha: 0.75 });
+  for (let k = 0; k < 20; k++) emit(sparkPool, v(m.x, 1, m.z), { vel: v(rand(-8, 8), rand(2, 9), rand(-8, 8)), life: 0.5, size0: 0.5, size1: 0.1, color: 0xffc040, gravity: 14, alpha: 1 });
+  const P = walker ?? player;
+  const dp = Math.hypot(P.x - m.x, P.z - m.z);
+  if (dp < 60) { sound.crash(); sound.burst({ duration: 1.2, type: 'lowpass', frequency: 300, gain: 0.9 }); }
+  for (const c of allCars()) {
+    const d = Math.hypot(c.x - m.x, c.z - m.z);
+    if (d > 7 || c.state !== 'drive') continue;
+    const k = (7 - d) / 7;
+    c.vx += ((c.x - m.x) / Math.max(d, 0.5)) * 9 * k;
+    c.vz += ((c.z - m.z) / Math.max(d, 0.5)) * 9 * k;
+    spinOut(c, 12);
+    if (c.isPlayer) { shake = 1; showMessage('💥 苦力帕爆炸了！', 1.6); }
+  }
+  // 走路时被炸：弹飞到半空
+  if (walker && dp < 7) {
+    const k = (7 - dp) / 7;
+    walker.x += ((walker.x - m.x) / Math.max(dp, 0.5)) * 3 * k;
+    walker.z += ((walker.z - m.z) / Math.max(dp, 0.5)) * 3 * k;
+    walker.vy = 9 * k + 3; walker.air = true;
+    shake = 1; showMessage('💥 苦力帕爆炸了！', 1.6);
+  }
+  removeMob(m);
+}
+
+// ---------------- 每帧 ----------------
+const CREEPER_FLASH = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
+function updateMobs(dt) {
+  if (worldMode !== 'open' || !player) { if (mobs.length) clearMobs(); return; }
+  if (raceState !== 'racing') return;
+  const P = walker ?? player;   // 下车走路时围着人转
+  // 刷出：玩家周围 70～230 米的旷野里，最多 MOB_MAX 只；离远了就消失
+  mobSpawnT -= dt;
+  if (mobSpawnT <= 0 && mobs.length < MOB_MAX) {
+    mobSpawnT = 0.35;
+    const a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 160;
+    const x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r;
+    if (mobSpotOk(x, z)) spawnMob(pick(MOB_POOL), x, z);
+  }
+  for (const m of [...mobs]) {
+    const dx = P.x - m.x, dz = P.z - m.z, dist = Math.hypot(dx, dz);
+    if (dist > 330) { removeMob(m); continue; }
+    let speed = m.t.speed, want = null;
+    // 僵尸、苦力帕：玩家在附近就追过来；动物：车开近了就跑开
+    if (m.t.chase && dist < m.t.chase && (walker || player.state === 'drive')) { want = Math.atan2(dx, dz); speed = m.t.chaseSpeed; }
+    if (m.t.flee && dist < (walker ? 5 : 14) && (walker || Math.abs(player.vF) > 6)) m.fleeT = 2.5;
+    if (m.fleeT > 0) { m.fleeT -= dt; want = Math.atan2(-dx, -dz); speed = m.t.speed * 2.6; }
+    // 苦力帕：离玩家 4.5 米以内开始点火，闪白 + 嘶嘶声，1.5 秒后爆炸
+    if (m.t.creeper) {
+      if (dist < 4.5 || m.fuse > 0) {
+        if (m.fuse === 0 && dist < 60) sound.burst({ duration: 1.4, type: 'highpass', frequency: 2500, gain: 0.18 });
+        m.fuse += dt;
+        speed = 0;
+        // 闪白：零件临时换成白色发光材质，越来越快；身体慢慢鼓起来
+        const flash = Math.floor(m.fuse * (6 + m.fuse * 8)) % 2 === 0;
+        m.group.scale.setScalar(1 + m.fuse * 0.15);
+        m.group.traverse((o) => {
+          if (!o.isMesh) return;
+          o.userData.orig ??= o.material;
+          o.material = flash ? CREEPER_FLASH : o.userData.orig;
+        });
+        if (m.fuse > 1.5) { creeperBoom(m); continue; }
+      }
+    }
+    // 墨影人：隔几秒瞬移到附近另一处（紫色的烟）
+    if (m.t.teleport) {
+      m.tpT -= dt;
+      if (m.tpT <= 0) {
+        m.tpT = 5 + Math.random() * 8;
+        for (let k = 0; k < 10; k++) emit(smokePool, v(m.x, rand(0.3, 2.5), m.z), { vel: v(rand(-1, 1), rand(0, 1), rand(-1, 1)), life: 0.8, size0: 0.4, size1: 1.2, color: 0xb04dff, alpha: 0.8 });
+        for (let t = 0; t < 6; t++) {
+          const nx = m.x + rand(-25, 25), nz = m.z + rand(-25, 25);
+          if (mobSpotOk(nx, nz)) { m.x = nx; m.z = nz; break; }
+        }
+      }
+    }
+    // 闲逛：隔一会儿换个方向
+    if (want === null) {
+      m.turnT -= dt;
+      if (m.turnT <= 0) { m.turnT = 2 + Math.random() * 4; m.wander = Math.random() < 0.25 ? null : m.heading + rand(-1.5, 1.5); }
+      if (m.wander === null) speed = 0; else want = m.wander;
+    }
+    if (want !== null) m.heading += wrapAngle(want - m.heading) * Math.min(1, dt * 3);
+    if (speed > 0) {
+      const nx = m.x + Math.sin(m.heading) * speed * dt, nz = m.z + Math.cos(m.heading) * speed * dt;
+      if (mobSpotOk(nx, nz) || m.t.chase) { m.x = nx; m.z = nz; } else { m.heading += Math.PI * 0.7; m.wander = m.heading; }
+    }
+    // 走路动画：手脚前后摆，头看着玩家（近的时候）
+    m.phase += speed * dt * 4;
+    const swing = speed > 0 ? Math.sin(m.phase) * 0.7 : 0;
+    m.legs.forEach((l, i) => { l.rotation.x = (m.quad ? (i === 0 || i === 3 ? 1 : -1) : i ? 1 : -1) * swing; });
+    if (!m.t.chase || m.id !== 'zombie') m.arms.forEach((a, i) => { a.rotation.x = (i ? -1 : 1) * swing * 0.8; });
+    if (dist < 25) { const yaw = wrapAngle(Math.atan2(dx, dz) - m.heading); m.head.rotation.y = clamp(yaw, -1, 1); } else m.head.rotation.y *= 0.9;
+    m.group.position.set(m.x, terrainH(m.x, m.z), m.z);   // 站在起伏的旷野上
+    m.group.rotation.y = m.heading;
+    // 被车撞到：化成一团烟（苦力帕直接爆炸）
+    for (const c of allCars()) {
+      if (!c.active || c.state !== 'drive' || c.air) continue;
+      if ((c.x - m.x) ** 2 + (c.z - m.z) ** 2 > 2.6 || Math.abs(c.vF) < 3) continue;
+      if (m.t.creeper) { creeperBoom(m); break; }
+      mobPoof(m);
+      if (c.isPlayer) { sound.bump(6); showMessage(`💨 撞飞了${m.t.name}`, 1.1); c.vx *= 0.93; c.vz *= 0.93; }
+      removeMob(m);
+      break;
+    }
+  }
+}
+
+/* ===== js/game/walk.js ===== */
+// 下车步行（只在开放世界的自由驾驶里）：车停稳后按 F 下车，方向键按镜头方向走（↓ 转身）、空格跳，走回车旁再按 F 上车
+'use strict';
+
+const WALK_SPEED = 6.5, WALK_BACK = 3, WALK_TURN = 2.6, WALK_SPIN = 12, WALK_JUMP = 6.5, WALK_ENTER_D = 4.5;
+const WALK_SCALE = 1.35;   // 站起来比坐在车里显得大一点
+const WALK_LEG = 0.42;     // 腿长（角色自身坐标）
+let walker = null;
+
+const canWalk = () => worldMode === 'open' && raceState === 'racing' && !isHeliMode() && player && !player.finished;
+
+// F 键：车里 → 下车；走路时 → 车在旁边就上车
+function toggleWalk() {
+  if (!canWalk()) return;
+  if (walker) return tryEnterCar();
+  if (player.state !== 'drive' || player.air || Math.abs(player.vF) > 3) return showMessage('🚗 先把车停稳<small>速度降下来再按 F 下车</small>', 1.2);
+  exitCar();
+}
+
+function buildWalkerModel() {
+  const color = player.color ?? 0xd42020;
+  const pel = createDriver(player.character, 0xffffff, color);
+  const legMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+  const shoeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+  const legs = [-1, 1].map((s) => {
+    const hip = new THREE.Group();
+    hip.position.set(0.1 * s, WALK_LEG, 0);
+    const leg = mesh(new THREE.BoxGeometry(0.13, WALK_LEG, 0.14), legMat);
+    leg.position.y = -WALK_LEG / 2;
+    const shoe = mesh(new THREE.BoxGeometry(0.15, 0.07, 0.24), shoeMat);
+    shoe.position.set(0, -WALK_LEG + 0.035, 0.04);
+    hip.add(leg, shoe);
+    return hip;
+  });
+  if (pixelActive) {
+    voxelizePelican(pel);
+    for (const h of legs) voxelizeGroup(h, 0.035);
+  }
+  pel.group.position.y = WALK_LEG;
+  const group = new THREE.Group();
+  group.add(pel.group, ...legs);
+  group.scale.setScalar(WALK_SCALE);
+  group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return { group, pel, legs };
+}
+
+function exitCar() {
+  const [fx, fz] = forwardOf(player.heading);
+  const side = [fz, -fx];   // 从左边车门下车
+  const off = player.built.half[0] + 1.2;
+  const m = buildWalkerModel();
+  walker = {
+    ...m, x: player.x + side[0] * off, z: player.z + side[1] * off, y: 0, vy: 0, air: false,
+    heading: player.heading, speed: 0, phase: 0, camHeading: player.heading, camY: 0,
+  };
+  walker.y = walkGround(walker.x, walker.z);
+  walker.camY = walker.y;
+  // 挤开障碍物，避免一下车就卡在树里
+  walkCollide(walker);
+  scene.add(walker.group);
+  player.pel.group.visible = false;
+  player.ctl.throttle = player.ctl.reverse = false;
+  player.ctl.steer = 0;
+  player.ctl.brake = true;
+  sound.bump?.(3);
+  showMessage('🚶 下车走走<small>方向键 / WASD 朝哪边按就往哪边走（↓ 转身）· 空格跳 · 回到车旁按 F 上车</small>', 2.2);
+}
+
+function tryEnterCar() {
+  const d = Math.hypot(player.x - walker.x, player.z - walker.z);
+  if (d > WALK_ENTER_D + player.built.half[1]) return showMessage(`🚗 离车还有 ${Math.round(d)} 米<small>走近一点再按 F 上车</small>`, 1.2);
+  clearWalker();
+  camHeading = player.heading;
+  showMessage('🚗 上车！', 0.8);
+}
+
+function clearWalker() {
+  if (!walker) return;
+  scene.remove(walker.group);
+  disposeTree(walker.group);
+  walker = null;
+  if (player?.pel) player.pel.group.visible = true;
+}
+
+// 脚下的高度：路面 / 旷野地形（借用车的 surfaceY，它只看 x、z、朝向）
+const walkProbe = { x: 0, z: 0, heading: 0, idx: 0 };
+function walkGround(x, z) {
+  walkProbe.x = x; walkProbe.z = z;
+  return surfaceY(walkProbe);
+}
+
+// 树、石头等障碍物和世界边界、海边
+function walkCollide(w) {
+  const R = 0.45;
+  obstacles.query(w.x, w.z, 4, (o) => {
+    const dx = w.x - o.x, dz = w.z - o.z, d = Math.hypot(dx, dz) || 0.01, need = o.r + R;
+    if (d < need) { w.x = o.x + (dx / d) * need; w.z = o.z + (dz / d) * need; }
+  });
+  // 自己的车也挡路
+  const dx = w.x - player.x, dz = w.z - player.z, d = Math.hypot(dx, dz) || 0.01, need = player.built.half[0] + R;
+  if (d < need) { w.x = player.x + (dx / d) * need; w.z = player.z + (dz / d) * need; }
+  if (w.z > oceanZ - 2) w.z = oceanZ - 2;
+  const cx = w.x - WORLD_CENTER[0], cz = w.z - WORLD_CENTER[1], cd = Math.hypot(cx, cz);
+  if (cd > WORLD_RADIUS - 3) { w.x = WORLD_CENTER[0] + (cx / cd) * (WORLD_RADIUS - 3); w.z = WORLD_CENTER[1] + (cz / cd) * (WORLD_RADIUS - 3); }
+}
+
+function updateWalk(dt) {
+  const btn = $('tWalk');
+  const show = canWalk();
+  if (btn.hidden === show) btn.hidden = !show;
+  if (!walker) return;
+  if (!canWalk()) return clearWalker();
+  const w = walker;
+  // 车停着（刹住），不跟着按键走
+  Object.assign(player.ctl, { steer: 0, throttle: false, reverse: false, brake: true });
+
+  const left = keys.has('ArrowLeft') || keys.has('KeyA'), right = keys.has('ArrowRight') || keys.has('KeyD');
+  const fwd = keys.has('ArrowUp') || keys.has('KeyW'), back = keys.has('ArrowDown') || keys.has('KeyS');
+  const ix = (left ? 1 : 0) - (right ? 1 : 0), iz = (fwd ? 1 : 0) - (back ? 1 : 0);
+  let want = 0;
+  if (viewMode === 'first') {
+    // 第一人称：←→ 原地转身，↑ 前进、↓ 后退
+    w.heading += ix * WALK_TURN * dt;
+    want = iz > 0 ? WALK_SPEED : iz < 0 ? -WALK_BACK : 0;
+  } else if (ix || iz) {
+    // 第三人称：方向键按镜头方向走（↓ 就转过身朝镜头走来），人先转向那个方向再迈步
+    const free = viewMode === 'free';   // 自由视角：镜头由玩家拖动，走路方向按镜头当前朝向算
+    const base = free ? Math.atan2(controls.target.x - camera.position.x, controls.target.z - camera.position.z) : w.camHeading;
+    const dir = base + Math.atan2(ix, iz);
+    const turn = wrapAngle(dir - w.heading);
+    w.heading += turn * Math.min(1, dt * WALK_SPIN);
+    want = WALK_SPEED * clamp(1 - Math.abs(turn) / Math.PI, 0.25, 1);   // 转身的时候先放慢
+    // 镜头慢慢绕到身后；往镜头这边走时不跟，免得镜头跟着一起转圈
+    if (!free && Math.abs(wrapAngle(w.heading - w.camHeading)) < 1.9) w.camHeading += wrapAngle(w.heading - w.camHeading) * Math.min(1, dt * 1.2);
+  }
+  w.speed += (want - w.speed) * Math.min(1, dt * 8);
+  const [fx, fz] = forwardOf(w.heading);
+  w.x += fx * w.speed * dt;
+  w.z += fz * w.speed * dt;
+  walkCollide(w);
+
+  // 竖直：跳起来、落回地面；走下坡直接贴地（落差不大时）
+  const g = walkGround(w.x, w.z);
+  if (!w.air && keys.has('Space')) { w.vy = WALK_JUMP; w.air = true; }
+  if (w.air) {
+    w.vy -= GRAVITY * dt;
+    w.y += w.vy * dt;
+    if (w.y <= g) { w.y = g; w.vy = 0; w.air = false; }
+  } else if (g < w.y - 0.6) { w.air = true; w.vy = 0; }
+  else w.y = g;
+
+  // 走路动画：腿、手臂前后摆，身体一颠一颠
+  const moving = Math.abs(w.speed) > 0.3 && !w.air;
+  w.phase += w.speed * dt * 2.2;
+  const swing = moving ? Math.sin(w.phase) * 0.6 : w.air ? 0.35 : 0;
+  w.legs[0].rotation.x = swing;
+  w.legs[1].rotation.x = w.air ? -0.5 : -swing;
+  for (const wing of w.pel.wings) {
+    const a = swing * wing.side;
+    const elbow = v(wing.shoulder.x * 1.15, wing.shoulder.y - 0.17, wing.shoulder.z + a * 0.12);
+    const hand = v(wing.shoulder.x * 1.2, wing.shoulder.y - 0.32, wing.shoulder.z + a * 0.24 + 0.04);
+    setLimb(wing.upper, wing.shoulder, elbow, 0.06, 0.055);
+    setLimb(wing.fore, elbow, hand, 0.045, 0.04);
+    wing.hand.position.copy(hand);
+  }
+  w.pel.head.rotation.set(0, 0, 0);
+  const bob = moving ? Math.abs(Math.cos(w.phase)) * 0.05 : 0;
+  w.group.position.set(w.x, w.y + bob, w.z);
+  w.group.rotation.y = w.heading;
+
+  // 走到车旁：提示可以上车
+  const near = Math.hypot(player.x - w.x, player.z - w.z) < WALK_ENTER_D + player.built.half[1];
+  if (near && !w.nearShown && !messageTimer) showMessage('🚗 按 F 上车', 1.2);
+  w.nearShown = near;
+}
+
+// 走路时的镜头：跟在角色身后稍高一点
+function updateWalkCamera(dt) {
+  const w = walker;
+  if (viewMode === 'free') {
+    // 自由视角：镜头围着人转，鼠标 / 手指拖动转向、滚轮 / 双指缩放（OrbitControls），人走动时镜头跟着平移
+    const tx = w.x, ty = w.y + 1.2, tz = w.z;
+    camera.position.x += tx - controls.target.x;
+    camera.position.y += ty - controls.target.y;
+    camera.position.z += tz - controls.target.z;
+    controls.target.set(tx, ty, tz);
+    controls.update();
+    camFov += (55 - camFov) * Math.min(1, dt * 3);
+    w.camHeading = Math.atan2(tx - camera.position.x, tz - camera.position.z);   // 切回追车视角时从当前方向接上
+    w.pel.crest.visible = true;
+    return;
+  }
+  if (viewMode === 'first') w.camHeading = w.heading;   // 第三人称时镜头朝向在 updateWalk 里跟着走路方向慢慢转
+  w.camY += (w.y - w.camY) * Math.min(1, dt * 6);
+  const [fx, fz] = forwardOf(w.camHeading);
+  const d = viewMode === 'first' ? -0.3 : 5.5, h = viewMode === 'first' ? 1.75 : 2.6;
+  camera.position.set(w.x - fx * d, w.camY + h, w.z - fz * d);
+  lookTarget.set(w.x + fx * 6, w.camY + (viewMode === 'first' ? 1.6 : 1.3), w.z + fz * 6);
+  camera.lookAt(lookTarget);
+  camFov += (60 - camFov) * Math.min(1, dt * 3);
+  w.pel.crest.visible = viewMode !== 'first';
+}
+
+// 镜头 / 光照 / 生物跟着谁：走路时是人，否则是车
+const focusPos = () => (walker ? walker.group.position : focusCar().root.position);
+
 /* ===== js/ui/input.js ===== */
 // 键盘和触屏按键
 'use strict';
@@ -6908,7 +9354,7 @@ function heliHud() {
 // 输入：键盘 + 触屏按键
 // =====================================================================
 const keys = new Set();
-const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ'];
+const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyF'];
 const menu = $('menu');
 const dialog = menu.querySelector('.dialog');
 let menuKind = null;
@@ -6946,12 +9392,19 @@ function press(code) {
     if (code === 'KeyT') return toggleView();
     return;
   }
+  if (code === 'KeyF') return toggleWalk();
+  if (walker) {   // 下车走路：只有视角键有用，空格（跳）、方向键在 updateWalk 里读
+    if (code === 'KeyT') return toggleView();
+    return;
+  }
   if (code === 'ArrowUp' || code === 'KeyW') onThrottlePress();   // 起步加速 / 小喷都看按下的那一瞬间
   if (code === 'KeyT') return toggleView();
   if (code === 'KeyR' && raceState === 'racing') {
     if (player.state === 'crash' && player.crashT < 0.5) return;
     if (player.state !== 'crash' && player.ghost > 0) return;
-    if (worldMode === 'open') resetToRoad(player); else resetToTrack(player);
+    // 开放世界：撞车 / 打滑后就地重新启动；没撞车时按 R 回到最近的路上（迷路时用）
+    if (worldMode === 'open') (player.state === 'drive' ? resetToRoad(player) : restartInPlace(player));
+    else resetToTrack(player);
     hideMessage();
     return;
   }
@@ -7105,8 +9558,8 @@ function keysHelp() {
     漂移：高速过弯时打满方向 + 踩油门（或点一下刹车），漂移超过 1 秒会奖励氮气<br>
     小喷：漂移结束或飞跃落地后马上松开再按一下 <kbd>↑</kbd>，越快越好（0.2 秒内是完美小喷）；发车灯熄灭的瞬间按 <kbd>↑</kbd> 完美起步<br>
     自由驾驶：没有护栏、不管逆行，四张地图由公路连成一片，山、楼、树、大海以外哪里都能去<br>
-    <kbd>X</kbd> 使用道具 / <kbd>Z</kbd> 换道具（道具赛，最多存 3 个）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 鹈鹕视角 / 自由）<br>
-    <kbd>Tab</kbd> 或点击小地图：全景地图　<kbd>R</kbd> 撞车后重新启动　<kbd>P</kbd> 暂停　<kbd>M</kbd> 音效开关　<kbd>B</kbd> 背景音乐　<kbd>N</kbd> 下一首　<kbd>V</kbd> 后视镜　<kbd>Esc</kbd> 菜单
+    <kbd>X</kbd> 使用道具 / <kbd>Z</kbd> 换道具（道具赛，闪电也要抽到才能放）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 鹈鹕视角 / 自由）<br>
+    <kbd>Tab</kbd> 或点击小地图：全景地图　<kbd>R</kbd> 撞车后重新启动（自由驾驶在原地）　<kbd>F</kbd> 自由驾驶时停车后下车走路，走回车旁再按 F 上车（走路时方向键朝哪边按就往哪边走，↓ 转身，空格跳）　<kbd>P</kbd> 暂停　<kbd>M</kbd> 音效开关　<kbd>B</kbd> 背景音乐　<kbd>N</kbd> 下一首　<kbd>V</kbd> 后视镜　<kbd>Esc</kbd> 菜单
   </div>`;
 }
 
@@ -7175,14 +9628,16 @@ function openMainMenu() {
 
   showDialog('main', `
     <h2>🏁 鹈鹕赛车</h2>
-    <p class="lead">开着赛车的鹈鹕和 4 位鹈鹕对手同场竞技，率先跑完全部圈数就是冠军！</p>
+    <p class="lead">开着赛车的鹈鹕和 10 位对手（猫头鹰、海绵宝宝、派大星、小黄人、帝企鹅……每场随机）同场竞技，率先跑完全部圈数就是冠军！</p>
     <h3>${isFree() ? '选择出发地（自由驾驶时四张地图由公路连成一片）' : '选择赛道'}</h3><div class="grid tracks">${trackCards}</div>
+    <h3>选择车手</h3><div style="margin-bottom:6px"><span class="seg wrap chars">${CHARACTERS.map((ch) => `<button data-character="${ch.id}" class="${settings.character === ch.id ? 'sel' : ''}">${ch.icon} ${ch.name}</button>`).join('')}</span></div>
     <h3>选择赛车</h3><div class="grid cars">${carCards}</div>
     <h3>车身颜色</h3><div class="swatches">${swatches}</div>
     <h3>车身涂装</h3>
     <div style="margin-bottom:8px"><span class="seg wrap">${LIVERIES.map(([id, label]) => `<button data-livery="${id}" class="${(settings.livery ?? 'stock') === id ? 'sel' : ''}">${label}</button>`).join('')}</span></div>
     <div class="swatches" style="align-items:center">副色 ${ACCENTS.map((col, i) => `<button class="swatch ${settings.accent === col ? 'sel' : ''}" data-accent="${i}" title="${col === null ? '自动（与车身对比）' : ''}" style="background:${col === null ? 'linear-gradient(135deg,#f4f4f4 50%,#111 50%)' : hexCss(col)}"></button>`).join('')}</div>
     <h3>比赛设置</h3>
+    <div style="margin-bottom:4px">画面风格 ${seg('style', [['classic', '🎨 经典'], ['pixel', '🧱 像素方块']])}</div>
     <div style="margin-bottom:4px">比赛类型 <span class="seg wrap">${MODES.map(([id, label]) => `<button data-mode="${id}" class="${settings.mode === id ? 'sel' : ''}">${label}</button>`).join('')}</span></div>
     <p class="lead" style="margin:0 0 8px">${MODE_BY_ID[settings.mode][2]}</p>
     <div>难度 ${seg('difficulty', Object.entries(DIFFICULTY).map(([k, d]) => [k, d.name]))}${isFree() ? '' : ` 圈数 ${seg('laps', [[1, '1'], [2, '2'], [3, '3'], [5, '5']])}`}</div>
@@ -7206,11 +9661,13 @@ function openMainMenu() {
   };
   for (const el of dialog.querySelectorAll('[data-track]')) el.onclick = rebuild(() => { settings.track = el.dataset.track; }, true);
   for (const el of dialog.querySelectorAll('[data-car]')) el.onclick = rebuild(() => { settings.car = el.dataset.car; });
+  for (const el of dialog.querySelectorAll('[data-character]')) el.onclick = rebuild(() => { settings.character = el.dataset.character; });
   for (const el of dialog.querySelectorAll('[data-color]')) el.onclick = rebuild(() => { settings.color = COLORS[+el.dataset.color]; });
   for (const el of dialog.querySelectorAll('[data-livery]')) el.onclick = rebuild(() => { settings.livery = el.dataset.livery; });
   for (const el of dialog.querySelectorAll('[data-accent]')) el.onclick = rebuild(() => { settings.accent = ACCENTS[+el.dataset.accent]; });
   for (const el of dialog.querySelectorAll('[data-mode]')) el.onclick = rebuild(() => { settings.mode = el.dataset.mode; });
   for (const el of dialog.querySelectorAll('[data-difficulty]')) el.onclick = rebuild(() => { settings.difficulty = el.dataset.difficulty; });
+  for (const el of dialog.querySelectorAll('[data-style]')) el.onclick = rebuild(() => { settings.style = el.dataset.style; });
   for (const el of dialog.querySelectorAll('[data-laps]')) el.onclick = () => {
     settings.laps = +el.dataset.laps;
     saveSettings();
@@ -7386,10 +9843,10 @@ function setView(mode) {
   applyCockpitVisibility();
   camHeading = player.heading;
   if (mode === 'free' && !isHeliMode()) {
-    const p = player.root.position;
-    const [fx, fz] = forwardOf(player.heading);
-    camera.position.set(p.x - fx * 9 + fz * 4, 4, p.z - fz * 9 - fx * 4);
-    controls.target.set(p.x, 1, p.z);
+    const p = focusPos();
+    const [fx, fz] = forwardOf(walker ? walker.heading : player.heading);
+    camera.position.set(p.x - fx * 9 + fz * 4, p.y + 4, p.z - fz * 9 - fx * 4);
+    controls.target.set(p.x, p.y + 1, p.z);
     controls.update();
   }
   lastCarPos.copy(player.root.position);
@@ -7437,7 +9894,9 @@ function updateCamera(dt) {
     lastCarPos.copy(p);
     return;
   }
-  if (mode === 'tv') {
+  if (walker && raceState !== 'replay') {
+    updateWalkCamera(dt);
+  } else if (mode === 'tv') {
     updateTvCamera(c, dt);
   } else if (mode === 'chase') {
     const followRate = c.state === 'drive' ? 5 : 1.5;
@@ -7462,9 +9921,14 @@ function updateCamera(dt) {
     camFov += (fov - camFov) * Math.min(1, dt * 3);
   } else {
     camera.position.add(lastCarPos.clone().sub(p).negate());
-    controls.target.set(p.x, 1, p.z);
+    controls.target.set(p.x, p.y + 1, p.z);
     controls.update();
     camFov += (55 - camFov) * Math.min(1, dt * 3);
+  }
+  // 旷野有起伏：镜头不钻进山坡里
+  if (worldMode === 'open' && mode !== 'first') {
+    const gh = terrainH(camera.position.x, camera.position.z) + 1.2;
+    if (camera.position.y < gh) camera.position.y = gh;
   }
   lastCarPos.copy(p);
   if (Math.abs(camera.fov - camFov) > 0.05) {
@@ -7780,14 +10244,51 @@ function gearInfo(c) {
   return { gear: String(g + 1), rpm: clamp(0.3 + 0.7 * ((spd - lo) / (hi - lo)), 0, 1) };
 }
 
+// 前方 160 米内最近的特色路段（跳台 / 加速带 / 减速带 / 道具箱）：类型、在哪一侧、还有多远；进入 100 米时嘀一声
+const featureCue = $('featureCue');
+const cuePrev = new WeakMap();
+function updateFeatureCue() {
+  const c = player;
+  const live = c && (raceState === 'racing' || raceState === 'countdown') && !c.finished && !isHeliMode();
+  const T = live ? c.trk ?? mainTrack() : null;
+  let best = null;
+  if (T?.pads && Math.abs(c.lat) < T.B + 10) {
+    const list = [...T.ramps.map((f) => ['ramp', f]), ...T.pads.map((f) => ['pad', f]), ...T.slows.map((f) => ['slow', f])];
+    if (isItems()) for (const r of itemRowCues(T)) list.push(['items', r]);
+    for (const [kind, f] of list) {
+      let d = f.s0 - c.s;
+      if (d < -T.L / 2) d += T.L;
+      const prev = cuePrev.get(f);
+      cuePrev.set(f, d);
+      if (d <= 0 || d > 160) continue;
+      if (prev !== undefined && prev >= 100 && d < 100 && raceState === 'racing') sound.tone({ frequency: kind === 'slow' ? 440 : 880, duration: 0.09, type: 'square', gain: 0.05 });
+      if (!best || d < best.d) best = { kind, f, d };
+    }
+  }
+  if (!best) { featureCue.style.display = 'none'; return; }
+  const [icon, text, col] = FEATURE_SIGNS[best.kind];
+  const rel = best.f.lat - c.lat, side = best.kind === 'items' ? '' : Math.abs(best.f.lat) < best.f.hw * 0.6 ? ' · 路中间' : best.f.lat > 0 ? ' · 左侧' : ' · 右侧';
+  featureCue.style.display = 'block';
+  featureCue.style.setProperty('--cue', col);
+  featureCue.classList.toggle('near', best.d < 60);
+  featureCue.textContent = `${icon} 前方${text}${side} · ${Math.round(best.d)} 米${best.kind === 'slow' && Math.abs(rel) < best.f.hw ? ' · 注意避开' : ''}`;
+}
+// 道具赛的道具箱那几排（按和特色路段一样的格式给提示用）
+const itemCueCache = new WeakMap();
+function itemRowCues(T) {
+  if (!itemCueCache.has(T)) itemCueCache.set(T, ITEM_ROWS.map((f) => ({ s0: f * T.L, lat: 0, hw: T.W })));
+  return itemCueCache.get(T);
+}
+
 function updateHud(dt) {
   const c = player;
   const gi = gearInfo(c);
-  if (raceState === 'menu' || raceState === 'replay') return;
+  if (raceState === 'menu' || raceState === 'replay') { featureCue.style.display = 'none'; return; }
 
   hudTimer -= dt;
   if (hudTimer > 0) return;
   hudTimer = 0.1;
+  updateFeatureCue();
   $('kmh').textContent = Math.round(Math.abs(c.vF) * 3.6);
   $('gear').textContent = gi.gear;
   nitroFill.style.width = `${(c.nitroTime > 0 ? c.nitroTime / NITRO_BURN : c.nitroCharge) * 100}%`;
@@ -7991,6 +10492,7 @@ function updateRace(dt) {
   if (isHeliMode()) { /* 玩家在直升机上，车不上场 */ }
   else if (player.finished || autoDrive) aiControl(player, dt);
   else if (player.busted) Object.assign(player.ctl, { steer: 0, throttle: false, reverse: false, brake: true });   // 被捕：停车
+  else if (walker) Object.assign(player.ctl, { steer: 0, throttle: false, reverse: false, brake: true });   // 下车走路：车刹住停着
   else readPlayerControls();
   for (const c of racers) {
     if (!c.isPlayer && !c.finished && !isFree()) {
@@ -8016,6 +10518,7 @@ function updateRace(dt) {
       if (!c.active) continue;   // 撞毁的警车可能刚被收回
       updateProgress(c);
       collideWalls(c);
+      roadFeatures(c);
       if (worldMode === 'open') collideObstacles(c);
       sanitizeCar(c);
     }
@@ -8026,6 +10529,7 @@ function updateRace(dt) {
   for (const c of cars) c.ghost = Math.max(0, c.ghost - dt);
   updatePursuit(dt);
   updateItems(dt);
+  updateMobs(dt);
   if (isTimeTrial()) updateTimeTrial(dt);
   if (isDrift()) updateDriftScore(dt);
   if (!isFree() && !resultsShown) recordFrame(dt);
@@ -8068,12 +10572,13 @@ function update(dt) {
   if (isHeliMode()) updateHeliMode(raceState === 'replay' ? modelDt : dt);
   else if (raceState === 'replay') { if (heli?.active) placeHeli(modelDt); } else updateHeli(dt);
   updateParticles(dt);
+  updateWalk(dt);
   updateCamera(dt);
   updateHud(dt);
   updateAudio(dt);
   if (raceState !== 'menu') drawMinimap();
   updateCrowd(elapsed);
-  if (worldMode === 'open' && player) applyBlendedTheme(focusCar().x, focusCar().z);
+  if (worldMode === 'open' && player) applyBlendedTheme(focusPos().x, focusPos().z);
   updateSnow(dt);
   if (world?.userData.foam) world.userData.foam.material.opacity = 0.45 + Math.sin(elapsed * 1.5) * 0.2;
 
@@ -8081,9 +10586,11 @@ function update(dt) {
     messageTimer -= dt;
     if (messageTimer <= 0) hideMessage();
   }
-  // 阳光（阴影）跟着镜头关注的车走；位置按阴影贴图的纹素对齐，车动的时候阴影边缘不闪
-  snapShadow(focusCar().root.position);
+  // 阳光（阴影）跟着镜头关注的车（或下车走路的人）走；位置按阴影贴图的纹素对齐，车动的时候阴影边缘不闪
+  snapShadow(focusPos());
   sky.position.copy(camera.position);
+  updatePixelSky(dt);
+  for (const t of world?.userData.padTex ?? []) t.offset.y = (t.offset.y - dt * 1.6) % 1;   // 加速带箭头往前流动
   if (world?.userData.stars) world.userData.stars.position.copy(camera.position);
   if (world?.userData.moon) world.userData.moon.position.copy(camera.position).addScaledVector(MOON_DIR, 1600);
 }
