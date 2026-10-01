@@ -43,7 +43,11 @@ body.mirror-on #speedo { bottom: 126px; width: 272px; }
 #message { left: 50%; top: 32%; transform: translate(-50%, -50%); padding: 14px 24px; font-size: 22px; font-weight: 700; display: none; text-align: center; z-index: 5; }
 #message .huge { font-size: 64px; line-height: 1.1; }
 #message small { display: block; font-size: 14px; font-weight: 400; margin-top: 4px; }
-#hint { left: 14px; bottom: 12px; padding: 6px 10px; font-size: 12px; }
+#hint, #hintWalk { left: 14px; bottom: 12px; padding: 6px 10px; font-size: 12px; }
+#hintWalk, body.walking #hint, #hintWalk .hw-build { display: none; }
+body.walking #hintWalk { display: block; }
+body.building #hintWalk .hw-build { display: inline; }
+body.touch #hintWalk { display: none !important; }
 #nowPlaying { left: 14px; bottom: 50px; padding: 6px 12px; font-size: 13px; opacity: 0; transform: translateY(6px); transition: opacity 0.5s, transform 0.5s; pointer-events: none; z-index: 7; }
 #nowPlaying.show { opacity: 1; transform: none; }
 #nowPlaying small { color: #1d3040a0; margin-left: 4px; }
@@ -187,7 +191,59 @@ body.touch #hint, body.replaying #hint { display: none; }
 #itemBox .label { font-size: 10px; text-align: center; color: #1d3040c0; padding: 0 4px; }
 #flash { position: fixed; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; z-index: 20; }
 #touch #tWalk { left: calc(128px + var(--sl)); bottom: calc(96px + var(--sb)); }
-#touch #tWalk[hidden] { display: none; }
+#touch button[hidden] { display: none; }
+#touch #tPunch { right: calc(94px + var(--sr)); bottom: calc(222px + var(--sb)); background: #d8452ab0; }
+#touch #tKick { right: calc(172px + var(--sr)); bottom: calc(222px + var(--sb)); background: #d8452ab0; }
+#touch #tSpinAtk { right: calc(16px + var(--sr)); bottom: calc(294px + var(--sb)); background: #d8452ab0; }
+#touch #tBlast { right: calc(94px + var(--sr)); bottom: calc(294px + var(--sb)); background: #2a7fd8b0; }
+#touch #tTalk { left: calc(240px + var(--sl)); bottom: calc(96px + var(--sb)); }
+#touch #tWave { left: calc(296px + var(--sl)); bottom: calc(96px + var(--sb)); }
+/* 下车互动：头顶的话 / 提示 / 血条、伤害数字、对话框、生命值、受伤红屏 */
+#mobUi { position: fixed; inset: 0; pointer-events: none; z-index: 15; overflow: hidden; }
+.mob-tag { position: absolute; left: 0; top: 0; display: none; text-align: center; white-space: nowrap; }
+.mob-tag .bubble { display: none; background: #fffffff0; color: #1d3040; font-size: 14px; padding: 5px 10px; border-radius: 12px; margin-bottom: 4px; max-width: 280px; white-space: normal; box-shadow: 0 2px 6px #0003; }
+.mob-tag .bubble.me { background: #d9f4e0f0; }
+.mob-tag .hint { display: none; background: #1d3040d0; color: #fff; font-size: 12px; padding: 3px 8px; border-radius: 8px; margin-bottom: 3px; }
+.mob-tag .hint kbd, #walkHp kbd, #talkPanel kbd { background: #fff3; border-radius: 3px; padding: 0 4px; margin: 0 2px; font: inherit; }
+.mob-tag .hpbar { display: none; width: 60px; height: 6px; margin: 0 auto; background: #0008; border-radius: 3px; overflow: hidden; }
+.mob-tag .hpbar i { display: block; height: 100%; background: #e53935; }
+.float-text { position: absolute; left: 0; top: 0; font-size: 20px; font-weight: 800; text-shadow: 0 1px 3px #000a; }
+#talkPanel { position: fixed; left: calc(16px + var(--sl)); bottom: 64px; z-index: 30; display: none; width: min(380px, calc(100vw - 32px));
+  background: #1d3040e0; color: #fff; border-radius: 14px; padding: 8px 10px; box-shadow: 0 6px 20px #0005; }
+body.touch #talkPanel { left: 50%; transform: translateX(-50%); bottom: auto; top: calc(56px + var(--st)); }
+#talkPanel .tp-head { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+#talkPanel .tp-head span { font-weight: 400; font-size: 12px; opacity: 0.8; flex: 1; }
+#talkPanel .tp-x { background: none; border: 0; color: #fff; font-size: 16px; cursor: pointer; }
+#talkPanel .tp-line { margin: 6px 0; font-size: 14px; background: #ffffff18; padding: 6px 10px; border-radius: 8px; }
+#talkPanel .tp-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+#talkPanel .tp-opts button { text-align: left; background: #ffffff20; border: 1px solid #ffffff30; color: #fff; border-radius: 8px; padding: 4px 6px; font-size: 13px; cursor: pointer; }
+#talkPanel .tp-opts button:hover { background: #ffffff38; }
+#walkHp { position: fixed; left: 50%; top: 134px; transform: translateX(-50%); z-index: 20; display: none; pointer-events: none; text-align: center; }
+#walkHp .hearts { font-size: 16px; letter-spacing: -2px; filter: drop-shadow(0 1px 2px #0006); }
+#walkHp .moves { margin-top: 3px; display: flex; gap: 4px; justify-content: center; }
+#walkHp .moves span { background: #1d3040c0; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 6px; }
+#walkHp .moves span.cd { opacity: 0.4; }
+#hurtFlash { position: fixed; inset: 0; pointer-events: none; z-index: 19; opacity: 0; transition: opacity 0.25s; box-shadow: inset 0 0 120px 40px #ff0000; }
+body.touch #walkHp .moves { display: none; }
+#touch #tPlace { right: calc(172px + var(--sr)); bottom: calc(294px + var(--sb)); background: #2e9d4ab0; font-size: 16px; }
+#touch #tDig { right: calc(250px + var(--sr)); bottom: calc(294px + var(--sb)); background: #8a5a30b0; font-size: 16px; }
+/* 建造模式的方块栏 */
+#hotbar { position: fixed; left: 50%; bottom: 58px; transform: translateX(-50%); z-index: 25; display: none; gap: 3px; padding: 4px; background: #1d3040c8; border-radius: 10px; }
+#hotbar button { position: relative; width: 50px; height: 50px; padding: 4px; border: 2px solid #ffffff40; border-radius: 6px; background: #0004; cursor: pointer; }
+#hotbar button img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+#hotbar button span { position: absolute; left: 3px; top: 1px; color: #fff; font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+#hotbar button em { position: absolute; left: 0; right: 0; bottom: -16px; color: #fff; font-size: 10px; font-style: normal; text-align: center; display: none; white-space: nowrap; }
+#hotbar button.sel { border-color: #fff; background: #fff3; transform: translateY(-3px); }
+#hotbar button.sel em { display: block; }
+#hotbar .hb-x { width: 30px; color: #fff; font-size: 14px; }
+body.touch #hotbar { bottom: auto; top: calc(56px + var(--st)); }
+body.touch #hotbar button { width: 38px; height: 38px; }
+#touch #tRun { right: calc(16px + var(--sr)); bottom: calc(222px + var(--sb)); background: #2e9d4ab0; font-size: 15px; }
+#touch #tSummon { left: calc(184px + var(--sl)); bottom: calc(96px + var(--sb)); }
+body.walking #touch #tNitro, body.walking #touch #tItem { display: none; }
+#carCue { position: fixed; left: 50%; top: 96px; transform: translateX(-50%); z-index: 20; display: none; padding: 5px 14px; border-radius: 10px;
+  background: #1d3040e0; color: #fff; font-size: 15px; font-weight: 700; pointer-events: none; white-space: nowrap; border-left: 6px solid #3ad16a; }
+#carCue small { font-weight: 400; opacity: 0.8; }
 #touch #tItem { right: calc(94px + var(--sr)); bottom: calc(222px + var(--sb)); background: #f2c230b0; font-size: 15px; }
 @media (max-width: 760px), (max-height: 500px) {
   #modeHud { top: calc(40px + var(--st)); min-width: 180px; font-size: 11px; padding: 4px 10px; }
@@ -242,16 +298,23 @@ body.audio-locked #audioHint { display: block; }
 <div id="mirror"></div>
 <div id="nowPlaying" class="card"></div>
 <div id="featureCue"></div>
+<div id="carCue"></div>
+<div id="mobUi"></div>
+<div id="talkPanel"></div>
+<div id="walkHp"></div>
+<div id="hurtFlash"></div>
+<div id="hotbar"></div>
 <div id="audioHint">🔈 点击任意位置开启声音</div>
-<div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>Z</kbd> 换道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>F</kbd> 下车/上车 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
+<div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>Z</kbd> 换道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>F</kbd> 下车/上车 <kbd>G</kbd> 召唤车 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
+<div id="hintWalk" class="card"><kbd>方向键</kbd> 走 <kbd>Shift</kbd> 跑 <kbd>空格</kbd> 跳 <kbd>Q</kbd> 打招呼 <kbd>E</kbd> 聊天 / 拉开关 <kbd>J</kbd> 拳击 <kbd>K</kbd> 飞踢 <kbd>L</kbd> 旋风腿 <kbd>U</kbd> 能量波 <kbd>F</kbd> 上车 <kbd>G</kbd> 召唤车 <kbd>T</kbd> 视角<span class="hw-build"> · 建造：<kbd>1</kbd>～<kbd>9</kbd> 选方块 <kbd>左键</kbd>/<kbd>C</kbd> 放 <kbd>右键</kbd>/<kbd>X</kbd> 拆</span></div>
 <div id="replayBar" class="card">
   <div class="rp-row"><b>🎬 回放</b><span id="rpTime">00:00.00</span><input id="rpSeek" type="range" min="0" max="1000" value="0" step="1"><span id="rpTotal"></span></div>
   <div class="rp-row">
     <button id="rpRestart" title="从头播放（R）">⏮</button><button id="rpPlay" title="播放 / 暂停（空格）">⏸ 暂停</button><button id="rpSpeed" title="播放速度">1×</button>
     <button id="rpCam" title="切换镜头（T）">镜头：电视转播</button><button id="rpFocus" title="切换跟随的车（↑ ↓）">你</button>
-    <button id="rpExit" class="exit" title="退出回放（Esc）">退出回放</button>
+    <button id="rpShot" title="把当前画面存成图片（S）">📷 截图</button><button id="rpExit" class="exit" title="退出回放（Esc）">退出回放</button>
   </div>
-  <div class="rp-hint">空格 播放/暂停 · ← → 快退/快进 5 秒 · ↑ ↓ 切换车手 · T 切换镜头 · Esc 退出</div>
+  <div class="rp-hint">空格 播放/暂停 · ← → 快退/快进 5 秒 · ↑ ↓ 切换车手 · T 切换镜头 · S 截图 · Esc 退出</div>
 </div>
 <div id="worldMap" class="overlay center">
   <div class="wm-card">
@@ -271,6 +334,16 @@ body.audio-locked #audioHint { display: block; }
   <button id="tReset" class="small" data-key="KeyR" aria-label="重新启动">R</button>
   <button id="tItem" data-key="KeyX" aria-label="道具">道具</button>
   <button id="tWalk" class="small" data-key="KeyF" aria-label="下车 / 上车" hidden>🚶</button>
+  <button id="tRun" data-key="ShiftLeft" aria-label="跑" hidden>跑</button>
+  <button id="tSummon" class="small" data-key="KeyG" aria-label="召唤车" hidden>📍</button>
+  <button id="tPunch" class="act" data-key="KeyJ" aria-label="拳击" hidden>👊</button>
+  <button id="tKick" class="act" data-key="KeyK" aria-label="飞踢" hidden>🦶</button>
+  <button id="tSpinAtk" class="act" data-key="KeyL" aria-label="旋风腿" hidden>🌀</button>
+  <button id="tBlast" class="act" data-key="KeyU" aria-label="能量波" hidden>💥</button>
+  <button id="tTalk" class="small" data-key="KeyE" aria-label="聊天" hidden>💬</button>
+  <button id="tWave" class="small" data-key="KeyQ" aria-label="打招呼" hidden>👋</button>
+  <button id="tPlace" data-key="KeyC" aria-label="放方块" hidden>放</button>
+  <button id="tDig" data-key="KeyX" aria-label="拆方块" hidden>拆</button>
 </div>
 <div id="rotateTip">横屏体验更好</div>
 
@@ -1923,7 +1996,7 @@ const CAR_BUILDERS = {
 };
 
 /* ===== js/models/characters.js ===== */
-// 车手角色库：鹈鹕之外的 19 个角色（猫头鹰、海绵宝宝、派大星、小黄人、河狸、帝企鹅、巴斯光年……），凑够 20 个。
+// 车手角色库：鹈鹕之外的 21 个角色（猫头鹰、海绵宝宝、派大星、小黄人、河狸、帝企鹅、巴斯光年、蟹老板、章鱼哥……），一共 22 个。
 // 每个角色用椭球 / 盒子 / 圆柱 / 圆锥 / 圆环拼出来，接口和鹈鹕车手一样（group / head / bill / crest / wings），
 // 所以头会转、手握方向盘、第一人称隐藏头部、像素风格下体素化都能直接用。坐标：原点在座椅上，y 朝上，z 朝车头。
 'use strict';
@@ -1981,59 +2054,97 @@ const CHARACTERS = [
     },
   },
   {
-    id: 'spongebob', name: '海绵宝宝', icon: '🧽', color: 0xf5e04a, arm: 0xf5e04a, hand: 0xf5e04a, headY: 0.73, headScale: 1.15, noNeck: true,
+    // 海绵宝宝：方方的黄色海绵（边缘一圈小鼓包、身上深色的洞），大眼睛带三根睫毛、长鼻子、咧嘴笑露两颗门牙；白衬衫红领带、棕色短裤黑腰带
+    id: 'spongebob', name: '海绵宝宝', icon: '🧽', color: 0xf5e04a, arm: 0xf5e04a, hand: 0xf5e04a, headY: 0.74, headScale: 1.12, noNeck: true, bodyBottom: 0.28,
     torso: (k) => {
-      k.b(0xf4f4f4, 0.42, 0.09, 0.15, 0, 0.445, 0);          // 白衬衫
-      k.b(0xd42020, 0.04, 0.13, 0.012, 0, 0.42, 0.08);       // 红领带
-      k.b(0x1d1d21, 0.43, 0.02, 0.155, 0, 0.39, 0);          // 腰带
-      k.b(0x8a5a2b, 0.42, 0.14, 0.15, 0, 0.32, 0);           // 棕色短裤
+      k.b(0xf4f4f4, 0.42, 0.08, 0.16, 0, 0.45, 0);            // 白衬衫
+      for (const s of [-1, 1]) k.b(0xf4f4f4, 0.07, 0.012, 0.05, s * 0.05, 0.488, 0.07, 0.3, 0, s * 0.5);   // 尖领子
+      k.b(0xd42020, 0.03, 0.025, 0.012, 0, 0.47, 0.085);       // 领带结
+      k.b(0xd42020, 0.035, 0.08, 0.01, 0, 0.42, 0.086, 0, 0, 0.0);   // 领带
+      k.b(0x8a5a2b, 0.42, 0.13, 0.155, 0, 0.345, 0);            // 棕色短裤
+      for (const x of [-0.14, -0.05, 0.05, 0.14]) k.b(0x1d1d21, 0.06, 0.018, 0.01, x, 0.395, 0.079);   // 腰带（一段段黑色）
+      for (const s of [-1, 1]) k.b(0xf4f4f4, 0.06, 0.06, 0.08, s * 0.24, 0.45, 0);   // 短袖
     },
     head: (k) => {
       k.b(0xf5e04a, 0.44, 0.42, 0.16, 0, 0, 0);
-      for (const [x, y, z, r] of [[-0.15, 0.13, 0.08, 0.03], [0.16, 0.15, 0.08, 0.025], [-0.17, -0.12, 0.08, 0.025], [0.14, -0.14, 0.08, 0.03], [0.02, 0.17, 0.08, 0.02], [0.22, 0, 0, 0.04], [-0.22, 0.05, 0.02, 0.035]])
-        k.s(0xbfae2a, x, y, z, r, r, 0.012);                 // 海绵上的小洞
-      k.eyes(0.075, 0.06, 0.09, 0.07, 0x3a8ee6);
-      k.c(0xf5e04a, 0.018, 0.022, 0.09, 0, -0.0, 0.12, Math.PI / 2);   // 长鼻子
-      k.b(0x8a1c1c, 0.16, 0.03, 0.012, 0, -0.1, 0.082);      // 大笑的嘴
-      for (const s of [-1, 1]) k.b(0xffffff, 0.035, 0.04, 0.012, s * 0.022, -0.085, 0.088);   // 两颗门牙
-      for (const s of [-1, 1]) k.s(0xe8a040, s * 0.13, -0.06, 0.082, 0.03, 0.02, 0.01);      // 雀斑脸颊
-    },
-  },
-  {
-    id: 'patrick', name: '派大星', icon: '⭐', color: 0xf49ac1, arm: 0xf49ac1, hand: 0xf49ac1, headY: 0.72, headScale: 1.25, noNeck: true,
-    torso: (k) => {
-      k.s(0xf49ac1, 0, 0.3, -0.02, 0.24, 0.24, 0.2);
-      k.c(0x6fbf3a, 0.22, 0.25, 0.16, 0, 0.1, -0.02);        // 绿色短裤
-      for (const [x, y] of [[-0.12, 0.12], [0.08, 0.06], [0.14, 0.14], [-0.04, 0.03]]) k.s(0x8a4fbf, x, y, 0.2, 0.03, 0.03, 0.01);   // 紫色小花
-    },
-    head: (k) => {
-      k.k(0xf49ac1, 0.16, 0.36, 0, 0.02, 0);                 // 星星最上面的一个角
+      for (let i = 0; i < 9; i++) { const x = -0.2 + i * 0.05; k.s(0xf5e04a, x, 0.21 + (i % 2) * 0.012, 0, 0.03, 0.025, 0.08); }   // 顶上波浪边
+      for (const s of [-1, 1]) for (let i = 0; i < 8; i++) k.s(0xf5e04a, s * (0.22 + (i % 2) * 0.01), -0.18 + i * 0.05, 0, 0.022, 0.03, 0.08);   // 两边波浪边
+      for (const [x, y, r] of [[-0.16, 0.14, 0.032], [0.17, 0.15, 0.026], [-0.18, -0.13, 0.024], [0.16, -0.15, 0.034], [0.03, 0.18, 0.018], [-0.08, -0.17, 0.02], [0.19, 0.0, 0.02]])
+        k.s(0xc9b02a, x, y, 0.08, r, r * 0.8, 0.008);        // 海绵上的洞
       for (const s of [-1, 1]) {
-        k.s(0xffffff, s * 0.035, 0.0, 0.07, 0.03, 0.045, 0.02);
-        k.s(0x111111, s * 0.035, -0.005, 0.087, 0.013, 0.018, 0.008);
-        k.b(0x111111, 0.04, 0.008, 0.006, s * 0.04, 0.06, 0.07, 0, 0, s * 0.35);
+        k.s(0xffffff, s * 0.075, 0.06, 0.085, 0.072, 0.075, 0.03);     // 大眼白
+        k.s(0x4a90c8, s * 0.07, 0.055, 0.11, 0.032, 0.032, 0.01);      // 蓝眼珠
+        k.s(0x111111, s * 0.07, 0.055, 0.118, 0.015, 0.015, 0.006);
+        k.s(0xffffff, s * 0.06, 0.068, 0.122, 0.006, 0.006, 0.003);    // 高光
+        for (const d of [-1, 0, 1]) k.b(0x111111, 0.006, 0.035, 0.006, s * 0.075 + d * 0.03, 0.15, 0.085, 0, 0, -d * 0.35);   // 三根睫毛
+        k.s(0xe8a040, s * 0.14, -0.06, 0.084, 0.032, 0.026, 0.008);    // 脸颊
+        for (const [dx, dy] of [[-0.01, 0.005], [0.01, 0.0], [0.0, -0.012]]) k.s(0xa0601a, s * 0.14 + dx, -0.06 + dy, 0.09, 0.004, 0.004, 0.002);   // 雀斑
       }
-      k.b(0x8a1c1c, 0.07, 0.012, 0.006, 0, -0.07, 0.1);
+      k.c(0xf5e04a, 0.018, 0.024, 0.1, 0, -0.005, 0.13, Math.PI / 2);    // 长鼻子
+      k.s(0xf5e04a, 0, -0.005, 0.182, 0.022, 0.022, 0.02);
+      k.s(0x7a1414, 0, -0.1, 0.08, 0.13, 0.05, 0.01);          // 张开的笑嘴
+      k.s(0xf5e04a, 0, -0.08, 0.083, 0.13, 0.03, 0.01);        // 上唇（把嘴的上半边盖住，成月牙形）
+      k.s(0xe86a7a, 0, -0.125, 0.084, 0.05, 0.018, 0.006);     // 舌头
+      for (const s of [-1, 1]) k.b(0xffffff, 0.034, 0.038, 0.01, s * 0.02, -0.098, 0.088);   // 两颗大门牙
     },
   },
   {
-    id: 'minion', name: '小黄人', icon: '🟡', color: 0x2f5e9e, arm: 0xf6d23a, hand: 0x1d1d21, headY: 0.6, headScale: 1.15, noNeck: true,
+    // 派大星：粉色的星星，头是最上面那个尖角；粗眉毛、大眼睛、张大的嘴（红色口腔 + 舌头）、小肚脐；黄绿色短裤上有紫色的花
+    id: 'patrick', name: '派大星', icon: '⭐', color: 0xf49ac1, arm: 0xf49ac1, hand: 0xf49ac1, headY: 0.68, headScale: 1.2, noNeck: true,
     torso: (k) => {
-      k.c(0xf6d23a, 0.17, 0.17, 0.34, 0, 0.33, 0);
-      k.c(0x2f5e9e, 0.176, 0.176, 0.2, 0, 0.2, 0);           // 牛仔背带裤
-      k.b(0x2f5e9e, 0.18, 0.14, 0.02, 0, 0.36, 0.165);
-      for (const s of [-1, 1]) k.b(0x2f5e9e, 0.03, 0.16, 0.012, s * 0.1, 0.44, 0.15, -0.2);
-      k.s(0x1d1d21, 0, 0.33, 0.176, 0.025, 0.025, 0.006);    // 口袋上的标志
+      k.c(0xf49ac1, 0.13, 0.27, 0.36, 0, 0.42, -0.02);        // 星星的身子（往上变细）
+      k.s(0xf49ac1, 0, 0.24, -0.02, 0.27, 0.16, 0.21);
+      k.s(0xd8708f, 0, 0.29, 0.2, 0.018, 0.012, 0.008);       // 肚脐
+      k.c(0xcfdc4a, 0.27, 0.28, 0.17, 0, 0.12, -0.02);        // 黄绿色短裤
+      for (const [x, y] of [[-0.16, 0.14], [0.1, 0.08], [0.18, 0.16], [-0.05, 0.05], [0.02, 0.17]]) {
+        k.s(0xa88ad8, x, y, 0.235, 0.035, 0.03, 0.008);        // 紫色花
+        k.s(0xc8b4f0, x, y, 0.24, 0.012, 0.012, 0.004);
+      }
     },
     head: (k) => {
-      k.s(0xf6d23a, 0, 0, 0, 0.17, 0.17, 0.17);
-      k.t(0x1d1d21, 0.172, 0, 0, 0, Math.PI / 2);             // 护目镜绑带
-      k.c(0x9a9a9a, 0.068, 0.068, 0.05, 0, 0, 0.155, Math.PI / 2, 0, 0, { m: 0.8, r: 0.3 });
-      k.s(0xffffff, 0, 0, 0.18, 0.055, 0.055, 0.02);
-      k.s(0x6b3a1a, 0, 0, 0.195, 0.025, 0.025, 0.008);
-      k.s(0x111111, 0, 0, 0.2, 0.012, 0.012, 0.004);
-      k.b(0x3a1a1a, 0.07, 0.014, 0.006, 0, -0.1, 0.14, -0.4);
-      for (const x of [-0.03, 0, 0.03]) k.b(0x111111, 0.004, 0.06, 0.004, x, 0.19, 0, 0, 0, x * 4);   // 几根头发
+      k.k(0xf49ac1, 0.16, 0.38, 0, 0.0, 0, 0, 0, 0.08);        // 最上面的尖角（稍微歪一点）
+      k.s(0xf49ac1, 0, -0.12, 0.0, 0.16, 0.08, 0.15);
+      for (const s of [-1, 1]) {
+        k.s(0xffffff, s * 0.04, 0.0, 0.085, 0.035, 0.048, 0.02);    // 眼白
+        k.s(0x111111, s * 0.034, -0.005, 0.103, 0.014, 0.02, 0.006);
+        k.s(0xffffff, s * 0.03, 0.006, 0.108, 0.004, 0.005, 0.002);
+        k.b(0x111111, 0.05, 0.012, 0.008, s * 0.045, 0.07, 0.085, 0, 0, -s * 0.35);   // 往上扬的粗眉毛
+      }
+      k.s(0x9a1a2a, 0, -0.1, 0.13, 0.09, 0.065, 0.03);          // 张大的嘴
+      k.s(0xf49ac1, 0, -0.065, 0.14, 0.095, 0.025, 0.03);        // 上唇（嘴成半月形）
+      k.s(0xe8607a, 0, -0.135, 0.15, 0.05, 0.022, 0.012);        // 舌头
+    },
+  },
+  {
+    // 小黄人：胶囊形的黄身子，两只眼睛的银色护目镜（棕色眼珠）+ 黑绑带、头顶几根头发、咧嘴笑露牙；蓝色背带裤（口袋上有 G 标志）、黑手套
+    id: 'minion', name: '小黄人', icon: '🟡', color: 0x2f6eb0, arm: 0xf6d23a, hand: 0x1d1d21, headY: 0.58, headScale: 1.12, noNeck: true, bodyBottom: 0.08,
+    torso: (k) => {
+      k.c(0xf6d23a, 0.18, 0.18, 0.4, 0, 0.36, 0);
+      k.c(0x3a7cc0, 0.186, 0.186, 0.2, 0, 0.18, 0);           // 背带裤
+      k.b(0x3a7cc0, 0.2, 0.15, 0.03, 0, 0.36, 0.17);            // 胸前的兜
+      k.b(0x2f6eb0, 0.08, 0.06, 0.01, 0, 0.34, 0.187);          // 口袋
+      k.c(0x1d1d21, 0.022, 0.022, 0.006, 0, 0.34, 0.193, Math.PI / 2);   // G 标志
+      k.c(0x3a7cc0, 0.012, 0.012, 0.008, 0, 0.34, 0.196, Math.PI / 2);
+      for (const s of [-1, 1]) {
+        k.b(0x3a7cc0, 0.035, 0.2, 0.012, s * 0.1, 0.48, 0.15, -0.25, 0, s * 0.15);   // 背带
+        k.s(0x1d1d21, s * 0.085, 0.42, 0.185, 0.012, 0.012, 0.006);   // 纽扣
+      }
+    },
+    head: (k) => {
+      k.s(0xf6d23a, 0, 0, 0, 0.18, 0.18, 0.18);
+      k.c(0xf6d23a, 0.18, 0.18, 0.1, 0, -0.05, 0);
+      k.c(0x1d1d21, 0.183, 0.183, 0.045, 0, 0.0, 0);            // 黑绑带
+      for (const s of [-1, 1]) {
+        k.t(0xa8aeb4, 0.055, s * 0.06, 0.0, 0.17, 0, 0, 0, { m: 0.85, r: 0.25 });   // 护目镜圈
+        k.c(0xa8aeb4, 0.06, 0.06, 0.03, s * 0.06, 0, 0.165, Math.PI / 2, 0, 0, { m: 0.85, r: 0.25 });
+        k.s(0xffffff, s * 0.06, 0, 0.183, 0.046, 0.046, 0.02);
+        k.s(0x8a3a1a, s * 0.06, -0.002, 0.198, 0.02, 0.02, 0.006);  // 棕色眼珠
+        k.s(0x111111, s * 0.06, -0.002, 0.202, 0.009, 0.009, 0.003);
+      }
+      k.s(0x5a1a1a, 0, -0.105, 0.15, 0.06, 0.03, 0.02);          // 咧开的嘴
+      k.b(0xffffff, 0.07, 0.014, 0.01, 0, -0.092, 0.165);        // 上排牙
+      k.s(0xe0607a, 0, -0.12, 0.16, 0.03, 0.012, 0.008);         // 舌头
+      for (let i = 0; i < 7; i++) { const a = (i - 3) * 0.22; k.b(0x111111, 0.004, 0.08, 0.004, Math.sin(a) * 0.05, 0.2, Math.cos(a) * 0.02 - 0.01, 0, 0, -a * 1.2); }   // 头发
     },
   },
   {
@@ -2048,44 +2159,84 @@ const CHARACTERS = [
     },
   },
   {
-    id: 'penguin', name: '帝企鹅', icon: '🐧', color: 0x1e88e5, arm: 0x1a1a22, hand: 0x1a1a22,
-    torso: (k) => { torso(k, 0x1a1a22, 0xf4f4f4, { h: 0.3 }); k.s(0xf6d88a, 0, 0.38, 0.07, 0.12, 0.06, 0.08); },
-    head: (k) => {
-      k.s(0x1a1a22, 0, 0, 0, 0.14, 0.14, 0.14);
-      for (const s of [-1, 1]) { k.s(0xf2a33a, s * 0.11, -0.03, 0.03, 0.03, 0.065, 0.05); k.s(0xffffff, s * 0.06, 0.03, 0.115, 0.018, 0.018, 0.01); k.s(0x111111, s * 0.06, 0.03, 0.125, 0.009, 0.009, 0.005); }
-      k.k(0x1a1a22, 0.03, 0.14, 0, -0.02, 0.17, Math.PI / 2);
-      k.s(0xf28c28, 0, -0.038, 0.15, 0.018, 0.01, 0.05);
-    },
-  },
-  {
-    id: 'buzz', name: '巴斯光年', icon: '🚀', color: 0x3aa84a, arm: 0xf2f2f2, hand: 0x6a3fa0,
+    // 帝企鹅：黑头、脸侧耳朵后面一块橙黄、脖子前面金黄渐变到白肚子；细长的黑嘴、下嘴壳一道橙色；背和鳍是黑灰色、鳍的内侧发白
+    id: 'penguin', name: '帝企鹅', icon: '🐧', color: 0x1e88e5, arm: 0x2a2a34, hand: 0x2a2a34, headY: 0.66,
     torso: (k) => {
-      k.s(0xf2f2f2, 0, 0.2, -0.04, 0.24, 0.3, 0.22);
-      k.b(0x3aa84a, 0.2, 0.14, 0.02, 0, 0.3, 0.17);           // 胸前绿色面板
-      for (const [x, col] of [[-0.05, 0xd42020], [0, 0x2f5ed0], [0.05, 0x7ad4ff]]) k.s(col, x, 0.3, 0.182, 0.015, 0.015, 0.008);
-      k.t(0x6a3fa0, 0.1, 0, 0.47, 0, Math.PI / 2, 0, 0);       // 紫色领口
-      k.b(0xf2f2f2, 0.5, 0.03, 0.12, 0, 0.36, -0.25);          // 收起来的翅膀
+      k.s(0x22222c, 0, 0.26, -0.05, 0.25, 0.36, 0.22);         // 黑背
+      k.s(0xf6f4ee, 0, 0.22, 0.04, 0.22, 0.32, 0.17);          // 白肚子
+      k.s(0xf4c64a, 0, 0.47, 0.08, 0.13, 0.08, 0.1);            // 脖子前面的金黄
+      k.s(0xf8e6a0, 0, 0.4, 0.1, 0.15, 0.07, 0.1);              // 往下渐变成淡黄
+      k.s(0xe0dcd4, 0, 0.0, 0.08, 0.17, 0.08, 0.12);            // 肚子下面一点灰
     },
     head: (k) => {
-      k.s(0x6a3fa0, 0, 0.02, -0.02, 0.12, 0.13, 0.12);         // 紫色头套
-      k.s(0xf2c9a8, 0, -0.01, 0.03, 0.1, 0.11, 0.1);
-      for (const s of [-1, 1]) { k.s(0xffffff, s * 0.035, 0.02, 0.118, 0.018, 0.014, 0.008); k.s(0x3a6fb0, s * 0.035, 0.02, 0.125, 0.009, 0.009, 0.004); k.b(0x3a2a1a, 0.035, 0.008, 0.006, s * 0.037, 0.045, 0.118); }
-      k.b(0xb0584a, 0.035, 0.008, 0.006, 0, -0.055, 0.12);
-      k.s(0xcfe8ff, 0, 0.02, 0.02, 0.17, 0.18, 0.18, 0, 0, 0, { o: 0.22, r: 0.05 });   // 透明头盔罩
+      k.s(0x1a1a24, 0, 0, 0, 0.13, 0.13, 0.14);
+      k.s(0x1a1a24, 0, -0.06, 0.02, 0.11, 0.08, 0.12);
+      for (const s of [-1, 1]) {
+        k.s(0xf2b02a, s * 0.1, -0.05, -0.01, 0.035, 0.07, 0.05, 0.3);   // 耳朵后面的橙黄
+        k.s(0xf8d860, s * 0.105, -0.07, -0.005, 0.02, 0.04, 0.03, 0.3);
+        k.s(0x0a0a10, s * 0.065, 0.03, 0.11, 0.016, 0.016, 0.01);
+        k.s(0xffffff, s * 0.068, 0.035, 0.12, 0.005, 0.005, 0.003);
+      }
+      k.k(0x1a1a24, 0.022, 0.17, 0, 0.0, 0.2, Math.PI / 2 + 0.25);      // 细长的嘴，稍微往下弯
+      k.s(0xf28c28, 0, -0.022, 0.19, 0.012, 0.007, 0.07, 0.25);           // 下嘴壳的橙色
     },
   },
   {
-    id: 'panda', name: '熊猫', icon: '🐼', color: 0xf4f4f4, arm: 0x1a1a1e, hand: 0x1a1a1e,
-    torso: (k) => { torso(k, 0xf4f4f4); k.s(0x1a1a1e, 0, 0.36, -0.04, 0.23, 0.08, 0.21); },
+    // 巴斯光年：白色太空服，胸前绿色护甲 + 控制面板（红绿蓝按钮、太空骑警徽章）、紫色领口和腰线、黑色波纹腰带、灰色护肩；
+    // 紫色头套、方下巴带酒窝、粗眉毛、微笑，透明头盔罩
+    id: 'buzz', name: '巴斯光年', icon: '🚀', color: 0x3aa84a, arm: 0xf2f2f2, hand: 0xf2f2f2,
+    torso: (k) => {
+      k.s(0xf2f2f2, 0, 0.24, -0.04, 0.25, 0.28, 0.22);
+      k.s(0x5ac83a, 0, 0.34, 0.03, 0.22, 0.14, 0.16);           // 胸前绿色护甲
+      k.b(0xf2f2f2, 0.15, 0.08, 0.02, 0, 0.35, 0.185);          // 控制面板
+      for (const [x, col] of [[-0.045, 0x2f5ed0], [-0.015, 0x3ab04a], [0.015, 0xd42020]]) k.s(col, x, 0.35, 0.197, 0.011, 0.018, 0.006);
+      k.s(0xd42020, 0.05, 0.35, 0.197, 0.016, 0.016, 0.006);
+      k.b(0x9ad4f0, 0.07, 0.03, 0.01, -0.07, 0.42, 0.17);        // 太空骑警徽章
+      k.s(0xf2c430, 0.09, 0.41, 0.172, 0.018, 0.018, 0.006);    // 金色星章
+      k.t(0x7a4ab0, 0.1, 0, 0.48, 0, Math.PI / 2, 0, 0);         // 紫色领口
+      k.b(0x7a4ab0, 0.4, 0.025, 0.2, 0, 0.23, 0);                // 紫色腰线
+      for (let i = 0; i < 3; i++) k.c(0x1d1d21, 0.2 - i * 0.005, 0.2 - i * 0.005, 0.02, 0, 0.18 - i * 0.03, -0.01);   // 黑色波纹腰带
+      for (const s of [-1, 1]) k.s(0x9aa0a8, s * 0.22, 0.43, -0.02, 0.08, 0.06, 0.09);   // 灰色护肩
+      k.b(0xf2f2f2, 0.5, 0.03, 0.12, 0, 0.36, -0.25);            // 收起来的翅膀
+      k.b(0xd42020, 0.04, 0.12, 0.02, 0, 0.3, -0.28);            // 背包上的红条
+    },
     head: (k) => {
-      k.s(0xf4f4f4, 0, 0, 0, 0.16, 0.15, 0.15);
+      k.s(0x7a4ab0, 0, 0.02, -0.02, 0.12, 0.135, 0.12);          // 紫色头套
+      k.s(0xf2c9a8, 0, -0.005, 0.035, 0.095, 0.11, 0.09);
+      k.b(0xf2c9a8, 0.12, 0.05, 0.08, 0, -0.085, 0.05);           // 方下巴
+      k.s(0xd8a888, 0, -0.1, 0.092, 0.006, 0.01, 0.004);          // 下巴酒窝
       for (const s of [-1, 1]) {
-        k.s(0x1a1a1e, s * 0.11, 0.11, -0.02, 0.045, 0.045, 0.03);
-        k.s(0x1a1a1e, s * 0.06, 0.02, 0.12, 0.045, 0.035, 0.02, 0, 0, s * 0.4);
-        k.s(0xffffff, s * 0.06, 0.025, 0.137, 0.015, 0.015, 0.006);
-        k.s(0x111111, s * 0.06, 0.025, 0.142, 0.008, 0.008, 0.004);
+        k.s(0xffffff, s * 0.035, 0.025, 0.112, 0.018, 0.014, 0.008);
+        k.s(0x3a6fb0, s * 0.035, 0.024, 0.12, 0.009, 0.009, 0.004);
+        k.b(0x3a2a1a, 0.04, 0.012, 0.008, s * 0.037, 0.05, 0.112, 0, 0, -s * 0.15);   // 粗眉毛
       }
-      k.s(0x111111, 0, -0.035, 0.15, 0.025, 0.018, 0.015);
+      k.s(0xe8b494, 0, 0.0, 0.125, 0.012, 0.02, 0.012);           // 鼻子
+      k.b(0xa04a3a, 0.05, 0.008, 0.006, 0, -0.045, 0.118, 0, 0, 0);   // 微笑
+      k.s(0xcfe8ff, 0, 0.02, 0.02, 0.17, 0.18, 0.18, 0, 0, 0, { o: 0.2, r: 0.05 });   // 透明头盔罩
+    },
+  },
+  {
+    // 熊猫（功夫熊猫阿宝那样）：白脸、黑眼圈、绿眼睛、黑耳朵、黑鼻子、笑眯眯；黑色的肩膀和手臂、白肚子，卡其色短裤配红黄条纹裤腰
+    id: 'panda', name: '熊猫', icon: '🐼', color: 0xf4f4f4, arm: 0x1a1a1e, hand: 0x1a1a1e,
+    torso: (k) => {
+      k.s(0xf4f4f4, 0, 0.2, -0.02, 0.27, 0.27, 0.24);          // 白肚子（胖）
+      k.s(0x1a1a1e, 0, 0.4, -0.04, 0.27, 0.12, 0.23);           // 黑色的肩膀和胸口
+      k.c(0xc8a868, 0.27, 0.28, 0.12, 0, 0.06, -0.02);          // 卡其色短裤
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; k.b(i % 2 ? 0xd8452a : 0xf2c430, 0.07, 0.03, 0.02, Math.sin(a) * 0.275, 0.13, Math.cos(a) * 0.255 - 0.02, 0, a, 0); }   // 红黄条纹裤腰
+      k.s(0xa88848, 0.12, 0.05, 0.2, 0.04, 0.03, 0.01);         // 裤子上的补丁
+    },
+    head: (k) => {
+      k.s(0xf4f4f4, 0, 0, 0, 0.165, 0.15, 0.15);
+      k.s(0xf4f4f4, 0, -0.05, 0.08, 0.1, 0.07, 0.08);           // 鼓鼓的嘴巴
+      for (const s of [-1, 1]) {
+        k.s(0x1a1a1e, s * 0.12, 0.12, -0.02, 0.05, 0.05, 0.035);   // 黑耳朵
+        k.s(0x1a1a1e, s * 0.062, 0.025, 0.115, 0.05, 0.038, 0.022, 0, 0, s * 0.45);   // 黑眼圈
+        k.s(0xffffff, s * 0.064, 0.028, 0.135, 0.02, 0.02, 0.008);
+        k.s(0x4aa860, s * 0.064, 0.028, 0.141, 0.012, 0.012, 0.005);   // 绿眼睛
+        k.s(0x111111, s * 0.064, 0.028, 0.145, 0.006, 0.006, 0.003);
+      }
+      k.s(0x1a1a1e, 0, -0.025, 0.16, 0.028, 0.018, 0.016);        // 黑鼻子
+      k.b(0x3a2a2a, 0.05, 0.006, 0.005, 0, -0.07, 0.15, 0, 0, 0);   // 笑嘴
     },
   },
   {
@@ -2204,18 +2355,35 @@ const CHARACTERS = [
     },
   },
   {
-    id: 'dino', name: '恐龙', icon: '🦖', color: 0x2e7d32, arm: 0x4caf50, hand: 0x4caf50,
+    // 恐龙（小霸王龙）：绿色、背上深绿色条纹、米黄色肚皮；大头长吻、张着嘴露出两排白牙和粉色口腔、黄眼睛；小短手、粗尾巴
+    id: 'dino', name: '恐龙', icon: '🦖', color: 0x2e7d32, arm: 0x5cbf3a, hand: 0x5cbf3a, headY: 0.68,
     torso: (k) => {
-      torso(k, 0x4caf50, 0xc8e6a0);
-      k.s(0x4caf50, 0, 0.04, -0.3, 0.08, 0.08, 0.2);
-      for (const [y, z] of [[0.44, -0.12], [0.34, -0.2], [0.22, -0.24]]) k.k(0xf28c28, 0.03, 0.07, 0, y, z, -0.6);
+      k.s(0x5cbf3a, 0, 0.22, -0.05, 0.25, 0.3, 0.23);
+      k.s(0xe8e4b0, 0, 0.2, 0.08, 0.17, 0.25, 0.14);            // 米黄色肚皮
+      for (const [y, w] of [[0.38, 0.2], [0.28, 0.23], [0.18, 0.24], [0.08, 0.22]]) k.s(0x2e8a2a, 0, y, -0.16, w, 0.02, 0.12, 0.2);   // 背上的深色条纹
+      k.s(0x5cbf3a, 0, 0.06, -0.3, 0.1, 0.09, 0.22);            // 尾巴根
+      k.s(0x5cbf3a, 0, 0.03, -0.5, 0.06, 0.06, 0.12);
+      for (const z of [-0.36, -0.48]) k.s(0x2e8a2a, 0, 0.1, z, 0.08, 0.02, 0.025);
     },
     head: (k) => {
-      k.s(0x4caf50, 0, 0, 0.03, 0.14, 0.13, 0.17);
-      k.s(0x4caf50, 0, -0.03, 0.15, 0.1, 0.07, 0.09);
-      for (let x = -0.06; x <= 0.061; x += 0.03) k.k(0xffffff, 0.01, 0.022, x, -0.085, 0.2, Math.PI);
-      for (const s of [-1, 1]) { k.s(0xffffff, s * 0.07, 0.05, 0.1, 0.03, 0.03, 0.02); k.s(0x111111, s * 0.075, 0.05, 0.118, 0.015, 0.015, 0.008); k.s(0x1f5f22, s * 0.025, -0.01, 0.235, 0.008, 0.006, 0.004); }
-      for (const [y, z] of [[0.13, 0.02], [0.12, -0.08], [0.08, -0.15]]) k.k(0xf28c28, 0.025, 0.06, 0, y, z, -0.4);
+      k.s(0x5cbf3a, 0, 0.02, 0.02, 0.13, 0.12, 0.15);           // 后脑勺
+      k.s(0x5cbf3a, 0, 0.02, 0.14, 0.1, 0.07, 0.12);             // 上颌（长吻）
+      k.s(0xc8e6a0, 0, -0.1, 0.1, 0.085, 0.035, 0.12, 0.35);     // 下颌（张开）
+      k.s(0xd85a6a, 0, -0.05, 0.13, 0.08, 0.035, 0.1, 0.15);     // 粉色口腔
+      for (let i = 0; i < 6; i++) {
+        const z = 0.1 + i * 0.025, x = 0.075 - i * 0.004;
+        for (const s of [-1, 1]) {
+          k.k(0xffffff, 0.01, 0.025, s * x, -0.035, z, Math.PI);      // 上牙
+          k.k(0xffffff, 0.009, 0.02, s * (x - 0.008), -0.075 + i * 0.002, z - 0.01, 0.3);   // 下牙
+        }
+      }
+      for (const s of [-1, 1]) {
+        k.s(0xf6e04a, s * 0.08, 0.07, 0.08, 0.03, 0.03, 0.02);    // 黄眼睛
+        k.s(0x111111, s * 0.088, 0.07, 0.092, 0.013, 0.018, 0.006);
+        k.s(0x2e8a2a, s * 0.07, 0.1, 0.08, 0.04, 0.012, 0.03, 0, 0, -s * 0.3);   // 眉骨
+        k.s(0x1f5f22, s * 0.03, 0.06, 0.25, 0.008, 0.006, 0.004);   // 鼻孔
+      }
+      for (const z of [-0.04, 0.04]) k.s(0x2e8a2a, 0, 0.13, z, 0.06, 0.012, 0.025);   // 头顶的条纹
     },
   },
   {
@@ -2242,6 +2410,61 @@ const CHARACTERS = [
       k.s(0xf28c28, 0, -0.03, 0.14, 0.08, 0.025, 0.07);
       for (const s of [-1, 1]) { k.s(0x111111, s * 0.06, 0.04, 0.11, 0.02, 0.022, 0.012); k.s(0xffffff, s * 0.064, 0.047, 0.12, 0.006, 0.006, 0.003); }
       k.k(0xf6d23a, 0.02, 0.06, 0, 0.15, 0);
+    },
+  },
+  {
+    // 蟹老板：红色的螃蟹，眼睛长在两根长眼柄上、咧嘴大笑露一排牙；浅蓝衬衫翻领、紫色裤子配黑腰带金扣，一对大钳子
+    id: 'krabs', name: '蟹老板', icon: '🦀', color: 0xe0482a, arm: 0xe0482a, hand: 0xe8582e, headY: 0.6, headScale: 1.2, noNeck: true,
+    handScale: [0.08, 0.06, 0.1],
+    handExtra: (k) => { k.s(0xe8582e, 0.5, 0.6, 0.5, 0.6, 0.35, 0.6); k.b(0xffffff, 0.5, 0.15, 0.5, 0, 0.1, 0.9); },   // 钳子上的另一瓣 + 白色的豁口
+    torso: (k) => {
+      k.s(0x9ad0f0, 0, 0.36, -0.02, 0.24, 0.14, 0.2);           // 浅蓝衬衫
+      for (const s of [-1, 1]) k.b(0x9ad0f0, 0.09, 0.015, 0.06, s * 0.06, 0.47, 0.13, 0.4, 0, s * 0.5);   // 翻领
+      k.s(0x8a5ab0, 0, 0.15, -0.02, 0.27, 0.17, 0.22);          // 紫色裤子（鼓鼓的）
+      k.c(0x1d1d21, 0.255, 0.255, 0.04, 0, 0.27, -0.02);         // 黑腰带
+      k.b(0xf2c430, 0.06, 0.04, 0.01, 0, 0.27, 0.235);           // 金色皮带扣
+      k.b(0x6a3a90, 0.02, 0.12, 0.01, 0, 0.15, 0.22);            // 裤缝
+    },
+    head: (k) => {
+      k.s(0xe0482a, 0, 0, 0, 0.16, 0.12, 0.13);
+      k.s(0xe0482a, 0, -0.07, 0.02, 0.17, 0.08, 0.14);
+      for (const s of [-1, 1]) {
+        k.c(0xe0482a, 0.014, 0.018, 0.16, s * 0.045, 0.16, 0.02);   // 眼柄
+        k.s(0xf8f4e0, s * 0.045, 0.3, 0.02, 0.032, 0.08, 0.03);     // 长长的眼睛
+        k.s(0x111111, s * 0.042, 0.28, 0.05, 0.012, 0.018, 0.006);
+        k.k(0xf28c28, 0.012, 0.04, s * 0.045, 0.39, 0.02, 0, 0, s * 0.3);   // 眼睛顶上的小尖
+      }
+      k.s(0xc83a20, 0, 0.04, 0.12, 0.02, 0.02, 0.02);              // 小鼻子
+      k.s(0x5a1414, 0, -0.04, 0.11, 0.11, 0.045, 0.03);            // 大笑的嘴
+      k.b(0xffffff, 0.17, 0.035, 0.01, 0, -0.04, 0.135);           // 一排牙
+      for (let i = -3; i <= 3; i++) k.b(0x5a1414, 0.003, 0.035, 0.005, i * 0.022, -0.04, 0.14);
+    },
+  },
+  {
+    // 章鱼哥：青绿色、大大的鼓脑门（上面有小点点）、半闭的眼皮（无精打采）、长长下垂的鼻子、撇嘴；橙黄色短袖衬衫、细长的手臂
+    id: 'squidward', name: '章鱼哥', icon: '🦑', color: 0x9ccfc4, arm: 0x9ccfc4, hand: 0x9ccfc4, headY: 0.72, headScale: 1.3, neck: 0x9ccfc4,
+    torso: (k) => {
+      k.s(0xe0a030, 0, 0.26, -0.02, 0.17, 0.23, 0.15);          // 橙黄色衬衫
+      for (const s of [-1, 1]) {
+        k.b(0xe0a030, 0.07, 0.015, 0.05, s * 0.05, 0.47, 0.1, 0.4, 0, s * 0.5);   // 领子
+        k.s(0xe0a030, s * 0.17, 0.4, -0.02, 0.06, 0.05, 0.06);   // 短袖
+      }
+      k.b(0xc88a20, 0.012, 0.18, 0.006, 0, 0.3, 0.147);          // 门襟
+    },
+    head: (k) => {
+      k.s(0x9ccfc4, 0, 0.12, -0.03, 0.17, 0.12, 0.15);           // 鼓鼓的大脑门
+      k.s(0x9ccfc4, 0, -0.02, 0.0, 0.1, 0.12, 0.1);               // 下半张脸
+      for (const [x, y, z] of [[-0.06, 0.2, 0.06], [0.0, 0.22, 0.05], [0.07, 0.19, 0.07], [-0.11, 0.15, 0.09], [0.12, 0.14, 0.08], [0.03, 0.17, 0.11]]) k.s(0x7aa8a0, x, y, z, 0.008, 0.008, 0.004);   // 脑门上的点
+      for (const s of [-1, 1]) {
+        k.s(0xf4ecb0, s * 0.04, 0.03, 0.085, 0.032, 0.03, 0.02);   // 偏黄的眼白
+        k.s(0xb03a3a, s * 0.04, 0.022, 0.1, 0.012, 0.012, 0.005);  // 红眼珠
+        k.s(0x111111, s * 0.04, 0.022, 0.104, 0.006, 0.006, 0.003);
+        k.s(0x8abfb4, s * 0.04, 0.045, 0.09, 0.035, 0.018, 0.022);  // 耷拉的眼皮（盖住上半个眼睛）
+        k.b(0x5a8a80, 0.04, 0.006, 0.006, s * 0.045, 0.07, 0.09, 0, 0, s * 0.2);   // 皱眉
+      }
+      k.c(0x9ccfc4, 0.022, 0.03, 0.14, 0, -0.04, 0.12, 0.25);     // 长长下垂的鼻子
+      k.s(0x9ccfc4, 0, -0.11, 0.14, 0.03, 0.035, 0.03);
+      k.b(0x3a5a54, 0.05, 0.006, 0.006, 0, -0.09, 0.09, 0, 0, 0);   // 撇嘴
     },
   },
 ];
@@ -2274,11 +2497,116 @@ function createDriver(charId, helmetColor, suitColor) {
     const upper = mesh(PG.sphere24, cmat(ch.arm));
     const fore = mesh(PG.sphere24, cmat(ch.arm));
     const hand = mesh(PG.sphere16, cmat(ch.hand));
-    hand.scale.set(0.045, 0.034, 0.06);
+    hand.scale.set(...(ch.handScale ?? [0.045, 0.034, 0.06]));
+    if (ch.handExtra) ch.handExtra(charKit(hand));   // 蟹老板的大钳子等：零件挂在手上（按手的大小缩放）
     group.add(upper, fore, hand);
     return { side: s, shoulder: v(0.2 * s, 0.36, 0.02), elbow: v(0.27 * s, 0.2, 0.2), upper, fore, hand };
   });
   return { group, head, bill, pouch: null, crest: look, crestAnim: false, headZ, wings, pouchOffset: 0, pouchVel: 0, headYaw: 0, headPitch: 0 };
+}
+
+// ---------------- 下车走路时的腿和脚（每个角色不一样） ----------------
+// len 腿长、hipX 两腿间距、legW 腿粗、leg 腿的颜色、pants 大腿上的裤子颜色（短裤），foot 脚的样子、footCol 脚的颜色
+const LEG_SPECS = {
+  pelican: { leg: 0xf2a33a, legW: 0.035, foot: 'web', footCol: 0xf2a33a },
+  owl: { leg: 0x8a5a3a, legW: 0.05, len: 0.3, foot: 'talon', footCol: 0xf2b705 },
+  spongebob: { leg: 0xf5e04a, legW: 0.025, hipX: 0.12, len: 0.36, sock: 0xffffff, foot: 'shoe', footCol: 0x111111 },
+  patrick: { leg: 0xf49ac1, legW: 0.09, hipX: 0.13, len: 0.3, pants: 0xcfdc4a, foot: 'stub', footCol: 0xf49ac1 },
+  minion: { leg: 0x3a7cc0, legW: 0.06, hipX: 0.09, len: 0.24, foot: 'boot', footCol: 0x1d1d21 },
+  beaver: { leg: 0x7a4a2a, legW: 0.06, len: 0.3, foot: 'web', footCol: 0x3a2414 },
+  penguin: { leg: 0x22222c, legW: 0.06, hipX: 0.11, len: 0.2, foot: 'web', footCol: 0x15151c },
+  buzz: { leg: 0xf2f2f2, legW: 0.06, knee: 0x5ac83a, foot: 'boot', footCol: 0x5ac83a, sole: 0x7a4ab0 },
+  panda: { leg: 0x1a1a1e, legW: 0.08, hipX: 0.12, len: 0.32, pants: 0xc8a868, foot: 'wrap', footCol: 0xe8dcc0 },
+  corgi: { leg: 0xd8893a, legW: 0.055, len: 0.24, foot: 'paw', footCol: 0xffffff },
+  cat: { leg: 0xf0962e, legW: 0.05, foot: 'paw', footCol: 0xffffff },
+  rabbit: { leg: 0xf4f4f4, legW: 0.055, foot: 'longpaw', footCol: 0xf4f4f4, pad: 0xf4a0b8 },
+  fox: { leg: 0x1d1d21, legW: 0.045, foot: 'paw', footCol: 0x1d1d21, thigh: 0xe8762a },
+  frog: { leg: 0x4caf50, legW: 0.05, foot: 'web', footCol: 0x6fcf60, big: true },
+  pig: { leg: 0xf4a8b8, legW: 0.06, len: 0.3, foot: 'hoof', footCol: 0x7a4a4a },
+  koala: { leg: 0x9a9aa2, legW: 0.065, len: 0.32, foot: 'paw', footCol: 0x5a5a62 },
+  monkey: { leg: 0x7a4a2a, legW: 0.045, foot: 'paw', footCol: 0xe8c29a, long: true },
+  dino: { leg: 0x5cbf3a, legW: 0.1, hipX: 0.13, len: 0.36, foot: 'claw', footCol: 0x5cbf3a, claw: 0xf4f0e0 },
+  robot: { leg: 0x9aa2aa, legW: 0.05, foot: 'block', footCol: 0x505860, joint: 0x505860 },
+  duck: { leg: 0xf28c28, legW: 0.025, len: 0.3, foot: 'web', footCol: 0xf28c28 },
+  krabs: { leg: 0xe0482a, legW: 0.03, hipX: 0.12, len: 0.32, pants: 0x8a5ab0, foot: 'point', footCol: 0xe0482a },
+  squidward: { leg: 0x9ccfc4, legW: 0.03, hipX: 0.08, len: 0.5, foot: 'tentacle', footCol: 0x8a8ac8 },
+};
+// 两条腿：每条是一个髋关节分组（绕 x 轴摆动），腿从 0 往下到 -len，脚在最下面朝 +z
+function buildCharLegs(charId, suitColor) {
+  const sp = LEG_SPECS[charId] ?? { leg: suitColor, legW: 0.06, foot: 'shoe', footCol: 0x222222 };
+  const len = sp.len ?? 0.42, w = sp.legW ?? 0.06, hipX = sp.hipX ?? 0.1;
+  const legs = [-1, 1].map((side) => {
+    const hip = new THREE.Group();
+    hip.position.set(side * hipX, len, 0);
+    const k = charKit(hip);
+    const y0 = -len;   // 脚底
+    // 腿：圆柱，大腿上可以套一截短裤 / 另一种颜色
+    k.c(sp.leg, w, w * 0.9, len, 0, -len / 2, 0);
+    if (sp.pants) k.c(sp.pants, w + 0.05, w + 0.04, len * 0.35, 0, -len * 0.17, 0);
+    if (sp.thigh) k.c(sp.thigh, w * 1.3, w * 1.1, len * 0.5, 0, -len * 0.25, 0);
+    if (sp.sock) { k.c(sp.sock, w * 1.15, w * 1.15, len * 0.3, 0, y0 + len * 0.22, 0); for (const [dy, col] of [[0.24, 0xd42020], [0.29, 0x2f5ed0]]) k.c(col, w * 1.2, w * 1.2, 0.012, 0, y0 + len * dy, 0); }
+    if (sp.knee) k.s(sp.knee, 0, -len * 0.5, 0.01, w * 1.3, w * 1.1, w * 1.3);
+    if (sp.joint) k.s(sp.joint, 0, -len * 0.5, 0, w * 1.3, w * 1.3, w * 1.3);
+    const fc = sp.footCol;
+    switch (sp.foot) {
+      case 'shoe':   // 圆头黑皮鞋（亮的）
+        k.s(fc, 0, y0 + 0.04, 0.05, 0.065, 0.045, 0.1, 0, 0, 0, { r: 0.25 });
+        k.s(0xffffff, side * 0.02, y0 + 0.07, 0.09, 0.012, 0.008, 0.015);   // 高光
+        break;
+      case 'boot':   // 靴子：圆头 + 鞋底
+        k.s(fc, 0, y0 + 0.05, 0.03, w + 0.03, 0.06, 0.1);
+        k.b(sp.sole ?? 0x111111, (w + 0.03) * 2, 0.025, 0.2, 0, y0 + 0.012, 0.03);
+        break;
+      case 'block':   // 机器人：方块脚
+        k.b(fc, 0.12, 0.06, 0.2, 0, y0 + 0.03, 0.04, 0, 0, 0, { m: 0.6, r: 0.35 });
+        break;
+      case 'web':   // 蹼：扁扁的三角形，三道趾
+        for (const a of [-0.45, 0, 0.45]) k.s(fc, Math.sin(a) * 0.06 * (sp.big ? 1.4 : 1), y0 + 0.012, 0.03 + Math.cos(a) * 0.07 * (sp.big ? 1.4 : 1), 0.025, 0.012, 0.06 * (sp.big ? 1.4 : 1), 0, a, 0);
+        k.s(fc, 0, y0 + 0.015, 0.03, 0.06 * (sp.big ? 1.3 : 1), 0.014, 0.05);
+        break;
+      case 'talon':   // 鸟爪：三根往前、一根往后
+        for (const a of [-0.5, 0, 0.5, Math.PI]) k.c(fc, 0.012, 0.008, 0.08, Math.sin(a) * 0.04, y0 + 0.01, Math.cos(a) * 0.04, Math.PI / 2, a, 0);
+        break;
+      case 'paw':   // 肉垫爪子：圆圆的脚 + 三个脚趾
+        k.s(fc, 0, y0 + 0.035, 0.035, w + 0.025, 0.035, w + 0.045);
+        for (const x of [-0.03, 0, 0.03]) k.s(fc, x, y0 + 0.03, 0.035 + w + 0.03, 0.018, 0.022, 0.02);
+        if (sp.long) k.s(fc, 0, y0 + 0.03, 0.09, 0.04, 0.025, 0.06);   // 猴子：长脚掌
+        break;
+      case 'longpaw':   // 兔子：长长的后脚掌，底下粉色肉垫
+        k.s(fc, 0, y0 + 0.035, 0.07, 0.05, 0.035, 0.12);
+        k.s(sp.pad, 0, y0 + 0.004, 0.08, 0.03, 0.005, 0.07);
+        break;
+      case 'hoof':   // 猪蹄：分成两瓣
+        for (const x of [-0.022, 0.022]) k.s(fc, x, y0 + 0.025, 0.01, 0.026, 0.03, 0.035);
+        break;
+      case 'claw':   // 恐龙：粗脚 + 三根白爪
+        k.s(fc, 0, y0 + 0.04, 0.05, w + 0.02, 0.045, 0.11);
+        for (const a of [-0.35, 0, 0.35]) k.k(sp.claw, 0.015, 0.05, Math.sin(a) * 0.06, y0 + 0.02, 0.15 + Math.cos(a) * 0.01, Math.PI / 2, a, 0);
+        break;
+      case 'wrap':   // 熊猫阿宝：缠着米色布条的脚，前面露出黑色的脚趾
+        k.s(fc, 0, y0 + 0.04, 0.035, w + 0.02, 0.045, w + 0.05);
+        for (let i = 0; i < 3; i++) k.c(0xc8b890, w + 0.025, w + 0.025, 0.008, 0, y0 + 0.03 + i * 0.022, 0.01);
+        for (const x of [-0.035, 0, 0.035]) k.s(0x1a1a1e, x, y0 + 0.03, 0.035 + w + 0.04, 0.02, 0.022, 0.02);
+        break;
+      case 'stub':   // 派大星：腿就是星星的角，越往下越细
+        hip.children[0].geometry.dispose();
+        hip.children[0].geometry = new THREE.CylinderGeometry(w, 0.025, len, 16);
+        k.s(fc, 0, y0 + 0.02, 0.01, 0.03, 0.025, 0.035);
+        break;
+      case 'point':   // 蟹老板：细细的尖腿
+        k.k(fc, w, 0.08, 0, y0 + 0.04, 0, Math.PI);
+        break;
+      case 'tentacle':   // 章鱼哥：脚尖往外卷起来，尖端发紫
+        k.s(sp.leg, 0, y0 + 0.02, 0.05, w * 1.6, 0.022, 0.08);          // 脚掌往前伸
+        k.t(sp.leg, 0.05, side * 0.02, y0 + 0.05, 0.12, 0, Math.PI / 2 + side * 0.6, 0);   // 往外卷起来的脚尖
+        k.s(fc, side * 0.06, y0 + 0.07, 0.15, 0.025, 0.022, 0.025);     // 紫色的尖
+        break;
+      default:
+        k.b(fc, 0.12, 0.06, 0.2, 0, y0 + 0.03, 0.04);
+    }
+    return hip;
+  });
+  return { legs, len };
 }
 
 /* ===== js/models/voxelize.js ===== */
@@ -2948,7 +3276,7 @@ function buildStartArea(theme) {
   }
   stand.add(box(length, 0.3, 13, mat(0xf4f4f4, { roughness: 0.5 }), 0, 9.5, -6));
   for (const x of [-length / 2, 0, length / 2]) stand.add(box(0.4, 9.5, 0.4, steel, x, 4.75, -11.5));
-  // 观众：20 个角色随机坐（鹈鹕戴帽子围巾，其他角色举手欢呼）
+  // 观众：全部角色随机坐（鹈鹕戴帽子围巾，其他角色举手欢呼）
   buildMixedCrowd(stand, crowdM, crowdC, false);
   // 门架立柱、看台都是实心障碍物
   gantry.updateMatrixWorld(true);
@@ -4308,7 +4636,7 @@ function buildPixelStart() {
   for (const x of [-L / 2, L / 2 - 1]) for (let y = 0; y < 10; y++) sb.add('log', x, y, -rows - 1);
   for (let x = -L / 2; x < L / 2; x++) for (let z = -rows - 1; z <= -1; z++) sb.add('darkPlanks', x, 10, z);
   sb.build(stand);
-  buildMixedCrowd(stand, crowdM, crowdC, true);   // 20 个角色随机坐（体素化）
+  buildMixedCrowd(stand, crowdM, crowdC, true);   // 全部角色随机坐（体素化）
   // 开放世界里门架立柱、看台是实心障碍物
   gantry.updateMatrixWorld(true);
   for (const x of [-span - 0.5, span + 0.5]) { const p = gantry.localToWorld(v(x, 0, 0)); addObstacle(p.x, p.z, 0.8); }
@@ -4800,6 +5128,7 @@ function resetWorld() {
   snowfall = null;
   lampPools = null;
   crowds = [];
+  resetBuild();
   regionTracks = {};
   links = [];
   roadGrid = null;
@@ -4877,6 +5206,23 @@ function terrainGrad(x, z) {
   return [terrainH(x + 1, z) - h, terrainH(x, z + 1) - h, h];
 }
 // 旷野地面的斑马纹：斜着一深一浅相间的宽条带（每条约 18 米），开起来看得出速度和方向
+// 画出来的地面高度：地面是 25 米一格的三角形网格，格子中间不等于 terrainH（弯曲的山坡被拉成平面），
+// 人、车、生物站在地面上要用这个，不然凹下去的坡上脚会埋进地里。两种风格格子的对角线方向不同
+const GROUND_CELL = 25, GROUND_HALF = 3800;
+function groundMeshH(x, z) {
+  if (worldMode !== 'open') return 0;
+  const ox = WORLD_CENTER[0] - GROUND_HALF, oz = WORLD_CENTER[1] - GROUND_HALF;
+  const gx = (x - ox) / GROUND_CELL, gz = (z - oz) / GROUND_CELL;
+  const ix = Math.floor(gx), iz = Math.floor(gz), u = gx - ix, w = gz - iz;
+  const x0 = ox + ix * GROUND_CELL, z0 = oz + iz * GROUND_CELL, x1 = x0 + GROUND_CELL, z1 = z0 + GROUND_CELL;
+  const hA = terrainH(x0, z0), hB = terrainH(x0, z1), hC = terrainH(x1, z1), hD = terrainH(x1, z0);
+  if (hA === 0 && hB === 0 && hC === 0 && hD === 0) return 0;
+  if (pixelActive) {   // 像素地面：对角线 (x0,z0)-(x1,z1)
+    return u >= w ? hA + u * (hD - hA) + w * (hC - hD) : hA + w * (hB - hA) + u * (hC - hB);
+  }
+  // 经典地面（PlaneGeometry）：对角线 (x0,z1)-(x1,z0)
+  return u + w <= 1 ? hA + u * (hD - hA) + w * (hB - hA) : hC + (1 - u) * (hB - hC) + (1 - w) * (hD - hC);
+}
 const zebraShade = (x, z) => (Math.floor((x + z) / 25) % 2 === 0 ? 1 : 0.8);
 
 // 开放世界的地面：一整块地，颜色按区域混合（海滨草地 → 峡谷红土 → 雪地 → 城市），旷野有起伏
@@ -4943,6 +5289,7 @@ function buildOpenWorld() {
     pixelWild(seeded(777));
     pixelBeacons();
     pixelSkyObjects();
+    buildPark();   // 阳光海滨的我的世界乐园（build.js）
     collectPixelCullables();
     blend.lastEnv = -99;
     return;
@@ -4964,6 +5311,7 @@ function buildOpenWorld() {
   }
   buildingRegion = null;
   regionFilter = null;
+  buildPark();   // 阳光海滨的我的世界乐园（build.js）
   scene.background = null;
   if (!sky.parent) scene.add(sky);
   blend.lastEnv = -99;
@@ -6546,7 +6894,8 @@ function surfaceY(c) {
     const onRoad = q && Math.abs(trackCoords(q.road, c.x, c.z, q.i).lat) <= q.road.B + 0.5;
     if (!onRoad) {
       // 旷野：按地形高度走，坡度决定车身侧倾和上下坡的加减速
-      const [gx, gz, h] = terrainGrad(c.x, c.z);
+      const [gx, gz] = terrainGrad(c.x, c.z);
+      const h = groundMeshH(c.x, c.z);   // 贴着画出来的地面
       const [fx, fz] = forwardOf(c.heading);
       c.bankSlope = gx * fz - gz * fx;
       c.gradF = gx * fx + gz * fz;
@@ -7243,7 +7592,7 @@ function setupRace({ newRivals = false } = {}) {
     look: { pattern: settings.livery ?? 'stock', accent: settings.accent ?? null },
   });
   player.headlight.intensity = worldMode === 'single' && THEMES[def.theme].night ? 220 : 0;
-  // 对手：每场从 20 个角色里随机挑（车型、涂装也随机）
+  // 对手：每场从全部角色里随机挑（车型、涂装也随机）
   if (!npcLineup || newRivals) {
     npcLineup = shuffle(CHARACTERS).slice(0, 16).map((ch) => ({
       ch, car: pick(CARS).id, bias: rand(-0.7, 0.7), jitter: rand(-0.025, 0.025),
@@ -7280,7 +7629,7 @@ function setupRace({ newRivals = false } = {}) {
   raceTime = 0;
   crashes = 0;
   resultsShown = false;
-  rec = { frames: [], acc: 0 };
+  rec = { frames: [], acc: 0, items: [], events: [] };
   startLights.forEach((m) => { m.emissiveIntensity = 0; });
   clearSkids();
   clearMobs();
@@ -7922,7 +8271,7 @@ function flashLightbar(c) {
 'use strict';
 
 const MODES = [
-  ['race', '🏁 名次赛', '和 10 位对手比名次（每场从 20 个角色里随机挑选）'],
+  ['race', '🏁 名次赛', '和 10 位对手比名次（每场从 22 个角色里随机挑选）'],
   ['items', '🍄 道具赛', '撞碎道具箱拿道具（最多存 3 个）：香蕉皮、龟壳、蘑菇、闪电、无敌星、护盾，X 使用、Z 换顺序'],
   ['timetrial', '⏱ 计时赛', '独自跑圈挑战纪录，和自己最快单圈的幽灵车比'],
   ['drift', '🌀 漂移赛', '独自跑圈拿漂移分：连续漂移倍率越来越高，撞墙清零'],
@@ -8137,6 +8486,7 @@ const ITEM_LANES = [-0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75];        // 每排 7 
 const ITEM_SLOTS = 3;                        // 最多同时存几个道具（含正在抽取的）
 const itemCount = (c) => c.items.length + c.pending.length;
 let itemBoxes = [], bananas = [], shells = [];
+let shellSeq = 0;   // 龟壳编号：回放时按编号在前后两帧之间插值
 const itemBoxEl = $('itemBox');
 
 // ---------------- 模型 ----------------
@@ -8203,6 +8553,9 @@ function clearItems() {
   for (const b of bananas) disposeTree(b.group);
   for (const s of shells) disposeTree(s.group);
   itemBoxes = []; bananas = []; shells = [];
+  for (const g of [...rpItems.bananas, ...rpItems.shells[0], ...rpItems.shells[1]]) disposeTree(g);
+  rpItems.bananas = []; rpItems.shells = { 0: [], 1: [] };
+  for (const c of racers) for (const k of ['rpStar', 'rpShield']) if (c[k]) { disposeTree(c[k]); c[k] = null; }
   for (const c of racers) { if (c.starAura) { c.starAura.removeFromParent(); c.starAura = null; } dropShield(c); c.root.scale.setScalar(1); }
   itemBoxEl.style.display = 'none';
   itemBoxEl.classList.remove('locked');
@@ -8239,7 +8592,7 @@ function useItem(c) {
     const speed = Math.max(62, c.vF + 30);
     g.position.set(x, 0.1, z);
     scene.add(g);
-    shells.push({ group: g, type: id, x, z, vx: fx * speed, vz: fz * speed, speed, owner: c, safeT: 0.35, life: id === 'green' ? 7 : 10, idx: c.idx, target: id === 'red' ? carAhead(c) : null });
+    shells.push({ id: ++shellSeq, group: g, type: id, x, z, vx: fx * speed, vz: fz * speed, speed, owner: c, safeT: 0.35, life: id === 'green' ? 7 : 10, idx: c.idx, target: id === 'red' ? carAhead(c) : null });
   } else if (id === 'mushroom') {
     c.nitroTime = Math.max(c.nitroTime, 1.6);   // 借用氮气的加速和尾焰，不消耗氮气充能
     c.vx += fx * 8; c.vz += fz * 8;
@@ -8266,6 +8619,7 @@ function useItem(c) {
       c.root.add(c.starAura);
     }
   }
+  recItemEvent('use', { c: racers.indexOf(c), id });
   if (c.isPlayer) { sound.itemUse(); updateItemBox(); }
 }
 
@@ -8293,6 +8647,7 @@ function hitByItem(c, what, from) {
   if (c.starT > 0 || c.state !== 'drive') return false;
   if (c.shieldT > 0) {
     dropShield(c);
+    recItemEvent('block', { c: racers.indexOf(c), what });
     for (let k = 0; k < 10; k++) emit(sparkPool, v(c.x, c.y + 0.9, c.z), { vel: v(rand(-4, 4), rand(1, 4), rand(-4, 4)), life: 0.4, size0: 0.4, size1: 0.05, color: 0x8fdcff, gravity: 6, alpha: 1 });
     if (c.isPlayer) { sound.pop(); showMessage(`🛡️ 护盾挡住了${ITEMS[what]?.name ?? '攻击'}！`, 1.3); }
     else if (from?.isPlayer) showMessage(`🛡️ ${c.name} 的护盾挡住了`, 1.1);
@@ -8302,6 +8657,7 @@ function hitByItem(c, what, from) {
   c.vx *= 0.35; c.vz *= 0.35;
   c.hitsTaken = (c.hitsTaken || 0) + 1;
   if (from && from !== c) from.hitsGiven = (from.hitsGiven || 0) + 1;
+  recItemEvent('hit', { c: racers.indexOf(c), what, from: racers.indexOf(from) });
   for (let k = 0; k < 10; k++) emit(sparkPool, v(c.x, 0.8, c.z), { vel: v(rand(-4, 4), rand(2, 5), rand(-4, 4)), life: 0.45, size0: 0.35, size1: 0.05, color: what === 'lightning' ? 0x9fd8ff : 0xffe066, gravity: 10, alpha: 1 });
   if (c.isPlayer) {
     sound.itemHit();
@@ -8339,6 +8695,7 @@ function updateItems(dt) {
         b.mesh.visible = false;
         if (c.rolling <= 0) c.rolling = 1.1;
         c.pending.push(rollItem(c));
+        recItemEvent('box', { x: b.x, z: b.z });
         for (let k = 0; k < 8; k++) emit(sparkPool, v(b.x, 1.1, b.z), { vel: v(rand(-3, 3), rand(1, 4), rand(-3, 3)), life: 0.5, size0: 0.4, size1: 0.1, color: pick([0xff4d4d, 0xffe94d, 0x4dc3ff, 0x4dff88]), gravity: 6, alpha: 1 });
         if (c.isPlayer) sound.itemGet();
         break;
@@ -8431,6 +8788,7 @@ function updateItems(dt) {
       }
     }
     if (dead) {
+      recItemEvent('pop', { x: s.x, z: s.z });
       emit(smokePool, v(s.x, 0.5, s.z), { vel: v(0, 1.5, 0), life: 0.8, size0: 1, size1: 3, color: 0xffffff, alpha: 0.5 });
       disposeTree(s.group);
       shells.splice(i, 1);
@@ -8482,14 +8840,16 @@ function swapItems(c) {
 // 道具框：大图标是马上能用的道具，下面一排小格是后面排着的（抽取中的格子在转）
 const itemKey = (c) => `${c.items.join(',')}|${c.pending.length}`;
 function updateItemBox() {
-  const p = player;
-  if (!p || !p.items) return;
+  if (player?.items) renderItemBox(player);
+}
+// 画某辆车的道具框（比赛时是玩家；回放时是正在看的那辆车，hint=false 不写按键）
+function renderItemBox(p, hint = true) {
   const ids = Object.keys(ITEMS);
   const roulette = ITEMS[ids[Math.floor(elapsed * 14) % ids.length]].icon;
   const first = p.items[0];
   itemBoxEl.dataset.key = itemKey(p);
   itemBoxEl.querySelector('.icon').textContent = first ? ITEMS[first].icon : p.pending.length ? roulette : '';
-  itemBoxEl.querySelector('.label').textContent = first ? `${ITEMS[first].name} · X 使用${p.items.length > 1 ? ' · Z 换' : ''}` : p.pending.length ? '抽取中…' : '撞道具箱拿道具';
+  itemBoxEl.querySelector('.label').textContent = first ? (hint ? `${ITEMS[first].name} · X 使用${p.items.length > 1 ? ' · Z 换' : ''}` : ITEMS[first].name) : p.pending.length ? '抽取中…' : hint ? '撞道具箱拿道具' : '';
   const slots = [];
   for (let i = 1; i < ITEM_SLOTS; i++) {
     const id = p.items[i];
@@ -8507,6 +8867,137 @@ function itemHudHtml() {
   const effects = [p.starT > 0 ? `⭐ 无敌 ${p.starT.toFixed(1)}s` : '', p.shieldT > 0 ? `🛡️ 护盾 ${p.shieldT.toFixed(1)}s` : '', p.zapT > 0 ? `⚡ 被闪电劈中 ${p.zapT.toFixed(1)}s` : '',
     shells.some((s) => s.type === 'red' && s.target === p) ? '<span class="bad">⚠️ 红壳锁定！</span>' : ''].filter(Boolean).join(' · ');
   return `<div class="row">🎯 击中 ${p.hitsGiven || 0} 次 · 💥 被击中 ${p.hitsTaken || 0} 次</div>${effects ? `<div class="combo">${effects}</div>` : ''}`;
+}
+
+// =====================================================================
+// 回放里的道具：录制时每帧存一份道具状态（道具箱、香蕉皮、龟壳、每辆车的无敌星 / 护盾 / 闪电缩小、手里的道具），
+// 另存一串一次性事件（放道具、被击中、护盾挡住、撞开道具箱、龟壳碎掉）；回放时照着摆出来，事件到点了放同样的特效、声音和提示
+// =====================================================================
+function recItemEvent(type, data) {
+  if (raceState === 'replay' || !isItems() || isFree() || resultsShown) return;
+  rec.events.push({ t: raceTime, type, ...data });
+}
+function itemSnapshot() {
+  const ban = new Float32Array(bananas.length * 4);
+  bananas.forEach((b, i) => ban.set([b.x, b.group.position.y, b.z, b.group.rotation.y], i * 4));
+  const sh = new Float32Array(shells.length * 5);
+  shells.forEach((s, i) => sh.set([s.id, s.type === 'red' ? 1 : 0, s.x, s.group.position.y, s.z], i * 5));
+  const car = new Float32Array(racers.length * 3);
+  racers.forEach((c, i) => car.set([c.starT, c.shieldT, c.root.scale.x], i * 3));
+  return { box: Uint8Array.from(itemBoxes, (b) => (b.mesh.visible ? 1 : 0)), ban, sh, car, held: racers.map((c) => [c.items.slice(), c.pending.length]),
+    lock: racers.map((c) => shells.some((s) => s.type === 'red' && s.target === c)) };
+}
+
+const rpItems = { bananas: [], shells: { 0: [], 1: [] }, lastT: 0, hidden: [] };
+function itemsReplayStart() {
+  if (!rec.items?.length) return;
+  rpItems.lastT = rec.frames[0][0];
+  // 比赛结束时还留在场上的香蕉皮、龟壳、护盾、星星先藏起来，退出回放再放回来
+  rpItems.hidden = [...bananas.map((b) => b.group), ...shells.map((s) => s.group), ...racers.flatMap((c) => [c.shieldBubble, c.starAura]).filter(Boolean)];
+  for (const o of rpItems.hidden) o.visible = false;
+  rpItems.scales = racers.map((c) => c.root.scale.x);
+  itemBoxEl.style.display = 'flex';
+}
+function itemsReplayEnd() {
+  if (!rec.items?.length) return;
+  for (const o of rpItems.hidden) o.visible = true;
+  rpItems.hidden = [];
+  for (const g of rpItems.bananas) g.visible = false;
+  for (const k of [0, 1]) for (const g of rpItems.shells[k]) g.visible = false;
+  racers.forEach((c, i) => {
+    c.root.scale.setScalar(rpItems.scales[i] ?? 1);
+    if (c.rpStar) c.rpStar.visible = false;
+    if (c.rpShield) c.rpShield.visible = false;
+  });
+  for (const b of itemBoxes) b.mesh.visible = b.respawn <= 0;
+  itemBoxEl.classList.remove('locked');
+  updateItemBox();
+}
+// 按回放时间摆出道具（lo / hi 是前后两帧的序号，u 是插值比例）
+function applyItemReplay(lo, hi, u) {
+  const A = rec.items?.[lo], B = rec.items?.[hi];
+  if (!A) return;
+  itemBoxes.forEach((b, i) => { b.mesh.visible = A.box[i] === 1; });
+  // 香蕉皮：放下后不动，直接用前一帧
+  const nb = A.ban.length / 4;
+  while (rpItems.bananas.length < nb) { const g = makeBanana(); scene.add(g); rpItems.bananas.push(g); }
+  rpItems.bananas.forEach((g, i) => {
+    g.visible = i < nb;
+    if (i < nb) { g.position.set(A.ban[i * 4], A.ban[i * 4 + 1], A.ban[i * 4 + 2]); g.rotation.y = A.ban[i * 4 + 3]; }
+  });
+  // 龟壳：按编号找到后一帧的位置插值
+  const used = { 0: 0, 1: 0 };
+  for (let i = 0; i < A.sh.length; i += 5) {
+    const id = A.sh[i], red = A.sh[i + 1];
+    let x = A.sh[i + 2], y = A.sh[i + 3], z = A.sh[i + 4];
+    for (let j = 0; B && j < B.sh.length; j += 5) if (B.sh[j] === id) { x = lerp(x, B.sh[j + 2], u); y = lerp(y, B.sh[j + 3], u); z = lerp(z, B.sh[j + 4], u); break; }
+    const pool = rpItems.shells[red];
+    if (pool.length <= used[red]) { const g = makeShell(red ? 0xe02a2a : 0x2fbf4a); scene.add(g); pool.push(g); }
+    const g = pool[used[red]++];
+    g.visible = true;
+    g.position.set(x, y, z);
+    g.rotation.y = replay.t * 14 + id;
+  }
+  for (const k of [0, 1]) rpItems.shells[k].forEach((g, i) => { if (i >= used[k]) g.visible = false; });
+  // 每辆车：无敌星光圈、护盾泡泡、被闪电劈中缩小
+  racers.forEach((c, i) => {
+    const star = A.car[i * 3], shield = A.car[i * 3 + 1], sc = B ? lerp(A.car[i * 3 + 2], B.car[i * 3 + 2], u) : A.car[i * 3 + 2];
+    c.root.scale.setScalar(sc);
+    if (star > 0 && !c.rpStar) {
+      c.rpStar = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      c.rpStar.scale.setScalar(6);
+      c.rpStar.position.y = 0.8;
+      c.root.add(c.rpStar);
+    }
+    if (c.rpStar) {
+      c.rpStar.visible = star > 0;
+      c.rpStar.material.color.setHSL((replay.t * 1.5) % 1, 1, 0.6);
+      c.rpStar.material.opacity = star > 1.5 || Math.floor(replay.t * 10) % 2 ? 0.7 : 0.2;
+    }
+    if (shield > 0 && !c.rpShield) {
+      c.rpShield = new THREE.Mesh(shieldGeo, new THREE.MeshBasicMaterial({ color: 0x8fdcff, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+      c.rpShield.scale.set(c.built.half[0] * 1.5, 1.3, c.built.half[1] * 1.25);
+      c.rpShield.position.y = 0.7;
+      c.root.add(c.rpShield);
+    }
+    if (c.rpShield) {
+      c.rpShield.visible = shield > 0;
+      c.rpShield.material.opacity = shield > 1.5 || Math.floor(replay.t * 10) % 2 ? 0.22 : 0.06;
+    }
+  });
+  // 道具框：正在看的那辆车手里的道具（被红壳锁定时闪红）
+  const fi = replay.focus, [items, pend] = A.held[fi] ?? [[], 0];
+  renderItemBox({ items, pending: { length: pend } }, false);
+  itemBoxEl.classList.toggle('locked', !!A.lock[fi]);
+}
+// 回放往前播放时，经过的事件照比赛时的样子再演一遍（拖进度条跳过去的不演）
+function replayItemEvents() {
+  const t0 = rpItems.lastT, t1 = replay.t;
+  rpItems.lastT = t1;
+  if (!rec.events?.length || t1 <= t0 || t1 - t0 > 0.5) return;
+  const focus = racers[replay.focus];
+  for (const e of rec.events) {
+    if (e.t <= t0 || e.t > t1) continue;
+    const c = racers[e.c], from = racers[e.from];
+    if (e.type === 'use') {
+      if (e.id === 'lightning') {
+        flashScreen();
+        sound.thunder();
+        showMessage(c === focus ? `⚡ ${c.isPlayer ? '你' : c.name}放了闪电！<small>其他车全部打滑、变小、变慢</small>` : `⚡ ${c.isPlayer ? '你' : c.name} 放了闪电！`, 1.5);
+      } else if (c === focus) sound.itemUse();
+    } else if (e.type === 'hit') {
+      for (let k = 0; k < 10; k++) emit(sparkPool, v(c.x, 0.8, c.z), { vel: v(rand(-4, 4), rand(2, 5), rand(-4, 4)), life: 0.45, size0: 0.35, size1: 0.05, color: e.what === 'lightning' ? 0x9fd8ff : 0xffe066, gravity: 10, alpha: 1 });
+      if (c === focus) { sound.itemHit(); showMessage(`${ITEMS[e.what]?.icon ?? '💥'} ${c.isPlayer ? '' : c.name + ' '}被${ITEMS[e.what]?.name ?? '撞'}击中！`, 1.5); }
+      else if (from === focus) showMessage(`🎯 ${ITEMS[e.what]?.icon ?? ''} 击中了 ${c.isPlayer ? '你' : c.name}！`, 1.3);
+    } else if (e.type === 'block') {
+      for (let k = 0; k < 10; k++) emit(sparkPool, v(c.x, c.y + 0.9, c.z), { vel: v(rand(-4, 4), rand(1, 4), rand(-4, 4)), life: 0.4, size0: 0.4, size1: 0.05, color: 0x8fdcff, gravity: 6, alpha: 1 });
+      if (c === focus) { sound.pop(); showMessage(`🛡️ 护盾挡住了${ITEMS[e.what]?.name ?? '攻击'}！`, 1.3); }
+    } else if (e.type === 'box') {
+      for (let k = 0; k < 8; k++) emit(sparkPool, v(e.x, 1.1, e.z), { vel: v(rand(-3, 3), rand(1, 4), rand(-3, 3)), life: 0.5, size0: 0.4, size1: 0.1, color: pick([0xff4d4d, 0xffe94d, 0x4dc3ff, 0x4dff88]), gravity: 6, alpha: 1 });
+    } else if (e.type === 'pop') {
+      emit(smokePool, v(e.x, 0.5, e.z), { vel: v(0, 1.5, 0), life: 0.8, size0: 1, size1: 3, color: 0xffffff, alpha: 0.5 });
+    }
+  }
 }
 
 /* ===== js/game/heli-mode.js ===== */
@@ -8805,6 +9296,8 @@ function heliHud() {
 // 方块拼成，脸是 8×8 的像素画。它们在玩家附近的旷野里刷出来、四处走动，离远了就消失再刷新；
 // 僵尸和苦力帕会朝玩家走过来，苦力帕靠近后闪白、嘶嘶响然后爆炸（附近的车会被炸得打滑）；墨影人时不时瞬移；动物见车开近会跑开。
 // 开车撞到生物：它"噗"地一下化成烟（撞到苦力帕会直接爆炸）。
+// 分两组：敌对（hostile：僵尸、骷髅、苦力帕、墨影人，下车后可以攻击，有生命值）和友好（史蒂夫和动物，不能攻击）；
+// 下车走路时的打招呼、聊天、让它们做动作、攻击都在 interact.js。r 是碰撞半径。
 'use strict';
 
 const MOB_MAX = 26;
@@ -8853,7 +9346,7 @@ function mobLimb(parent, w, h, d, x, y, z, mats) {
   mobPart(pivot, w, h, d, 0, -h / 2, 0, mats);
   return pivot;
 }
-const sixFaces = (front, side, top, back = side, bottom = top) => [side, side, top, bottom, front, back];
+const sixFaces = (front, side, top = side, back = side, bottom = top) => [side, side, top, bottom, front, back];   // 只给正面和侧面时，顶面、底面也用侧面的
 
 // ---------------- 各种生物的贴图 ----------------
 const MOB_ART = {
@@ -8909,32 +9402,32 @@ function quadruped(g, o) {
 
 const MOB_TYPES = {
   steve: {
-    name: '史蒂夫', weight: 2, speed: 1.4,
+    name: '史蒂夫', weight: 2, speed: 1.4, r: 0.35,
     build: (g) => humanoid(g, {
       head: sixFaces(A('steveFace'), A('steveSide'), M('hair', '#3b2615', ['#2e1e10']), M('hair', '#3b2615', ['#2e1e10']), M('skin', '#c69c6d', ['#b98f63'])),
       body: M('shirt', '#00a8a8', ['#009a9a', '#00b4b4']), arm: A('steveArm'), leg: A('steveLeg'),
     }),
   },
   zombie: {
-    name: '僵尸', weight: 3, speed: 1.1, chase: 30, chaseSpeed: 1.9,
+    name: '僵尸', weight: 3, speed: 1.1, chase: 30, chaseSpeed: 1.9, r: 0.35, hostile: true, hp: 20, dmg: 2,
     build: (g) => humanoid(g, {
       head: sixFaces(A('zombieFace'), M('zskin', '#52893a', ['#3d6b2a', '#5f9a44'])), body: M('shirt', '#00a8a8', ['#009a9a', '#00b4b4']),
       arm: M('zskin', '#52893a', ['#3d6b2a', '#5f9a44']), leg: M('pants', '#3c44aa', ['#343b98']), armsForward: true,
     }),
   },
   skeleton: {
-    name: '骷髅', weight: 2, speed: 1.3,
+    name: '骷髅', weight: 2, speed: 1.3, chaseSpeed: 2.2, r: 0.3, hostile: true, hp: 16, dmg: 2,
     build: (g) => humanoid(g, { head: sixFaces(A('skullFace'), M('bone', '#bcbcbc', ['#a8a8a8'])), body: A('ribs'), arm: M('bone', '#bcbcbc', ['#a8a8a8']), leg: M('bone', '#bcbcbc', ['#a8a8a8']), armW: 0.12, legW: 0.12 }),
   },
   enderman: {
-    name: '墨影人', weight: 2, speed: 1.2, teleport: true,
+    name: '墨影人', weight: 2, speed: 1.2, teleport: true, chaseSpeed: 3, r: 0.3, hostile: true, hp: 30, dmg: 4,
     build: (g) => humanoid(g, {
       head: sixFaces(A('enderFace', { emissive: 0xffffff }), M('ender', '#161616', ['#202020'])), body: M('ender', '#161616', ['#202020']),
       arm: M('ender', '#161616', ['#202020']), leg: M('ender', '#161616', ['#202020']), armW: 0.12, legW: 0.12, armL: 1.45, legL: 1.45,
     }),
   },
   creeper: {
-    name: '苦力帕', weight: 3, speed: 1.2, chase: 25, chaseSpeed: 2.4, creeper: true,
+    name: '苦力帕', weight: 3, speed: 1.2, chase: 25, chaseSpeed: 2.4, creeper: true, r: 0.35, hostile: true, hp: 12,
     build: (g) => {
       const skin = M('creeper', '#5aab3a', ['#7fd05a', '#4a8f2f', '#3d7a26']);
       const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => mobLimb(g, 0.25, 0.37, 0.25, sx * 0.125, 0.37, sz * 0.19, skin));
@@ -8947,7 +9440,7 @@ const MOB_TYPES = {
     },
   },
   cat: {
-    name: '薯条猫', weight: 2, speed: 1.6, flee: true,
+    name: '薯条猫', weight: 2, speed: 1.6, flee: true, r: 0.35,
     build: (g) => quadruped(g, {
       legH: 0.3, legW: 0.1, body: [0.3, 0.3, 0.8], bodyMat: A('catFur'), leg: M('catleg', '#e89a3a', ['#b86a1a']),
       head: [0.35, 0.3, 0.3], headMat: sixFaces(A('catFace'), A('catFur')), headUp: 0.9,
@@ -8959,7 +9452,7 @@ const MOB_TYPES = {
     }),
   },
   pig: {
-    name: '猪', weight: 2, speed: 1.0, flee: true,
+    name: '猪', weight: 2, speed: 1.0, flee: true, r: 0.55,
     build: (g) => quadruped(g, {
       legH: 0.35, body: [0.6, 0.55, 1.0], bodyMat: M('pig', '#f0a5a2', ['#e8958f', '#f5b3b0']), leg: M('pig', '#f0a5a2', ['#e8958f', '#f5b3b0']),
       head: [0.5, 0.5, 0.5], headMat: sixFaces(A('pigFace'), M('pig', '#f0a5a2', ['#e8958f', '#f5b3b0'])),
@@ -8967,7 +9460,7 @@ const MOB_TYPES = {
     }),
   },
   cow: {
-    name: '牛', weight: 2, speed: 0.9, flee: true,
+    name: '牛', weight: 2, speed: 0.9, flee: true, r: 0.65,
     build: (g) => quadruped(g, {
       legH: 0.6, body: [0.75, 0.75, 1.1], bodyMat: A('cowHide'), leg: A('cowHide'),
       head: [0.5, 0.5, 0.35], headMat: sixFaces(A('cowFace'), M('cowH', '#2e2a26', ['#3a3530'])),
@@ -8978,14 +9471,14 @@ const MOB_TYPES = {
     }),
   },
   sheep: {
-    name: '羊', weight: 2, speed: 0.9, flee: true,
+    name: '羊', weight: 2, speed: 0.9, flee: true, r: 0.65,
     build: (g) => quadruped(g, {
       legH: 0.5, body: [0.8, 0.75, 1.1], bodyMat: M('wool', '#eeeeee', ['#dcdcdc', '#f8f8f8']), leg: M('sheepLeg', '#b8a894', ['#a89884']),
       head: [0.38, 0.38, 0.45], headMat: sixFaces(A('sheepFace'), M('wool', '#eeeeee', ['#dcdcdc', '#f8f8f8'])),
     }),
   },
   chicken: {
-    name: '鸡', weight: 2, speed: 1.2, flee: true,
+    name: '鸡', weight: 2, speed: 1.2, flee: true, r: 0.3,
     build: (g) => quadruped(g, {
       legH: 0.25, legW: 0.06, body: [0.38, 0.35, 0.45], bodyMat: M('feather', '#f4f4f4', ['#e4e4e4']), leg: M('chickLeg', '#e8b923'),
       head: [0.25, 0.35, 0.2], headMat: sixFaces(A('chickFace'), M('feather', '#f4f4f4', ['#e4e4e4'])), headUp: 1.2,
@@ -9005,13 +9498,15 @@ function spawnMob(id, x, z) {
   const parts = t.build(group);
   group.position.set(x, 0, z);
   scene.add(group);
-  const mob = { id, t, group, ...parts, x, z, heading: Math.random() * Math.PI * 2, turnT: 0, phase: Math.random() * 6, fuse: 0, tpT: 5 + Math.random() * 8, fleeT: 0 };
+  const mob = { id, t, group, ...parts, x, z, heading: Math.random() * Math.PI * 2, turnT: 0, phase: Math.random() * 6, fuse: 0, tpT: 5 + Math.random() * 8, fleeT: 0,
+    hp: t.hp ?? 10, kvx: 0, kvz: 0, calmT: 0, provoked: false, act: null, followT: 0, hurtT: 0, atkCd: 0, swingT: 0 };
   group.rotation.y = mob.heading;
   mobs.push(mob);
   return mob;
 }
 function removeMob(m) {
   m.group.removeFromParent();   // 几何体、材质都是共用的，不用释放
+  mobGone(m);   // 对话框、头顶的字（interact.js）
   mobs.splice(mobs.indexOf(m), 1);
 }
 function clearMobs() {
@@ -9024,7 +9519,7 @@ function mobSpotOk(x, z) {
   if (!roadClear(x, z, 3)) return false;
   let blocked = false;
   obstacles.query(x, z, 3, (o) => { if (Math.hypot(o.x - x, o.z - z) < o.r + 1) blocked = true; });
-  return !blocked;
+  return !blocked && !buildBlocksMob(x, z);
 }
 
 // 死亡的烟（像《我的世界》里生物消失时那一团白烟）
@@ -9053,8 +9548,16 @@ function creeperBoom(m) {
     walker.z += ((walker.z - m.z) / Math.max(dp, 0.5)) * 3 * k;
     walker.vy = 9 * k + 3; walker.air = true;
     shake = 1; showMessage('💥 苦力帕爆炸了！', 1.6);
+    hurtWalker(Math.round(12 * k) + 2, m.x, m.z);
   }
   removeMob(m);
+}
+
+// 苦力帕熄火：变回原来的颜色和大小
+function defuseCreeper(m) {
+  m.fuse = 0;
+  m.group.scale.setScalar(1);
+  m.group.traverse((o) => { if (o.isMesh && o.userData.orig) o.material = o.userData.orig; });
 }
 
 // ---------------- 每帧 ----------------
@@ -9075,12 +9578,17 @@ function updateMobs(dt) {
     const dx = P.x - m.x, dz = P.z - m.z, dist = Math.hypot(dx, dz);
     if (dist > 330) { removeMob(m); continue; }
     let speed = m.t.speed, want = null;
-    // 僵尸、苦力帕：玩家在附近就追过来；动物：车开近了就跑开
-    if (m.t.chase && dist < m.t.chase && (walker || player.state === 'drive')) { want = Math.atan2(dx, dz); speed = m.t.chaseSpeed; }
-    if (m.t.flee && dist < (walker ? 5 : 14) && (walker || Math.abs(player.vF) > 6)) m.fleeT = 2.5;
+    m.atkCd = Math.max(0, m.atkCd - dt);
+    m.calmT = Math.max(0, m.calmT - dt);
+    const calm = m.calmT > 0;   // 和平相处（聊天时说好了）：不追、不打、苦力帕不点火
+    // 僵尸、苦力帕：玩家在附近就追过来；被打过的敌对生物（骷髅、墨影人）也会追着人打；动物：车开近了就跑开
+    const angry = walker && m.provoked && !calm && dist < 40;
+    if (!calm && ((m.t.chase && dist < m.t.chase && (walker || player.state === 'drive')) || angry)) { want = Math.atan2(dx, dz); speed = dist < 1.2 ? 0 : m.t.chaseSpeed; }
+    if (m.t.flee && !walker && dist < 14 && Math.abs(player.vF) > 6) m.fleeT = 2.5;   // 走路时动物不躲人（可以走过去聊天），被打了才跑
     if (m.fleeT > 0) { m.fleeT -= dt; want = Math.atan2(-dx, -dz); speed = m.t.speed * 2.6; }
-    // 苦力帕：离玩家 4.5 米以内开始点火，闪白 + 嘶嘶声，1.5 秒后爆炸
-    if (m.t.creeper) {
+    // 苦力帕：离玩家 4.5 米以内开始点火，闪白 + 嘶嘶声，1.5 秒后爆炸（和平相处时熄火）
+    if (m.t.creeper && calm && m.fuse > 0) defuseCreeper(m);
+    if (m.t.creeper && !calm) {
       if (dist < 4.5 || m.fuse > 0) {
         if (m.fuse === 0 && dist < 60) sound.burst({ duration: 1.4, type: 'highpass', frequency: 2500, gain: 0.18 });
         m.fuse += dt;
@@ -9108,8 +9616,11 @@ function updateMobs(dt) {
         }
       }
     }
+    // 互动（interact.js）：聊天时站住看着人、跟着人走、做动作
+    const ov = mobOverride(m, dt, dx, dz, dist);
+    if (ov) { want = ov.want; speed = ov.speed; }
     // 闲逛：隔一会儿换个方向
-    if (want === null) {
+    if (want === null && !ov) {
       m.turnT -= dt;
       if (m.turnT <= 0) { m.turnT = 2 + Math.random() * 4; m.wander = Math.random() < 0.25 ? null : m.heading + rand(-1.5, 1.5); }
       if (m.wander === null) speed = 0; else want = m.wander;
@@ -9117,16 +9628,27 @@ function updateMobs(dt) {
     if (want !== null) m.heading += wrapAngle(want - m.heading) * Math.min(1, dt * 3);
     if (speed > 0) {
       const nx = m.x + Math.sin(m.heading) * speed * dt, nz = m.z + Math.cos(m.heading) * speed * dt;
-      if (mobSpotOk(nx, nz) || m.t.chase) { m.x = nx; m.z = nz; } else { m.heading += Math.PI * 0.7; m.wander = m.heading; }
+      if ((mobSpotOk(nx, nz) || m.t.chase || m.provoked || ov) && !buildBlocksMob(nx, nz)) { m.x = nx; m.z = nz; } else { m.heading += Math.PI * 0.7; m.wander = m.heading; }
+    }
+    // 被打飞：击退速度慢慢衰减
+    if (m.kvx || m.kvz) {
+      m.x += m.kvx * dt; m.z += m.kvz * dt;
+      const k = Math.exp(-dt * 6);
+      m.kvx *= k; m.kvz *= k;
+      if (Math.abs(m.kvx) + Math.abs(m.kvz) < 0.05) m.kvx = m.kvz = 0;
     }
     // 走路动画：手脚前后摆，头看着玩家（近的时候）
     m.phase += speed * dt * 4;
     const swing = speed > 0 ? Math.sin(m.phase) * 0.7 : 0;
     m.legs.forEach((l, i) => { l.rotation.x = (m.quad ? (i === 0 || i === 3 ? 1 : -1) : i ? 1 : -1) * swing; });
     if (!m.t.chase || m.id !== 'zombie') m.arms.forEach((a, i) => { a.rotation.x = (i ? -1 : 1) * swing * 0.8; });
+    else m.arms.forEach((a) => { a.rotation.x = -Math.PI / 2; });
     if (dist < 25) { const yaw = wrapAngle(Math.atan2(dx, dz) - m.heading); m.head.rotation.y = clamp(yaw, -1, 1); } else m.head.rotation.y *= 0.9;
-    m.group.position.set(m.x, terrainH(m.x, m.z), m.z);   // 站在起伏的旷野上
-    m.group.rotation.y = m.heading;
+    m.head.rotation.x = 0; m.head.rotation.z = 0;
+    const pose = mobActionPose(m, dt);   // 跳舞、坐下、转圈、挥手、出手打人（会改手脚的角度）
+    m.group.position.set(m.x, groundMeshH(m.x, m.z) + pose.y, m.z);   // 站在起伏的旷野上
+    m.group.rotation.set(pose.pitch, m.heading + pose.yaw, 0, 'YXZ');
+    mobAttackWalker(m, dist, calm);
     // 被车撞到：化成一团烟（苦力帕直接爆炸）
     for (const c of allCars()) {
       if (!c.active || c.state !== 'drive' || c.air) continue;
@@ -9141,12 +9663,12 @@ function updateMobs(dt) {
 }
 
 /* ===== js/game/walk.js ===== */
-// 下车步行（只在开放世界的自由驾驶里）：车停稳后按 F 下车，方向键按镜头方向走（↓ 转身）、空格跳，走回车旁再按 F 上车
+// 下车步行（只在开放世界的自由驾驶里）：车停稳后按 F 下车，方向键按镜头方向走（↓ 转身）、按住 Shift 跑、空格跳，
+// 走回车旁再按 F 上车；走远了有箭头和车顶光柱指路，按 G 把车召唤到身边
 'use strict';
 
-const WALK_SPEED = 6.5, WALK_BACK = 3, WALK_TURN = 2.6, WALK_SPIN = 12, WALK_JUMP = 6.5, WALK_ENTER_D = 4.5;
+const WALK_SPEED = 6.5, WALK_RUN = 13, WALK_BACK = 3, WALK_TURN = 2.6, WALK_SPIN = 12, WALK_JUMP = 7.6, WALK_ENTER_D = 4.5;
 const WALK_SCALE = 1.35;   // 站起来比坐在车里显得大一点
-const WALK_LEG = 0.42;     // 腿长（角色自身坐标）
 let walker = null;
 
 const canWalk = () => worldMode === 'open' && raceState === 'racing' && !isHeliMode() && player && !player.finished;
@@ -9159,31 +9681,19 @@ function toggleWalk() {
   exitCar();
 }
 
-function buildWalkerModel() {
-  const color = player.color ?? 0xd42020;
-  const pel = createDriver(player.character, 0xffffff, color);
-  const legMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
-  const shoeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-  const legs = [-1, 1].map((s) => {
-    const hip = new THREE.Group();
-    hip.position.set(0.1 * s, WALK_LEG, 0);
-    const leg = mesh(new THREE.BoxGeometry(0.13, WALK_LEG, 0.14), legMat);
-    leg.position.y = -WALK_LEG / 2;
-    const shoe = mesh(new THREE.BoxGeometry(0.15, 0.07, 0.24), shoeMat);
-    shoe.position.set(0, -WALK_LEG + 0.035, 0.04);
-    hip.add(leg, shoe);
-    return hip;
-  });
+function buildWalkerModel(charId = player.character, color = player.color ?? 0xd42020) {
+  const pel = createDriver(charId, 0xffffff, color);
+  const { legs, len } = buildCharLegs(charId, color);   // 每个角色自己的腿和脚（characters.js）
   if (pixelActive) {
     voxelizePelican(pel);
-    for (const h of legs) voxelizeGroup(h, 0.035);
+    for (const h of legs) voxelizeGroup(h, 0.025);
   }
-  pel.group.position.y = WALK_LEG;
+  pel.group.position.y = len - (CHAR_BY_ID[charId]?.bodyBottom ?? 0);   // 身体最下面接在腿上（海绵宝宝的裤子离座位有一截）
   const group = new THREE.Group();
   group.add(pel.group, ...legs);
   group.scale.setScalar(WALK_SCALE);
   group.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return { group, pel, legs };
+  return { group, pel, legs, legLen: len };
 }
 
 function exitCar() {
@@ -9200,17 +9710,21 @@ function exitCar() {
   // 挤开障碍物，避免一下车就卡在树里
   walkCollide(walker);
   scene.add(walker.group);
+  buildCarGuide(walker);
   player.pel.group.visible = false;
   player.ctl.throttle = player.ctl.reverse = false;
   player.ctl.steer = 0;
   player.ctl.brake = true;
   sound.bump?.(3);
-  showMessage('🚶 下车走走<small>方向键 / WASD 朝哪边按就往哪边走（↓ 转身）· 空格跳 · 回到车旁按 F 上车</small>', 2.2);
+  showMessage('🚶 下车走走<small>方向键 / WASD 朝哪边按就往哪边走（↓ 转身）· 按住 Shift 跑 · 空格跳 · F 上车 · G 召唤车</small>', 2.6);
 }
 
 function tryEnterCar() {
   const d = Math.hypot(player.x - walker.x, player.z - walker.z);
-  if (d > WALK_ENTER_D + player.built.half[1]) return showMessage(`🚗 离车还有 ${Math.round(d)} 米<small>走近一点再按 F 上车</small>`, 1.2);
+  if (d > WALK_ENTER_D + player.built.half[1]) {
+    walker.guidePulse = 1.5;   // 头顶的指路箭头放大闪一下
+    return showMessage(`🚗 离车还有 ${Math.round(d)} 米<small>跟着头顶的箭头走回去，或按 G 把车召唤过来</small>`, 1.6);
+  }
   clearWalker();
   camHeading = player.heading;
   showMessage('🚗 上车！', 0.8);
@@ -9220,7 +9734,10 @@ function clearWalker() {
   if (!walker) return;
   scene.remove(walker.group);
   disposeTree(walker.group);
+  for (const o of [walker.beacon, walker.arrow]) if (o) { scene.remove(o); disposeTree(o); }
+  walker.ui?.el.remove();
   walker = null;
+  $('carCue').style.display = 'none';
   if (player?.pel) player.pel.group.visible = true;
 }
 
@@ -9229,6 +9746,105 @@ const walkProbe = { x: 0, z: 0, heading: 0, idx: 0 };
 function walkGround(x, z) {
   walkProbe.x = x; walkProbe.z = z;
   return surfaceY(walkProbe);
+}
+// 两只脚踩的地方取最高的一点：站在坡上前脚 / 后脚不会埋进坡里
+function walkFeetGround(w) {
+  const [fx, fz] = forwardOf(w.heading), r = 0.3 * WALK_SCALE;
+  let g = walkGround(w.x, w.z);
+  for (const [a, b] of [[fx, fz], [-fx, -fz], [fz, -fx], [-fz, fx]]) g = Math.max(g, walkGround(w.x + a * r, w.z + b * r));
+  return Math.max(g, buildGroundUnder(w.x, w.z, w.y, 0.3));   // 站在方块上（乐园建筑、自己搭的）
+}
+
+// ---------------- 找车：头顶的指路箭头 + 车顶的光柱 + 屏幕上的距离 ----------------
+function buildCarGuide(w) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0x3ad16a, transparent: true, opacity: 0.9, depthTest: false });
+  const arrow = new THREE.Group();
+  const head = mesh(new THREE.ConeGeometry(0.22, 0.45, 4).rotateX(Math.PI / 2).translate(0, 0, 0.5), mat, false);
+  const tail = mesh(new THREE.BoxGeometry(0.12, 0.06, 0.5).translate(0, 0, 0.05), mat, false);
+  arrow.add(head, tail);
+  arrow.renderOrder = 10;
+  arrow.traverse((o) => { o.renderOrder = 10; });
+  scene.add(arrow);
+  // 光柱：很远也看得见，贴着车顶往上 60 米，越往上越淡
+  const beamTex = canvasTexture(8, (g, cw, ch) => {
+    const grd = g.createLinearGradient(0, 0, 0, ch);
+    grd.addColorStop(0, '#3ad16a00'); grd.addColorStop(1, '#3ad16aff');
+    g.fillStyle = grd; g.fillRect(0, 0, cw, ch);
+  }, { height: 64 });
+  const beam = mesh(new THREE.CylinderGeometry(0.6, 0.6, 60, 12, 1, true).translate(0, 30, 0),
+    new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }), false);
+  const pin = mesh(new THREE.ConeGeometry(0.6, 1.2, 4).rotateX(Math.PI), new THREE.MeshBasicMaterial({ color: 0x3ad16a, fog: false }), false);
+  const beacon = new THREE.Group();
+  beacon.add(beam, pin);
+  beacon.userData.pin = pin;
+  scene.add(beacon);
+  w.arrow = arrow;
+  w.beacon = beacon;
+  w.guidePulse = 0;
+}
+function updateCarGuide(w, dt) {
+  const dx = player.x - w.x, dz = player.z - w.z, d = Math.hypot(dx, dz);
+  const far = d > WALK_ENTER_D + player.built.half[1];
+  w.guidePulse = Math.max(0, w.guidePulse - dt);
+  // 头顶箭头：离车远了才出现，指向车
+  w.arrow.visible = far && viewMode !== 'first';
+  w.arrow.position.set(w.x, w.y + 2.55 * WALK_SCALE / 1.35 + Math.sin(elapsed * 4) * 0.08, w.z);
+  w.arrow.rotation.y = Math.atan2(dx, dz);
+  w.arrow.scale.setScalar(1 + w.guidePulse * 0.6 * Math.abs(Math.sin(elapsed * 10)));
+  // 车顶光柱和上下跳的绿色标记
+  w.beacon.visible = d > 10;
+  w.beacon.position.set(player.x, player.y + 1.6, player.z);
+  w.beacon.userData.pin.position.y = 1.2 + Math.abs(Math.sin(elapsed * 3)) * 0.8;
+  w.beacon.userData.pin.rotation.y = elapsed * 2;
+  // 屏幕上方：车的距离和方向（相对镜头）
+  const cue = $('carCue');
+  if (!far) { cue.style.display = 'none'; return; }
+  const camYaw = Math.atan2(controls.target.x - camera.position.x, controls.target.z - camera.position.z);
+  const look = viewMode === 'free' ? camYaw : w.camHeading;
+  const rel = wrapAngle(Math.atan2(dx, dz) - look);
+  const arrows = ['⬆️', '↖️', '⬅️', '↙️', '⬇️', '↘️', '➡️', '↗️'];
+  const k = ((Math.round(rel / (Math.PI / 4)) % 8) + 8) % 8;
+  cue.style.display = 'block';
+  cue.innerHTML = `🚗 ${arrows[k]} 车在 ${Math.round(d)} 米外 <small>· F 上车（要走到车旁）· G 召唤</small>`;
+}
+
+// G 键：把车召唤到身边（停在人的右前方，车头和人同向），一团烟后出现
+function summonCar() {
+  if (!walker || !canWalk()) return;
+  const w = walker;
+  const [fx, fz] = forwardOf(w.heading);
+  const puff = (x, y, z) => { for (let k = 0; k < 18; k++) emit(smokePool, v(x + rand(-1.5, 1.5), y + rand(0.2, 1.5), z + rand(-1.5, 1.5)), { vel: v(rand(-1.5, 1.5), rand(0.5, 2), rand(-1.5, 1.5)), life: 1, size0: 1, size1: 3, color: 0xf0f0f0, alpha: 0.7 }); };
+  puff(player.x, player.y, player.z);
+  const off = player.built.half[0] + 1.8;
+  player.x = w.x + fx * 3 - fz * off;
+  player.z = w.z + fz * 3 + fx * off;
+  player.heading = w.heading;
+  restartInPlace(player);   // 挤出障碍物、不进海里，扶正、贴地
+  player.pel.group.visible = false;
+  player.ghost = 0;
+  puff(player.x, player.y, player.z);
+  sound.whoosh?.();
+  sound.tone({ frequency: 660, slideTo: 990, duration: 0.25, gain: 0.15 });
+  showMessage('✨ 车来了！<small>走到车旁按 F 上车</small>', 1.4);
+}
+
+// 脚步声：路面「嗒嗒」、草地「沙沙」、雪地「嘎吱」，跑起来更响更密
+function footstep(w, run) {
+  if (!sound.ready) return;
+  const q = nearestRoad(w.x, w.z, 30);
+  const onRoad = q && Math.abs(trackCoords(q.road, w.x, w.z, q.i).lat) <= q.road.B + 0.5;
+  const theme = TRACK_BY_ID[nearestRegion(w.x, w.z)].theme;
+  const g = run ? 1.4 : 1;
+  if (onRoad) {
+    sound.burst({ duration: 0.05, type: 'bandpass', frequency: 1800 + Math.random() * 500, gain: 0.16 * g });
+    sound.tone({ frequency: 140, slideTo: 80, duration: 0.06, gain: 0.12 * g });
+  } else if (theme === 'snow') {
+    sound.burst({ duration: 0.12, type: 'highpass', frequency: 2800 + Math.random() * 800, gain: 0.12 * g });
+    sound.burst({ duration: 0.08, type: 'lowpass', frequency: 500, gain: 0.15 * g });
+  } else {
+    sound.burst({ duration: 0.1, type: 'bandpass', frequency: 1100 + Math.random() * 600, gain: 0.1 * g });
+    sound.burst({ duration: 0.07, type: 'lowpass', frequency: 300, gain: 0.14 * g });
+  }
 }
 
 // 树、石头等障碍物和世界边界、海边
@@ -9247,23 +9863,26 @@ function walkCollide(w) {
 }
 
 function updateWalk(dt) {
-  const btn = $('tWalk');
-  const show = canWalk();
-  if (btn.hidden === show) btn.hidden = !show;
+  const show = canWalk(), on = show && !!walker;
+  for (const [id, vis] of [['tWalk', show], ['tRun', on], ['tSummon', on], ['tPunch', on], ['tKick', on], ['tSpinAtk', on], ['tBlast', on], ['tTalk', on], ['tWave', on]]) { const b = $(id); if (b.hidden === vis) b.hidden = !vis; }
+  document.body.classList.toggle('walking', on);
   if (!walker) return;
   if (!canWalk()) return clearWalker();
   const w = walker;
   // 车停着（刹住），不跟着按键走
   Object.assign(player.ctl, { steer: 0, throttle: false, reverse: false, brake: true });
 
-  const left = keys.has('ArrowLeft') || keys.has('KeyA'), right = keys.has('ArrowRight') || keys.has('KeyD');
-  const fwd = keys.has('ArrowUp') || keys.has('KeyW'), back = keys.has('ArrowDown') || keys.has('KeyS');
+  const down = w.downT > 0;   // 被打倒了：不能动
+  const left = !down && (keys.has('ArrowLeft') || keys.has('KeyA')), right = !down && (keys.has('ArrowRight') || keys.has('KeyD'));
+  const fwd = !down && (keys.has('ArrowUp') || keys.has('KeyW')), back = !down && (keys.has('ArrowDown') || keys.has('KeyS'));
   const ix = (left ? 1 : 0) - (right ? 1 : 0), iz = (fwd ? 1 : 0) - (back ? 1 : 0);
+  const run = keys.has('ShiftLeft') || keys.has('ShiftRight');
+  const top = run ? WALK_RUN : WALK_SPEED;
   let want = 0;
   if (viewMode === 'first') {
     // 第一人称：←→ 原地转身，↑ 前进、↓ 后退
     w.heading += ix * WALK_TURN * dt;
-    want = iz > 0 ? WALK_SPEED : iz < 0 ? -WALK_BACK : 0;
+    want = iz > 0 ? top : iz < 0 ? -WALK_BACK : 0;
   } else if (ix || iz) {
     // 第三人称：方向键按镜头方向走（↓ 就转过身朝镜头走来），人先转向那个方向再迈步
     const free = viewMode === 'free';   // 自由视角：镜头由玩家拖动，走路方向按镜头当前朝向算
@@ -9271,44 +9890,53 @@ function updateWalk(dt) {
     const dir = base + Math.atan2(ix, iz);
     const turn = wrapAngle(dir - w.heading);
     w.heading += turn * Math.min(1, dt * WALK_SPIN);
-    want = WALK_SPEED * clamp(1 - Math.abs(turn) / Math.PI, 0.25, 1);   // 转身的时候先放慢
+    want = top * clamp(1 - Math.abs(turn) / Math.PI, 0.25, 1);   // 转身的时候先放慢
     // 镜头慢慢绕到身后；往镜头这边走时不跟，免得镜头跟着一起转圈
     if (!free && Math.abs(wrapAngle(w.heading - w.camHeading)) < 1.9) w.camHeading += wrapAngle(w.heading - w.camHeading) * Math.min(1, dt * 1.2);
   }
-  w.speed += (want - w.speed) * Math.min(1, dt * 8);
+  w.speed += (want - w.speed) * Math.min(1, dt * (run ? 4 : 8));
   const [fx, fz] = forwardOf(w.heading);
   w.x += fx * w.speed * dt;
   w.z += fz * w.speed * dt;
   walkCollide(w);
+  buildPushOut(w, 0.35, w.y + 0.05, w.y + 1.7);   // 方块墙挡住
 
   // 竖直：跳起来、落回地面；走下坡直接贴地（落差不大时）
-  const g = walkGround(w.x, w.z);
-  if (!w.air && keys.has('Space')) { w.vy = WALK_JUMP; w.air = true; }
+  const g = walkFeetGround(w);
+  if (!w.air && !down && keys.has('Space')) { w.vy = WALK_JUMP; w.air = true; }
   if (w.air) {
     w.vy -= GRAVITY * dt;
     w.y += w.vy * dt;
-    if (w.y <= g) { w.y = g; w.vy = 0; w.air = false; }
+    if (w.vy > 0) {   // 往上跳时撞到头顶的方块
+      const ceil = buildCeiling(w.x, w.z, w.y + 1.75);
+      if (w.y + 1.75 > ceil) { w.y = ceil - 1.75; w.vy = 0; }
+    }
+    if (w.y <= g && w.vy <= 0) { w.y = g; w.vy = 0; w.air = false; }
   } else if (g < w.y - 0.6) { w.air = true; w.vy = 0; }
   else w.y = g;
 
   // 走路动画：腿、手臂前后摆，身体一颠一颠
   const moving = Math.abs(w.speed) > 0.3 && !w.air;
-  w.phase += w.speed * dt * 2.2;
-  const swing = moving ? Math.sin(w.phase) * 0.6 : w.air ? 0.35 : 0;
+  const runK = clamp((Math.abs(w.speed) - WALK_SPEED) / (WALK_RUN - WALK_SPEED), 0, 1);   // 0 走 → 1 跑
+  const lastPhase = w.phase;
+  w.phase += w.speed * dt * (2.2 - runK * 0.9);
+  if (moving && Math.floor(w.phase / Math.PI) !== Math.floor(lastPhase / Math.PI)) footstep(w, runK > 0.5);   // 每迈一步
+  const swing = moving ? Math.sin(w.phase) * (0.6 + runK * 0.35) : w.air ? 0.35 : 0;
   w.legs[0].rotation.x = swing;
   w.legs[1].rotation.x = w.air ? -0.5 : -swing;
   for (const wing of w.pel.wings) {
     const a = swing * wing.side;
-    const elbow = v(wing.shoulder.x * 1.15, wing.shoulder.y - 0.17, wing.shoulder.z + a * 0.12);
-    const hand = v(wing.shoulder.x * 1.2, wing.shoulder.y - 0.32, wing.shoulder.z + a * 0.24 + 0.04);
+    const elbow = v(wing.shoulder.x * 1.15, wing.shoulder.y - 0.17 + runK * 0.05, wing.shoulder.z + a * 0.12);
+    const hand = v(wing.shoulder.x * 1.2, wing.shoulder.y - 0.32 + runK * 0.14, wing.shoulder.z + a * (0.24 + runK * 0.1) + 0.04 + runK * 0.08);
     setLimb(wing.upper, wing.shoulder, elbow, 0.06, 0.055);
     setLimb(wing.fore, elbow, hand, 0.045, 0.04);
     wing.hand.position.copy(hand);
   }
   w.pel.head.rotation.set(0, 0, 0);
-  const bob = moving ? Math.abs(Math.cos(w.phase)) * 0.05 : 0;
+  const bob = moving ? Math.abs(Math.cos(w.phase)) * (0.05 + runK * 0.07) : 0;
   w.group.position.set(w.x, w.y + bob, w.z);
-  w.group.rotation.y = w.heading;
+  w.group.rotation.set(runK * 0.18 * Math.sign(w.speed), w.heading, 0, 'YXZ');   // 跑起来身体前倾
+  updateCarGuide(w, dt);
 
   // 走到车旁：提示可以上车
   const near = Math.hypot(player.x - w.x, player.z - w.z) < WALK_ENTER_D + player.built.half[1];
@@ -9337,6 +9965,13 @@ function updateWalkCamera(dt) {
   const [fx, fz] = forwardOf(w.camHeading);
   const d = viewMode === 'first' ? -0.3 : 5.5, h = viewMode === 'first' ? 1.75 : 2.6;
   camera.position.set(w.x - fx * d, w.camY + h, w.z - fz * d);
+  // 镜头和人之间有方块（在工坊里、墙边）：镜头拉近到墙前
+  if (bgrid.size && viewMode !== 'first') {
+    const hx = w.x, hy = w.y + 1.6, hz = w.z, ex = camera.position.x - hx, ey = camera.position.y - hy, ez = camera.position.z - hz;
+    for (let t = 0.1; t <= 1; t += 0.05) {
+      if (buildSolidAt(hx + ex * t, hy + ey * t, hz + ez * t)) { camera.position.set(hx + ex * (t - 0.08), hy + ey * (t - 0.08), hz + ez * (t - 0.08)); break; }
+    }
+  }
   lookTarget.set(w.x + fx * 6, w.camY + (viewMode === 'first' ? 1.6 : 1.3), w.z + fz * 6);
   camera.lookAt(lookTarget);
   camFov += (60 - camFov) * Math.min(1, dt * 3);
@@ -9346,6 +9981,1000 @@ function updateWalkCamera(dt) {
 // 镜头 / 光照 / 生物跟着谁：走路时是人，否则是车
 const focusPos = () => (walker ? walker.group.position : focusCar().root.position);
 
+/* ===== js/game/interact.js ===== */
+// 下车走路时和旷野生物互动：
+//   Q 打招呼（对方回一句、挥手）；E 聊天（选回复的话，有几句能让它跳舞、跟着走、坐下、跳、转圈）；
+//   J 拳击 / K 飞踢 / L 旋风腿 / U 能量波：只能打敌对生物（僵尸、骷髅、苦力帕、墨影人），打友好的会被拦下。
+//   敌对生物会还手（扣人的生命值），被打倒后在车旁复活；人和生物之间有碰撞，不会再穿过去。
+'use strict';
+
+// ---------------- 台词 ----------------
+// greet 打招呼 / name 自我介绍 / doing 在做什么 / ok 答应做动作 / no 敌对时拒绝 / peace 答应和平相处 / bye 再见 / hurt 被打 / cry 友好的被打时喊
+const MOB_TALK = {
+  steve: { greet: '嗨！我是史蒂夫，正在找钻石呢。', name: '我叫史蒂夫，方块世界的建筑师！', doing: '我在砍树做工作台，要不要一起去挖矿？', ok: '好嘞，看我的！', bye: '再见！小心晚上出来的僵尸！', cry: '哎哟！我们是朋友啊！' },
+  zombie: { greet: '呃啊……', name: '呃……僵……尸……', doing: '找……脑……子……', ok: '呃……好……', no: '呃啊！（它张开手臂朝你扑过来）', peace: '呃……朋……友……', bye: '呃……', hurt: '呃啊！' },
+  skeleton: { greet: '咔哒咔哒！', name: '我是骷髅，射箭可准了。', doing: '我在躲太阳……太阳会把我烧着的！', ok: '咔哒！就跳一次！', no: '咔咔咔！你想得美！', peace: '咔哒……好吧，暂时不打你。', bye: '咔哒咔哒，走吧走吧。', hurt: '咔！' },
+  enderman: { greet: '……（他一直盯着你看）', name: '我是墨影人。别盯着我的眼睛！', doing: '我在搬方块，搬到哪儿都行。', ok: '……可以。', no: '……（他发出刺耳的尖叫）', peace: '……你很安静。我喜欢安静。', bye: '……（他一闪就不见了）', hurt: '嘶——！' },
+  creeper: { greet: '嘶嘶嘶……', name: '苦……力……帕……嘶……', doing: '我在找一个可以抱抱的人……嘶嘶', ok: '嘶～好吧，我试试。', no: '嘶嘶嘶嘶嘶！！（它开始发光了）', peace: '嘶……我不炸了，我们做朋友。', bye: '嘶嘶，拜拜～', hurt: '嘶！' },
+  cat: { greet: '喵～', name: '我是薯条猫，最爱吃小鱼干！', doing: '晒太阳、睡觉、再晒太阳，喵。', ok: '喵！看好了！', bye: '喵呜～下次带小鱼干来哦。', cry: '喵嗷！别打我！' },
+  pig: { greet: '哼哼！', name: '我是小猪，最喜欢在泥巴里打滚。', doing: '我在找胡萝卜吃，哼哼。', ok: '哼哼，好呀！', bye: '哼哼，拜拜！', cry: '吱——！别打我！' },
+  cow: { greet: '哞～', name: '我是奶牛，要不要来一桶牛奶？', doing: '我在吃草，这片草地可好吃了。', ok: '哞～没问题。', bye: '哞～慢走。', cry: '哞！好疼！' },
+  sheep: { greet: '咩～', name: '我是绵羊，我的毛可以做床哦！', doing: '吃草，然后长毛，咩。', ok: '咩～来啦！', bye: '咩～再见。', cry: '咩呜！别打我！' },
+  chicken: { greet: '咯咯哒！', name: '我是小鸡，每天都会下蛋！', doing: '我在找种子吃，咯咯。', ok: '咯咯！看我的！', bye: '咯咯哒，再见！', cry: '咯咯咯！救命！' },
+};
+// 玩家能说的话：前三句聊天，中间是让它做动作，peace 只对敌对生物
+const TALK_OPTS = [
+  { key: 'hi', text: '👋 你好！' },
+  { key: 'name', text: '❓ 你叫什么名字？' },
+  { key: 'doing', text: '🤔 你在这里做什么？' },
+  { key: 'peace', text: '🕊️ 我们和平相处吧', hostile: true },
+  { key: 'dance', text: '💃 跳个舞吧！', act: 'dance', how: '（开心地跳起舞来）' },
+  { key: 'follow', text: '🐾 跟我来！', act: 'follow', how: '（跟在你后面走）' },
+  { key: 'sit', text: '🪑 坐下歇会儿', act: 'sit', how: '（原地坐下了）' },
+  { key: 'jump', text: '🦘 跳一跳！', act: 'jump', how: '（蹦蹦跳跳）' },
+  { key: 'spin', text: '🌀 转个圈！', act: 'spin', how: '（原地转了一圈）' },
+  { key: 'bye', text: '👋 再见！' },
+];
+const ACT_TIME = { wave: 1.6, dance: 7, sit: 25, jump: 2, spin: 1.2, swing: 0.35 };
+
+// ---------------- 攻击招式 ----------------
+// reach 出手距离、arc 前方扇形（cos，-1 = 一圈都打）、hitAt 出手时刻、dmg 伤害、kb 击退速度、cd 冷却
+const MOVES = {
+  punch: { name: '拳击', key: 'J', dur: 0.32, hitAt: 0.12, reach: 1.7, arc: 0.45, dmg: 4, kb: 6, cd: 0.35 },
+  kick: { name: '飞踢', key: 'K', dur: 0.6, hitAt: 0.1, hitEnd: 0.5, reach: 1.7, arc: 0.2, dmg: 8, kb: 14, cd: 1.1 },
+  spin: { name: '旋风腿', key: 'L', dur: 0.55, hitAt: 0.28, reach: 3.2, arc: -1, dmg: 6, kb: 10, cd: 2.5 },
+  blast: { name: '能量波', key: 'U', dur: 0.45, hitAt: 0.18, dmg: 10, kb: 12, cd: 2 },
+};
+const WALK_HP = 20;
+let talk = null;         // 正在聊天的 { m }
+let blasts = [];         // 飞行中的能量波
+let mobKills = 0;
+let friendWarnT = 0;     // "不能打友好生物"提示的冷却
+
+// ---------------- 界面：头顶的话、血条、伤害数字 ----------------
+const mobUi = $('mobUi');
+const uiV = new THREE.Vector3();
+function screenPos(x, y, z) {
+  uiV.set(x, y, z).project(camera);
+  if (uiV.z > 1) return null;
+  return [(uiV.x * 0.5 + 0.5) * innerWidth, (-uiV.y * 0.5 + 0.5) * innerHeight];
+}
+// 每个生物 / 人一个头顶标签：气泡（说的话）+ 血条 + 提示
+function uiOf(e) {
+  if (!e.ui) {
+    const el = document.createElement('div');
+    el.className = 'mob-tag';
+    el.innerHTML = '<div class="bubble"></div><div class="hint"></div><div class="hpbar"><i></i></div>';
+    mobUi.appendChild(el);
+    e.ui = { el, bubble: el.children[0], hint: el.children[1], bar: el.children[2], fill: el.children[2].firstChild, sayT: 0 };
+  }
+  return e.ui;
+}
+function say(e, text, dur = 2.6) {
+  const ui = uiOf(e);
+  ui.bubble.textContent = text;
+  ui.sayT = dur;
+}
+function floatText(x, y, z, text, color) {
+  const el = document.createElement('div');
+  el.className = 'float-text';
+  el.textContent = text;
+  el.style.color = color;
+  mobUi.appendChild(el);
+  floats.push({ el, x, y, z, t: 0 });
+}
+const floats = [];
+function mobGone(m) {
+  if (m.ui) { m.ui.el.remove(); m.ui = null; }
+  if (talk?.m === m) closeTalk();
+}
+
+// ---------------- 声音 ----------------
+function mobVoice(m, hurt = false) {
+  if (!sound.ready) return;
+  const g = hurt ? 0.2 : 0.14;
+  const T = (f, s, d, type = 'square') => sound.tone({ frequency: f, slideTo: s, duration: d, type, gain: g });
+  switch (m.id) {
+    case 'zombie': T(120, 70, 0.6, 'sawtooth'); break;
+    case 'skeleton': [0, 0.07, 0.14].forEach((d) => sound.burst({ duration: 0.05, type: 'highpass', frequency: 3000, gain: g, delay: d })); break;
+    case 'enderman': T(420, 160, 0.5, 'sawtooth'); break;
+    case 'creeper': sound.burst({ duration: 0.5, type: 'highpass', frequency: 2500, gain: g }); break;
+    case 'cat': T(700, 950, 0.35, 'triangle'); break;
+    case 'pig': T(330, 260, 0.25); break;
+    case 'cow': T(170, 130, 0.7, 'sawtooth'); break;
+    case 'sheep': T(520, 470, 0.5, 'triangle'); break;
+    case 'chicken': T(1200, 900, 0.1, 'triangle'); sound.tone({ frequency: 1300, slideTo: 1000, duration: 0.1, type: 'triangle', gain: g, delay: 0.14 }); break;
+    default: T(230, 200, 0.2, 'triangle');
+  }
+}
+
+// ---------------- 找附近的生物 ----------------
+function nearestMob(maxD) {
+  let best = null, bd = maxD;
+  for (const m of mobs) {
+    const d = Math.hypot(m.x - walker.x, m.z - walker.z) - (m.t.r ?? 0.4);
+    if (d < bd) { bd = d; best = m; }
+  }
+  return best;
+}
+function startAct(m, kind) {
+  m.act = { kind, t: 0, dur: ACT_TIME[kind] };
+  if (kind !== 'swing') m.followT = 0;
+}
+
+// ---------------- Q 打招呼 ----------------
+function greetMob() {
+  if (!walker || walker.atk) return;
+  walker.wave = 1.2;
+  const m = nearestMob(10);
+  if (!m) { say(walker, '你好呀～有人吗？', 1.6); return; }
+  say(walker, `你好呀，${m.t.name}！`, 1.8);
+  m.heading = Math.atan2(walker.x - m.x, walker.z - m.z);
+  m.replyT = 0.5;   // 过一会儿再回话
+  m.replyText = m.t.hostile && !m.calmT && m.t.chase ? MOB_TALK[m.id].no : MOB_TALK[m.id].greet;
+  if (!m.t.hostile || m.calmT) startAct(m, 'wave');
+}
+
+// ---------------- E 聊天 ----------------
+function toggleTalk() {
+  if (!walker) return;
+  if (talk) return closeTalk();
+  const m = nearestMob(5);
+  if (!m) return showMessage('💬 附近没有可以聊天的生物<small>走到它旁边（5 米内）再按 E</small>', 1.4);
+  talk = { m, opts: TALK_OPTS.filter((o) => !o.hostile || m.t.hostile) };
+  m.followT = 0;
+  const L = MOB_TALK[m.id];
+  renderTalk(L.greet);
+  say(m, L.greet);
+  mobVoice(m);
+}
+function renderTalk(line) {
+  const m = talk.m, panel = $('talkPanel');
+  const tag = m.t.hostile ? (m.calmT ? '🕊️ 和平相处中' : '⚔️ 敌对 · 可以攻击') : '💚 友好 · 不能攻击';
+  panel.innerHTML = `<div class="tp-head">💬 ${m.t.name} <span>${tag}</span><button class="tp-x" data-i="-1">✕</button></div>
+    <div class="tp-line">${m.t.name}：${line}</div>
+    <div class="tp-opts">${talk.opts.map((o, i) => `<button data-i="${i}"><kbd>${(i + 1) % 10}</kbd>${o.text}</button>`).join('')}</div>`;
+  panel.style.display = 'block';
+}
+$('talkPanel').addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  e.preventDefault();
+  sound.init();
+  const i = Number(b.dataset.i);
+  if (i < 0) closeTalk(); else talkChoose(i);
+});
+function closeTalk() {
+  talk = null;
+  $('talkPanel').style.display = 'none';
+}
+function talkChoose(i) {
+  if (!talk || !talk.opts[i]) return;
+  const m = talk.m, o = talk.opts[i], L = MOB_TALK[m.id];
+  say(walker, o.text.replace(/^\S+\s/, ''), 2);
+  const mad = m.t.hostile && !m.calmT;   // 敌对、还没说好和平相处
+  let line;
+  if (o.key === 'hi') { line = L.greet; if (!mad) startAct(m, 'wave'); }
+  else if (o.key === 'name') line = L.name;
+  else if (o.key === 'doing') line = L.doing;
+  else if (o.key === 'peace') {
+    line = m.calmT ? '我们已经是朋友了。' : L.peace;
+    m.calmT = 90; m.provoked = false;
+  } else if (o.key === 'bye') {
+    line = L.bye;
+    if (!mad) startAct(m, 'wave');
+    setTimeout(() => { if (talk?.m === m) closeTalk(); }, 900);
+  } else if (mad) {
+    line = L.no;   // 敌对生物不听指挥，反而被惹恼了
+    m.provoked = true;
+  } else {
+    line = `${L.ok}${o.how}`;
+    if (o.act === 'follow') { m.followT = 90; m.act = null; }
+    else startAct(m, o.act);
+  }
+  say(m, line.replace(/（.*?）/g, ''));
+  mobVoice(m);
+  renderTalk(line);
+}
+
+// ---------------- 生物的动作（mobs.js 每帧调用） ----------------
+// 返回 { want, speed } 接管移动，或者 null 照常闲逛
+function mobOverride(m, dt, dx, dz, dist) {
+  if (m.replyT > 0 && (m.replyT -= dt) <= 0) { say(m, m.replyText); mobVoice(m); }
+  if (!walker) { m.followT = 0; return m.act ? { want: null, speed: 0 } : null; }
+  if (m.followT > 0) {
+    m.followT -= dt;
+    if (dist > 60) m.followT = 0;
+    if (!m.act || m.act.kind === 'swing') return { want: Math.atan2(dx, dz), speed: dist > 2.6 ? clamp(dist * 0.9, 1.5, 9) : 0 };
+  }
+  if (m.act && m.act.kind !== 'swing') return { want: null, speed: 0 };
+  if (talk?.m === m) return { want: Math.atan2(dx, dz), speed: 0 };   // 聊天时站住、看着人
+  return null;
+}
+const HURT_MAT = new THREE.MeshStandardMaterial({ color: 0xff3030, emissive: 0xaa0000, emissiveIntensity: 0.6 });
+HURT_MAT.userData.shared = true;
+// 按动作摆手脚，返回整体的上下、转身、前后倾
+function mobActionPose(m, dt) {
+  const out = { y: 0, yaw: 0, pitch: 0 };
+  // 受伤闪红
+  if (m.hurtT > 0) {
+    m.hurtT -= dt;
+    const red = m.hurtT > 0;
+    m.group.traverse((o) => {
+      if (!o.isMesh) return;
+      o.userData.orig ??= o.material;
+      o.material = red ? HURT_MAT : o.userData.orig;
+    });
+  }
+  const a = m.act;
+  if (!a) return out;
+  a.t += dt;
+  if (a.t >= a.dur) { m.act = null; return out; }
+  const t = a.t, legY = m.legs[0]?.position.y ?? 0.5;
+  const armUp = (i, ang, side = 0) => { if (m.arms[i]) { m.arms[i].rotation.x = ang; m.arms[i].rotation.z = side; } };
+  switch (a.kind) {
+    case 'wave':
+      if (m.arms.length) armUp(1, -2.9, Math.sin(t * 12) * 0.35);
+      else m.head.rotation.x = Math.sin(t * 9) * 0.35;   // 动物、苦力帕点头
+      break;
+    case 'dance':
+      out.y = Math.abs(Math.sin(t * 7)) * 0.3;
+      out.yaw = Math.sin(t * 3.5) * 0.7;
+      m.arms.forEach((_, i) => armUp(i, -2.5 + Math.sin(t * 7 + i * Math.PI) * 0.6, (i ? -1 : 1) * 0.3));
+      m.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 7 + i * Math.PI) * 0.4; });
+      m.head.rotation.z = Math.sin(t * 7) * 0.25;
+      break;
+    case 'sit':
+      if (m.quad) {   // 后腿收起来，身体前高后低
+        m.legs.forEach((l, i) => { l.rotation.x = i >= 2 ? 1.3 : 0; });
+        out.pitch = -0.3; out.y = -legY * 0.45;
+      } else {   // 人形：腿往前伸，屁股落地
+        m.legs.forEach((l) => { l.rotation.x = -1.5; });
+        out.y = -legY * 0.92;
+      }
+      break;
+    case 'jump':
+      out.y = Math.abs(Math.sin(t * Math.PI * 1.5)) * 0.9;
+      m.arms.forEach((_, i) => armUp(i, -2.8, 0));
+      break;
+    case 'spin':
+      out.yaw = (t / a.dur) * Math.PI * 2;
+      m.arms.forEach((_, i) => armUp(i, -1.57, (i ? -1 : 1) * 1.2));
+      break;
+    case 'swing':   // 出手打人：手臂往前一挥
+      m.arms.forEach((_, i) => armUp(i, -1.57 - Math.sin((t / a.dur) * Math.PI) * 0.9, 0));
+      out.pitch = Math.sin((t / a.dur) * Math.PI) * 0.15;
+      break;
+  }
+  return out;
+}
+
+// ---------------- 敌对生物还手 ----------------
+function mobAttackWalker(m, dist, calm) {
+  if (!walker || !m.t.hostile || calm || m.t.creeper || !m.t.dmg) return;
+  if (!(m.t.chase || m.provoked) || m.atkCd > 0) return;
+  if (dist > 1.25 + (m.t.r ?? 0.4) || Math.abs(walker.y - groundMeshH(m.x, m.z)) > 1.5) return;
+  m.atkCd = 1.3;
+  startAct(m, 'swing');
+  // 墨影人：打完闪到人身后
+  hurtWalker(m.t.dmg, m.x, m.z, m.t.name);
+  if (m.t.teleport && Math.random() < 0.5) {
+    const [fx, fz] = forwardOf(walker.heading);
+    m.x = walker.x - fx * 2; m.z = walker.z - fz * 2;
+    for (let k = 0; k < 10; k++) emit(smokePool, v(m.x, rand(0.3, 2.5), m.z), { vel: v(rand(-1, 1), rand(0, 1), rand(-1, 1)), life: 0.8, size0: 0.4, size1: 1.2, color: 0xb04dff, alpha: 0.8 });
+  }
+}
+function hurtWalker(dmg, fromX, fromZ, who = null) {
+  const w = walker;
+  if (!w || w.downT > 0 || w.invT > 0) return;
+  w.hp = Math.max(0, w.hp - dmg);
+  w.hurtT = 0.3; w.invT = 0.5; w.calmHealT = 5;
+  const dx = w.x - fromX, dz = w.z - fromZ, d = Math.hypot(dx, dz) || 1;
+  w.kbx = (dx / d) * 7; w.kbz = (dz / d) * 7;
+  if (!w.air) { w.vy = 3.5; w.air = true; }
+  shake = Math.max(shake, 0.4);
+  sound.bump(6);
+  sound.tone({ frequency: 260, slideTo: 140, duration: 0.18, type: 'square', gain: 0.15 });
+  floatText(w.x, w.y + 2.4, w.z, `-${dmg}`, '#ff5050');
+  const fl = $('hurtFlash');
+  fl.style.opacity = 0.45;
+  setTimeout(() => { fl.style.opacity = 0; }, 120);
+  if (who && !messageTimer) showMessage(`🩸 被${who}打了一下`, 0.8);
+  if (w.hp <= 0) walkerDown();
+}
+// 生命值归零：倒地 2 秒，然后在车旁复活（附近的敌对生物不再追）
+function walkerDown() {
+  const w = walker;
+  w.downT = 2;
+  closeTalk();
+  showMessage('💀 你被打倒了<small>2 秒后在车旁复活</small>', 2);
+  sound.tone({ frequency: 300, slideTo: 80, duration: 1, type: 'sawtooth', gain: 0.18 });
+}
+function walkerRevive() {
+  const w = walker;
+  const [fx, fz] = forwardOf(player.heading);
+  const off = player.built.half[0] + 1.2;
+  w.x = player.x + fz * off; w.z = player.z - fx * off;
+  w.y = walkGround(w.x, w.z); w.vy = 0; w.air = false;
+  w.hp = WALK_HP; w.downT = 0; w.invT = 2;
+  w.group.rotation.z = 0;
+  for (const m of mobs) { m.provoked = false; if (m.t.hostile) m.calmT = Math.max(m.calmT, 6); }
+  showMessage('❤️ 复活了！', 1.2);
+}
+
+// ---------------- 攻击 ----------------
+function walkAttack(kind) {
+  const w = walker;
+  if (!w || w.downT > 0 || w.atk || (w.cd[kind] ?? 0) > 0) return;
+  const mv = MOVES[kind];
+  w.atk = { kind, t: 0, mv, hit: new Set(), fired: false };
+  w.cd[kind] = mv.cd;
+  w.wave = 0;
+  if (talk) closeTalk();
+  if (kind === 'kick') { w.vy = 4.5; w.air = true; }
+  sound.whoosh?.();
+  sound.burst({ duration: kind === 'spin' ? 0.45 : 0.15, type: 'bandpass', frequency: kind === 'spin' ? 900 : 1400, gain: 0.18 });
+  if (kind === 'blast') sound.tone({ frequency: 300, slideTo: 1200, duration: 0.35, type: 'sawtooth', gain: 0.12 });
+}
+// 命中检测：在扇形范围里的生物；友好的不受伤，只提示
+function strike(mv, filter = null) {
+  const w = walker, [fx, fz] = forwardOf(w.heading);
+  let hitAny = false, friend = null;
+  for (const m of [...mobs]) {
+    if (filter && !filter(m)) continue;
+    const dx = m.x - w.x, dz = m.z - w.z, d = Math.hypot(dx, dz);
+    if (d > mv.reach + (m.t.r ?? 0.4)) continue;
+    if (mv.arc > -1 && d > 0.3 && (dx * fx + dz * fz) / d < mv.arc) continue;
+    if (Math.abs(groundMeshH(m.x, m.z) - w.y) > 2.2) continue;
+    if (!m.t.hostile) { friend = m; continue; }
+    hitMob(m, mv.dmg, dx / (d || 1), dz / (d || 1), mv.kb);
+    hitAny = true;
+    if (w.atk) w.atk.hit.add(m);
+  }
+  if (!hitAny && friend) warnFriend(friend);
+  return hitAny;
+}
+function warnFriend(m) {
+  say(m, MOB_TALK[m.id].cry ?? '别打我！', 1.6);
+  m.fleeT = 2.5;
+  if (friendWarnT <= 0) { showMessage(`🙅 ${m.t.name}是友好的，不能攻击<small>只能攻击僵尸、骷髅、苦力帕、墨影人</small>`, 1.6); friendWarnT = 2; }
+}
+function hitMob(m, dmg, nx, nz, kb) {
+  m.hp -= dmg;
+  m.hurtT = 0.22;
+  m.kvx += nx * kb; m.kvz += nz * kb;
+  m.provoked = true; m.calmT = 0; m.act = null; m.followT = 0;
+  if (m.t.creeper) defuseCreeper(m);   // 被打断了点火
+  floatText(m.x, groundMeshH(m.x, m.z) + m.height + 0.3, m.z, `-${dmg}`, '#ffd23a');
+  sound.burst({ duration: 0.12, type: 'lowpass', frequency: 600, gain: 0.5 });
+  mobVoice(m, true);
+  if (MOB_TALK[m.id].hurt) say(m, MOB_TALK[m.id].hurt, 0.8);
+  for (let k = 0; k < 6; k++) emit(sparkPool, v(m.x, groundMeshH(m.x, m.z) + m.height * 0.6, m.z), { vel: v(rand(-4, 4), rand(1, 5), rand(-4, 4)), life: 0.35, size0: 0.35, size1: 0.1, color: 0xffe080, gravity: 12, alpha: 1 });
+  if (m.hp <= 0) {
+    mobKills++;
+    mobPoof(m);
+    showMessage(`⚔️ 打败了${m.t.name}！<small>已经打败 ${mobKills} 个敌对生物</small>`, 1.4);
+    sound.tone({ frequency: 520, slideTo: 1040, duration: 0.25, type: 'triangle', gain: 0.15 });
+    removeMob(m);
+  }
+}
+
+// ---------------- 每帧（在 updateWalk 之后） ----------------
+function updateInteract(dt) {
+  friendWarnT -= dt;
+  const w = walker;
+  updateFloats(dt);
+  $('walkHp').style.display = w ? 'block' : 'none';
+  if (!w) {
+    if (talk) closeTalk();
+    for (const b of blasts) { scene.remove(b.mesh); b.mesh.geometry.dispose(); b.mesh.material.dispose(); }
+    blasts = [];
+    for (const m of mobs) if (m.ui) { m.ui.el.style.display = 'none'; }
+    return;
+  }
+  w.hp ??= WALK_HP;
+  w.cd ??= {};
+  for (const k in w.cd) w.cd[k] = Math.max(0, w.cd[k] - dt);
+  w.invT = Math.max(0, (w.invT ?? 0) - dt);
+  // 回血：5 秒没挨打后每 3 秒回 1 点
+  w.calmHealT = (w.calmHealT ?? 0) - dt;
+  if (w.calmHealT <= 0 && w.hp < WALK_HP && w.downT <= 0) { w.hp++; w.calmHealT = 3; }
+  // 倒地
+  if (w.downT > 0) {
+    w.downT -= dt;
+    w.group.rotation.z = clamp((2 - w.downT) * 4, 0, 1.5);   // 侧身倒下
+    w.group.position.y = w.y + 0.2;
+    if (w.downT <= 0) walkerRevive();
+    renderHp(w);
+    return;
+  }
+  // 被打退
+  if (w.kbx || w.kbz) {
+    w.x += w.kbx * dt; w.z += w.kbz * dt;
+    const k = Math.exp(-dt * 7); w.kbx *= k; w.kbz *= k;
+    if (Math.abs(w.kbx) + Math.abs(w.kbz) < 0.05) w.kbx = w.kbz = 0;
+  }
+  // 人和生物的碰撞：互相推开（人被推得多一点，大动物推不动）
+  for (const m of mobs) {
+    const dx = w.x - m.x, dz = w.z - m.z, d = Math.hypot(dx, dz), need = 0.45 + (m.t.r ?? 0.4);
+    if (d >= need || d < 1e-4) continue;
+    if (Math.abs(groundMeshH(m.x, m.z) - w.y) > m.height) continue;   // 跳到它头顶上了
+    const push = need - d, share = m.act?.kind === 'sit' || (m.t.r ?? 0.4) > 0.5 ? 1 : 0.75;
+    w.x += (dx / d) * push * share; w.z += (dz / d) * push * share;
+    m.x -= (dx / d) * push * (1 - share); m.z -= (dz / d) * push * (1 - share);
+  }
+  // 招式
+  if (w.atk) {
+    const a = w.atk, mv = a.mv;
+    a.t += dt;
+    const [fx, fz] = forwardOf(w.heading);
+    if (a.kind === 'kick' && a.t < mv.hitEnd) {   // 飞踢：往前冲，冲的过程中踢到谁算谁
+      w.x += fx * 11 * dt; w.z += fz * 11 * dt;
+      if (a.t >= mv.hitAt) strike(mv, (m) => !a.hit.has(m));
+    } else if (a.kind !== 'kick' && !a.fired && a.t >= mv.hitAt) {
+      a.fired = true;
+      if (a.kind === 'blast') fireBlast(w);
+      else strike(mv);
+    }
+    poseAttack(w, a);
+    if (a.t >= mv.dur) w.atk = null;
+  } else if (w.wave > 0) {
+    w.wave -= dt;
+    const wing = w.pel.wings[0];
+    const hand = v(wing.shoulder.x * 1.4, wing.shoulder.y + 0.42, wing.shoulder.z + 0.05 + Math.sin(w.wave * 14) * 0.1);
+    const elbow = v(wing.shoulder.x * 1.5, wing.shoulder.y + 0.18, wing.shoulder.z);
+    setLimb(wing.upper, wing.shoulder, elbow, 0.06, 0.055);
+    setLimb(wing.fore, elbow, hand, 0.045, 0.04);
+    wing.hand.position.copy(hand);
+  }
+  w.group.position.x = w.x; w.group.position.z = w.z;   // 击退、飞踢挪了位置
+  updateBlasts(dt);
+  // 聊天对象走远了 / 没了：关掉对话框
+  if (talk && (Math.hypot(talk.m.x - w.x, talk.m.z - w.z) > 8 || !mobs.includes(talk.m))) closeTalk();
+  updateMobTags(w);
+  renderHp(w);
+}
+
+// 出招的姿势（覆盖走路动画）
+function poseAttack(w, a) {
+  const k = clamp(a.t / a.mv.dur, 0, 1), s = Math.sin(k * Math.PI);
+  const limb = (wing, elbow, hand) => { setLimb(wing.upper, wing.shoulder, elbow, 0.06, 0.055); setLimb(wing.fore, elbow, hand, 0.045, 0.04); wing.hand.position.copy(hand); };
+  const [R, Lw] = [w.pel.wings[0], w.pel.wings[1]];
+  if (a.kind === 'punch') {
+    const sh = R.shoulder;
+    limb(R, v(sh.x * 1.1, sh.y - 0.02, sh.z + 0.18 * s), v(sh.x * 0.6, sh.y + 0.02, sh.z + 0.45 * s + 0.05));
+  } else if (a.kind === 'kick') {
+    w.legs[1].rotation.x = -1.5 * s;   // 一条腿往前蹬
+    w.legs[0].rotation.x = 0.5 * s;
+    w.group.rotation.x = -0.25 * s;
+  } else if (a.kind === 'spin') {
+    w.group.rotation.y = w.heading + k * Math.PI * 2;
+    w.legs[0].rotation.z = 1.3 * s;    // 一条腿甩出去
+    for (const wing of [R, Lw]) limb(wing, v(wing.shoulder.x * 1.8, wing.shoulder.y, wing.shoulder.z), v(wing.shoulder.x * 2.6, wing.shoulder.y + 0.02, wing.shoulder.z));
+  } else if (a.kind === 'blast') {
+    for (const wing of [R, Lw]) limb(wing, v(wing.shoulder.x * 0.9, wing.shoulder.y, wing.shoulder.z + 0.2), v(wing.shoulder.x * 0.3, wing.shoulder.y + 0.02, wing.shoulder.z + 0.45));
+  }
+}
+
+// 能量波：发光的球往前飞 30 米，打中第一个生物（友好的不受伤，球直接散掉）
+const BLAST_GEO = new THREE.SphereGeometry(0.35, 12, 8);
+BLAST_GEO.userData.shared = true;
+function fireBlast(w) {
+  const [fx, fz] = forwardOf(w.heading);
+  const mesh_ = new THREE.Mesh(BLAST_GEO, new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  mesh_.position.set(w.x + fx * 0.8, w.y + 1.3, w.z + fz * 0.8);
+  scene.add(mesh_);
+  blasts.push({ mesh: mesh_, vx: fx * 28, vz: fz * 28, life: 1.1 });
+}
+function updateBlasts(dt) {
+  for (const b of [...blasts]) {
+    b.life -= dt;
+    const p = b.mesh.position;
+    p.x += b.vx * dt; p.z += b.vz * dt;
+    b.mesh.scale.setScalar(1 + Math.sin(elapsed * 30) * 0.15);
+    emit(sparkPool, p.clone(), { vel: v(rand(-1, 1), rand(-1, 1), rand(-1, 1)), life: 0.25, size0: 0.4, size1: 0.05, color: 0x9fe0ff, alpha: 0.9 });
+    let done = b.life <= 0;
+    let blocked = false;
+    obstacles.query(p.x, p.z, 2, (o) => { if (Math.hypot(o.x - p.x, o.z - p.z) < o.r) blocked = true; });
+    if (blocked || p.y < groundMeshH(p.x, p.z) || buildSolidAt(p.x, p.y, p.z)) done = true;
+    if (!done) for (const m of mobs) {
+      const dx = m.x - p.x, dz = m.z - p.z;
+      if (Math.hypot(dx, dz) > 0.6 + (m.t.r ?? 0.4) || Math.abs(groundMeshH(m.x, m.z) + m.height / 2 - p.y) > m.height / 2 + 0.6) continue;
+      const len = Math.hypot(b.vx, b.vz);
+      if (m.t.hostile) hitMob(m, MOVES.blast.dmg, b.vx / len, b.vz / len, MOVES.blast.kb);
+      else warnFriend(m);
+      done = true;
+      break;
+    }
+    if (done) {
+      for (let k = 0; k < 12; k++) emit(sparkPool, p.clone(), { vel: v(rand(-5, 5), rand(-1, 5), rand(-5, 5)), life: 0.4, size0: 0.5, size1: 0.05, color: 0x9fe0ff, gravity: 6, alpha: 1 });
+      scene.remove(b.mesh);
+      b.mesh.material.dispose();
+      blasts.splice(blasts.indexOf(b), 1);
+    }
+  }
+}
+
+// 头顶标签：说的话、血条（敌对生物挨过打之后）、离得最近的那只显示能做什么
+function updateMobTags(w) {
+  const near = talk ? null : nearestMob(4);
+  for (const m of mobs) {
+    const hurt = m.t.hostile && m.hp < (m.t.hp ?? 10);
+    const show = m === near || hurt || m.ui?.sayT > 0;
+    if (!show) { if (m.ui) m.ui.el.style.display = 'none'; continue; }
+    const ui = uiOf(m);
+    const sp = screenPos(m.x, groundMeshH(m.x, m.z) + m.height + 0.5, m.z);
+    if (!sp || Math.hypot(m.x - camera.position.x, m.z - camera.position.z) > 60) { ui.el.style.display = 'none'; continue; }
+    ui.el.style.display = 'block';
+    ui.el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -100%)`;
+    ui.sayT -= 1 / 60;
+    ui.bubble.style.display = ui.sayT > 0 ? 'block' : 'none';
+    ui.bar.style.display = hurt ? 'block' : 'none';
+    if (hurt) ui.fill.style.width = `${(100 * Math.max(0, m.hp)) / m.t.hp}%`;
+    ui.hint.style.display = m === near ? 'block' : 'none';
+    if (m === near) ui.hint.innerHTML = `${m.t.hostile ? (m.calmT ? '🕊️' : '⚔️') : '💚'} ${m.t.name} · <kbd>Q</kbd> 打招呼 · <kbd>E</kbd> 聊天${m.t.hostile ? ' · <kbd>J</kbd><kbd>K</kbd><kbd>L</kbd><kbd>U</kbd> 攻击' : ' · 友好'}`;
+  }
+  // 人自己说的话
+  const ui = uiOf(w);
+  ui.sayT -= 1 / 60;
+  const sp = ui.sayT > 0 ? screenPos(w.x, w.y + 2.6, w.z) : null;
+  ui.el.style.display = sp ? 'block' : 'none';
+  if (sp) {
+    ui.el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -100%)`;
+    ui.bubble.style.display = 'block';
+    ui.bubble.classList.add('me');
+    ui.hint.style.display = ui.bar.style.display = 'none';
+  }
+}
+function updateFloats(dt) {
+  for (const f of [...floats]) {
+    f.t += dt;
+    const sp = screenPos(f.x, f.y + f.t * 1.2, f.z);
+    if (f.t > 0.9 || !sp) { f.el.remove(); floats.splice(floats.indexOf(f), 1); continue; }
+    f.el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -50%)`;
+    f.el.style.opacity = 1 - f.t / 0.9;
+  }
+}
+// 生命值：10 颗心（每颗 2 点）+ 招式冷却
+function renderHp(w) {
+  const full = Math.floor(w.hp / 2), half = w.hp % 2;
+  const hearts = '❤️'.repeat(full) + (half ? '💔' : '') + '🖤'.repeat(10 - full - half);
+  const cds = Object.entries(MOVES).map(([k, mv]) => {
+    const c = w.cd[k] ?? 0;
+    return `<span class="${c > 0 ? 'cd' : ''}"><kbd>${mv.key}</kbd>${mv.name}</span>`;
+  }).join('');
+  const html = `<div class="hearts">${hearts}</div><div class="moves">${cds}</div>`;
+  const el = $('walkHp');
+  if (el._html !== html) { el.innerHTML = html; el._html = html; }
+}
+
+/* ===== js/game/build.js ===== */
+// 我的世界主题乐园 + 建造模式（开放世界 · 阳光海滨区域）：
+//   阳光海滨的旷野上有一座乐园：入口拱门、苦力帕雕像、下界传送门、萤石路灯、方块树，中间是「建造工坊」；
+//   走进工坊的门，到开关旁按 E 拉下开关就进入建造模式：1～9 选方块，鼠标左键 / C 放方块，右键 / X 拆方块（只能拆自己放的）。
+//   所有方块（乐园建筑和玩家放的）都在同一个 1 米网格里：人能站在上面、跳上跳下、被墙挡住，车和生物也会被挡住。
+//   玩家放的方块存在 localStorage，下次进自由驾驶还在。
+'use strict';
+
+const BUILD_Y0 = 0.01;        // 网格的底面比地面高一点点，方块底面不会和地面打架（闪烁）
+const BUILD_REACH = 10;       // 放 / 拆方块的最远距离
+const BUILD_SAVE_KEY = 'pelican-racing-build-v1';
+const BUILD_PALETTE = [
+  { type: 'grass', name: '草方块' }, { type: 'dirt', name: '泥土' }, { type: 'cobble', name: '圆石' },
+  { type: 'planks', name: '木板' }, { type: 'log', name: '原木' }, { type: 'stoneBricks', name: '石砖' },
+  { type: 'glass', name: '玻璃' }, { type: '#a12722', name: '红羊毛' }, { type: 'glowstone', name: '萤石' },
+];
+const bgrid = new Map();      // "i,j,k" → { type, fixed, idx }
+let bmeshes = new Map();      // 方块类型 → { mesh, keys: [] }（实例化网格，增删时把最后一个挪到空位）
+let park = null;              // 乐园：{ x, z, j0, lever, leverArm, door }
+let buildOn = false;          // 建造模式开着
+let buildSlot = 0;
+let buildAim = null;          // 当前瞄准：{ hit: [i,j,k] | null, place: [i,j,k] }
+const bkey = (i, j, k) => `${i},${j},${k}`;
+const BBOX = new THREE.BoxGeometry(1, 1, 1);
+BBOX.userData.shared = true;
+
+// ---------------- 网格 ----------------
+function blockAt(i, j, k) { return bgrid.get(bkey(i, j, k)); }
+function buildSolidAt(x, y, z) { return bgrid.size > 0 && bgrid.has(bkey(Math.floor(x), Math.floor(y - BUILD_Y0), Math.floor(z))); }
+function setBlock(i, j, k, type, fixed = false) {
+  const key = bkey(i, j, k);
+  if (bgrid.has(key)) return false;
+  if (type === 'barrier') { bgrid.set(key, { type, fixed: true, idx: -1 }); return true; }   // 看不见的屏障（雕像的碰撞）
+  let bm = bmeshes.get(type);
+  if (!bm) {
+    const mesh_ = new THREE.InstancedMesh(BBOX, blockMaterial(type), 4096);
+    mesh_.count = 0;
+    mesh_.castShadow = mesh_.receiveShadow = true;
+    mesh_.frustumCulled = false;      // 实例分散在各处，整体包围球没意义
+    mesh_.userData.noCull = true;     // 像素世界的远处剔除不要管它
+    world.add(mesh_);
+    bm = { mesh: mesh_, keys: [] };
+    bmeshes.set(type, bm);
+  }
+  if (bm.keys.length >= bm.mesh.instanceMatrix.count) return false;
+  const idx = bm.keys.length;
+  bm.keys.push(key);
+  bm.mesh.setMatrixAt(idx, new THREE.Matrix4().makeTranslation(i + 0.5, j + 0.5 + BUILD_Y0, k + 0.5));
+  bm.mesh.count = bm.keys.length;
+  bm.mesh.instanceMatrix.needsUpdate = true;
+  bgrid.set(key, { type, fixed, idx });
+  return true;
+}
+function removeBlock(i, j, k) {
+  const key = bkey(i, j, k), b = bgrid.get(key);
+  if (!b) return false;
+  if (b.type === 'barrier') { bgrid.delete(key); return true; }
+  const bm = bmeshes.get(b.type), last = bm.keys.length - 1;
+  if (b.idx !== last) {   // 最后一个实例挪到被删的位置
+    const mv = new THREE.Matrix4();
+    bm.mesh.getMatrixAt(last, mv);
+    bm.mesh.setMatrixAt(b.idx, mv);
+    const lastKey = bm.keys[last];
+    bm.keys[b.idx] = lastKey;
+    bgrid.get(lastKey).idx = b.idx;
+  }
+  bm.keys.pop();
+  bm.mesh.count = bm.keys.length;
+  bm.mesh.instanceMatrix.needsUpdate = true;
+  bgrid.delete(key);
+  return true;
+}
+function resetBuild() {
+  bgrid.clear();
+  bmeshes = new Map();   // 网格本身挂在 world 上，换世界时一起释放
+  park = null;
+  buildOn = false;
+  buildAim = null;
+}
+
+// ---------------- 碰撞：人 / 车 / 生物 ----------------
+// 脚下最高的方块顶面（只算比现在的脚高不超过 step 的，太高的是墙不是台阶）
+function buildGroundUnder(x, z, y, r = 0.3, step = 0.55) {
+  if (!bgrid.size) return -Infinity;
+  let top = -Infinity;
+  for (let i = Math.floor(x - r); i <= Math.floor(x + r); i++) {
+    for (let k = Math.floor(z - r); k <= Math.floor(z + r); k++) {
+      for (let j = Math.floor(y + step - BUILD_Y0); j >= Math.floor(y - BUILD_Y0) - 3; j--) {
+        if (!bgrid.has(bkey(i, j, k))) continue;
+        const t = j + 1 + BUILD_Y0;
+        if (t <= y + step) { top = Math.max(top, t); break; }
+      }
+    }
+  }
+  return top;
+}
+// 圆柱（半径 r、高度 y0～y1）和方块的水平碰撞：把圆推出方块；返回有没有碰到
+function buildPushOut(o, r, y0, y1, onHit = null) {
+  if (!bgrid.size) return false;
+  let hit = false;
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = Math.floor(o.x - r); i <= Math.floor(o.x + r); i++) {
+      for (let k = Math.floor(o.z - r); k <= Math.floor(o.z + r); k++) {
+        for (let j = Math.floor(y0 - BUILD_Y0); j <= Math.floor(y1 - BUILD_Y0); j++) {
+          if (!bgrid.has(bkey(i, j, k))) continue;
+          const cx = clamp(o.x, i, i + 1), cz = clamp(o.z, k, k + 1);
+          let dx = o.x - cx, dz = o.z - cz, d = Math.hypot(dx, dz);
+          if (d >= r) continue;
+          if (d < 1e-6) {   // 圆心在方块里：往最近的边推
+            const opts = [[o.x - i, -1, 0], [i + 1 - o.x, 1, 0], [o.z - k, 0, -1], [k + 1 - o.z, 0, 1]].sort((a, b) => a[0] - b[0]);
+            dx = opts[0][1]; dz = opts[0][2]; d = 0;
+            o.x += dx * (opts[0][0] + r); o.z += dz * (opts[0][0] + r);
+          } else {
+            const pen = r - d;
+            o.x += (dx / d) * pen; o.z += (dz / d) * pen;
+            if (onHit) onHit(-dx / d, -dz / d, pen);
+          }
+          hit = true;
+        }
+      }
+    }
+  }
+  return hit;
+}
+// 头顶有方块：往上跳时撞头
+function buildCeiling(x, z, yHead, r = 0.3) {
+  if (!bgrid.size) return Infinity;
+  for (let i = Math.floor(x - r); i <= Math.floor(x + r); i++) {
+    for (let k = Math.floor(z - r); k <= Math.floor(z + r); k++) {
+      const j = Math.floor(yHead - BUILD_Y0);
+      if (bgrid.has(bkey(i, j, k))) return j + BUILD_Y0;
+    }
+  }
+  return Infinity;
+}
+// 车：车身两个圆（和撞树一样的反弹）
+function collideBuild(c) {
+  if (!bgrid.size || !park || Math.hypot(c.x - park.x, c.z - park.z) > 400) return;
+  const r = c.built.half[0];
+  for (const [px, pz] of carCircles(c)) {
+    const o = { x: px, z: pz };
+    buildPushOut(o, r, c.y + 0.2, c.y + 1.2, (nx, nz, pen) => hitSurface(c, nx, nz, pen));
+  }
+}
+// 生物：不能走进方块里
+function buildBlocksMob(x, z) {
+  if (!bgrid.size || !park || Math.hypot(x - park.x, z - park.z) > 400) return false;
+  const g = groundMeshH(x, z);
+  return buildSolidAt(x, g + 0.5, z) || buildSolidAt(x, g + 1.5, z);
+}
+
+// ---------------- 主题乐园（建世界时调用） ----------------
+// 在阳光海滨起点附近找一块离公路 30 米外、平坦、没有树和房子的空地
+function findParkSpot() {
+  const T0 = regionTracks.seaside, p0 = v(T0.px[0], 0, T0.pz[0]);
+  let best = null;
+  for (let r = 50; r <= 260 && !best; r += 15) {
+    for (let a = 0; a < Math.PI * 2; a += 0.2) {
+      const x = Math.round(p0.x + Math.cos(a) * r), z = Math.round(p0.z + Math.sin(a) * r);
+      if (z > oceanZ - 60 || nearestRegion(x, z) !== 'seaside' || !roadClear(x, z, 32)) continue;
+      let blocked = false;
+      obstacles.query(x, z, 30, (o) => { if (Math.hypot(o.x - x, o.z - z) < o.r + 22) blocked = true; });
+      if (blocked) continue;
+      if ([[-14, -14], [14, -14], [-14, 14], [14, 14], [0, 0]].some(([dx, dz]) => groundMeshH(x + dx, z + dz) > 1.5)) continue;
+      best = { x, z, face: Math.atan2(p0.x - x, p0.z - z) };   // 门朝向起点那边的公路
+      break;
+    }
+  }
+  return best;
+}
+function buildPark() {
+  resetBuild();
+  if (worldMode !== 'open' || !regionTracks.seaside) return;
+  const spot = findParkSpot();
+  if (!spot) return;
+  // 门朝向：取最接近的 4 个方向之一（网格是轴对齐的）
+  const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  const di = Math.round(((spot.face % (Math.PI * 2)) + Math.PI * 2) / (Math.PI / 2)) % 4;
+  const [fx, fz] = dirs[di];          // 门朝外的方向
+  const [rx, rz] = [fz, -fx];         // 门的右手方向
+  const cx = spot.x, cz = spot.z;
+  const j0 = Math.round(Math.max(...[[-6, -6], [6, -6], [-6, 6], [6, 6], [0, 0]].map(([a, b]) => groundMeshH(cx + a, cz + b))) - BUILD_Y0);
+  // 局部坐标 (u 右, w 前, j 高) → 网格
+  const P = (u, w, j, type) => setBlock(cx + u * rx + w * fx, j0 + j, cz + u * rz + w * fz, type, true);
+  const R = 5;   // 工坊半宽：11×11
+  // 地基：地面有起伏时往下补圆石，房子不会悬空
+  for (let u = -R; u <= R; u++) for (let w = -R; w <= R; w++) {
+    const gx = cx + u * rx + w * fx + 0.5, gz = cz + u * rz + w * fz + 0.5;
+    for (let j = -1; j >= -4 && j0 + j + 1 + BUILD_Y0 > groundMeshH(gx, gz) + 0.05; j--) P(u, w, j, 'cobble');
+  }
+  // 墙：四角原木柱，墙面木板，两侧玻璃窗；正面中间留 3 格宽、3 格高的门
+  for (let j = 0; j < 4; j++) {
+    for (let t = -R; t <= R; t++) {
+      for (const [u, w] of [[t, R], [t, -R], [R, t], [-R, t]]) {
+        const corner = Math.abs(u) === R && Math.abs(w) === R;
+        if (w === R && Math.abs(u) <= 1 && j < 3) continue;   // 门洞
+        const windowSide = Math.abs(u) === R && Math.abs(w) <= 1 && (j === 1 || j === 2);
+        const windowBack = w === -R && Math.abs(u) >= 2 && Math.abs(u) <= 3 && (j === 1 || j === 2);
+        P(u, w, j, corner ? 'log' : windowSide || windowBack ? 'glass' : j === 0 ? 'cobble' : 'planks');
+      }
+    }
+  }
+  // 屋顶：一层深色木板 + 收一圈的第二层，屋顶四角萤石
+  for (let u = -R; u <= R; u++) for (let w = -R; w <= R; w++) P(u, w, 4, Math.abs(u) === R || Math.abs(w) === R ? 'log' : 'darkPlanks');
+  for (let u = -R + 2; u <= R - 2; u++) for (let w = -R + 2; w <= R - 2; w++) P(u, w, 5, 'darkPlanks');
+  for (const [u, w] of [[-R, -R], [R, -R], [-R, R], [R, R]]) P(u, w, 5, 'glowstone');
+  // 屋里：天花板上的萤石灯、开关台（石砖）
+  for (const [u, w] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) removeBlock(cx + u * rx + w * fx, j0 + 4, cz + u * rz + w * fz), P(u, w, 4, 'glowstone');
+  P(0, -R + 2, 0, 'stoneBricks');
+  // 门前的小路（石砖，嵌在地里一点）一直通到拱门
+  // 入口拱门：两根金色柱子 + 横梁，横梁上挂「我的世界乐园」的牌子
+  const gw = R + 9;
+  for (const s of [-1, 1]) for (let j = 0; j < 6; j++) P(s * 3, gw, j, j % 2 ? '#f8c627' : 'quartz');
+  for (let u = -4; u <= 4; u++) P(u, gw, 6, u % 2 ? '#f8c627' : 'glowstone');
+  // 苦力帕雕像（门右边）：放大 2.5 倍的苦力帕模型站在石砖底座上，格子里放看不见的屏障挡人
+  const su = 7, sw = R + 4;
+  for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) {
+    P(su + a, sw + b, 0, 'stoneBricks');
+    for (let j = 1; j < 5; j++) P(su + a, sw + b, j, 'barrier');
+  }
+  // 下界传送门（门左边）：黑曜石框 4×5，中间紫色的光幕
+  const pu = -9, pw = R + 3;
+  for (let j = 0; j < 5; j++) for (let t = 0; t < 4; t++) if (j === 0 || j === 4 || t === 0 || t === 3) P(pu + t, pw, j, 'blackConcrete');
+  // 方块树：原木 + 树叶
+  for (const [tu, tw] of [[-9, -2], [9, -3], [-8, -9], [8, -9]]) {
+    for (let j = 0; j < 4; j++) P(tu, tw, j, 'log');
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let j = 3; j <= 5; j++) if (!(a === 0 && b === 0 && j < 4) && (j < 5 || (!a || !b))) P(tu + a, tw + b, j, 'leaves');
+  }
+  // 萤石路灯（门前两排）
+  for (const s of [-1, 1]) for (const w of [R + 3, R + 7]) { P(s * 2, w, 0, 'cobble'); P(s * 2, w, 1, 'cobble'); P(s * 2, w, 2, 'glowstone'); }
+  const L = (u, w, y = 0) => v(cx + u * rx + w * fx + 0.5, j0 + y + BUILD_Y0, cz + u * rz + w * fz + 0.5);
+  const statue = new THREE.Group();
+  MOB_TYPES.creeper.build(statue);
+  statue.scale.setScalar(2.5);
+  statue.position.copy(L(su + 0.5, sw + 0.5, 1));   // 2×2 底座的正中间
+  statue.rotation.y = Math.atan2(fx, fz);
+  world.add(statue);
+  // 传送门的光幕、拱门上的牌子、工坊门上的牌子（不占格子）
+  const portal = mesh(new THREE.PlaneGeometry(2, 3), new THREE.MeshBasicMaterial({ color: 0x9b4dff, transparent: true, opacity: 0.7, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }), false);
+  portal.position.copy(L(pu + 1.5, pw, 2.5)).sub(v(rx * 0.5, 0, rz * 0.5));   // 框内 2 格宽的中间
+  portal.rotation.y = Math.atan2(fx, fz);
+  world.add(portal);
+  const signMat = (text, w, h, bg, fg) => new THREE.MeshBasicMaterial({ map: canvasTexture(256, (g, cw, ch) => {
+    g.fillStyle = bg; g.fillRect(0, 0, cw, ch);
+    g.strokeStyle = '#3b2615'; g.lineWidth = ch * 0.08; g.strokeRect(0, 0, cw, ch);
+    g.fillStyle = fg; g.font = `bold ${ch * 0.5}px "PingFang SC", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, cw / 2, ch / 2 + ch * 0.03);
+  }, { height: Math.round(256 * h / w) }), side: THREE.DoubleSide });
+  const sign = (text, w, h, pos, bg, fg) => {
+    const m = mesh(new THREE.PlaneGeometry(w, h), signMat(text, w, h, bg, fg), false);
+    m.position.copy(pos);
+    m.rotation.y = Math.atan2(fx, fz);
+    world.add(m);
+  };
+  sign('我的世界乐园', 8.5, 1.4, L(0, gw + 0.56, 5.3), '#3a7d2c', '#ffffff');
+  sign('建造工坊', 4, 0.9, L(0, R + 0.56, 3.5), '#c69c6d', '#3b2615');
+  // 开关：石砖台上的拉杆（底座 + 杆子），按 E 拉下
+  const lever = new THREE.Group();
+  lever.position.copy(L(0, -R + 2, 1));
+  lever.add(mesh(new THREE.BoxGeometry(0.5, 0.15, 0.7), blockMat('cobble'), false));
+  const arm = new THREE.Group();
+  arm.position.y = 0.08;
+  const stick = mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1).translate(0, 0.3, 0), blockMat('planks'), false);
+  const knob = mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16).translate(0, 0.6, 0), new THREE.MeshStandardMaterial({ color: 0xd42020, emissive: 0x550000 }), false);
+  arm.add(stick, knob);
+  lever.add(arm);
+  lever.rotation.y = Math.atan2(fx, fz);
+  world.add(lever);
+  arm.rotation.x = 0.6;
+  park = { x: cx + 0.5, z: cz + 0.5, j0, lever, arm, knob, fx, fz, leverPos: L(0, -R + 2, 1) };
+  // 玩家以前搭的方块
+  for (const [i, j, k, t] of store.get(BUILD_SAVE_KEY, [])) setBlock(i, j, k, t);
+}
+const saveBuild = () => store.set(BUILD_SAVE_KEY, [...bgrid].filter(([, b]) => !b.fixed).map(([key, b]) => [...key.split(',').map(Number), b.type]));
+
+// ---------------- 开关 / 建造模式 ----------------
+const nearLever = () => walker && park && Math.hypot(walker.x - park.leverPos.x, walker.z - park.leverPos.z) < 2.6 && Math.abs(walker.y - park.leverPos.y + 1) < 2;
+function toggleBuildMode() {
+  buildOn = !buildOn;
+  sound.tone({ frequency: buildOn ? 500 : 700, slideTo: buildOn ? 900 : 350, duration: 0.25, type: 'square', gain: 0.12 });
+  sound.burst({ duration: 0.08, type: 'bandpass', frequency: 1500, gain: 0.3 });
+  showMessage(buildOn ? '⛏ 建造模式开启！<small>1～9 选方块 · 鼠标左键 / C 放方块 · 右键 / X 拆方块 · 再拉一次开关关闭</small>' : '建造模式已关闭<small>搭好的房子会一直保留</small>', 2.6);
+}
+
+// ---------------- 瞄准 ----------------
+const buildMouse = { x: 0, y: 0, active: false, down: null };
+const bray = new THREE.Raycaster();
+function updateBuildAim() {
+  buildAim = null;
+  if (!buildOn || !walker || walker.downT > 0) return;
+  if (buildMouse.active) {
+    // 鼠标：从镜头沿鼠标方向往前走，碰到方块或地面为止
+    bray.setFromCamera({ x: buildMouse.x, y: buildMouse.y }, camera);
+    const o = bray.ray.origin, d = bray.ray.direction;
+    let prev = null;
+    for (let t = 0.5; t < 45; t += 0.12) {
+      const x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t;
+      const c = [Math.floor(x), Math.floor(y - BUILD_Y0), Math.floor(z)];
+      if (bgrid.has(bkey(...c))) { buildAim = { hit: c, place: prev }; break; }
+      const g = groundMeshH(x, z);
+      if (y <= g) { const pc = [c[0], Math.round(g - BUILD_Y0), c[2]]; buildAim = { hit: null, place: pc }; break; }
+      if (!prev || prev[0] !== c[0] || prev[1] !== c[1] || prev[2] !== c[2]) prev = c;
+    }
+  } else {
+    // 键盘 / 触屏：人面前那一格；面前有方块就瞄准它（拆），放在它上面或前面
+    const [fx, fz] = forwardOf(walker.heading);
+    const i = Math.floor(walker.x + fx * 1.4), k = Math.floor(walker.z + fz * 1.4);
+    const jf = Math.floor(walker.y + 0.3 - BUILD_Y0);
+    let top = null;
+    for (let j = jf + 2; j >= jf - 1; j--) if (bgrid.has(bkey(i, j, k))) { top = j; break; }
+    const base = Math.round(groundMeshH(i + 0.5, k + 0.5) - BUILD_Y0);
+    buildAim = top !== null ? { hit: [i, top, k], place: [i, top + 1, k] } : { hit: null, place: [i, Math.max(base, jf), k] };
+  }
+  if (buildAim) {
+    const c = buildAim.hit ?? buildAim.place;
+    if (!c || Math.hypot(c[0] + 0.5 - walker.x, c[2] + 0.5 - walker.z) > BUILD_REACH) buildAim = null;
+  }
+}
+function canPlaceAt([i, j, k]) {
+  if (bgrid.has(bkey(i, j, k))) return '这里已经有方块了';
+  // 不能把自己、车埋进去
+  const cx = clamp(walker.x, i, i + 1), cz = clamp(walker.z, k, k + 1);
+  if (Math.hypot(walker.x - cx, walker.z - cz) < 0.35 && j + BUILD_Y0 < walker.y + 1.7 && j + 1 + BUILD_Y0 > walker.y) return '会卡住自己';
+  if (Math.hypot(player.x - (i + 0.5), player.z - (k + 0.5)) < player.built.half[1] + 0.8 && j < player.y + 2) return '会压到车';
+  if (!roadClear(i + 0.5, k + 0.5, -2)) return '公路上不能放方块（会挡住别的车）';
+  if (j + BUILD_Y0 > groundMeshH(i + 0.5, k + 0.5) + 40) return '太高了';
+  return null;
+}
+function buildPlace() {
+  if (!buildOn || !walker) return;
+  updateBuildAim();
+  if (!buildAim?.place) return;
+  const why = canPlaceAt(buildAim.place);
+  if (why) { if (!messageTimer) showMessage(`🚫 ${why}`, 0.9); return; }
+  const type = BUILD_PALETTE[buildSlot].type;
+  setBlock(...buildAim.place, type);
+  walker.wave = 0.25;
+  sound.burst({ duration: 0.09, type: 'lowpass', frequency: type === 'glass' ? 2500 : 700, gain: 0.35 });
+  saveBuild();
+}
+function buildBreak() {
+  if (!buildOn || !walker) return;
+  updateBuildAim();
+  const c = buildAim?.hit;
+  if (!c) return;
+  const b = blockAt(...c);
+  if (b.fixed) { if (!messageTimer) showMessage('🚫 乐园的建筑不能拆<small>只能拆自己放的方块</small>', 1); return; }
+  removeBlock(...c);
+  walker.wave = 0.25;
+  for (let k = 0; k < 8; k++) emit(smokePool, v(c[0] + 0.5 + rand(-0.4, 0.4), c[1] + 0.5 + rand(-0.4, 0.4), c[2] + 0.5 + rand(-0.4, 0.4)), { vel: v(rand(-1.5, 1.5), rand(0, 2), rand(-1.5, 1.5)), life: 0.5, size0: 0.4, size1: 0.8, color: 0xc8b89a, alpha: 0.7 });
+  sound.burst({ duration: 0.14, type: 'bandpass', frequency: b.type === 'glass' ? 3000 : 900, gain: 0.35 });
+  saveBuild();
+}
+function selectBuildSlot(n) {
+  buildSlot = clamp(n, 0, BUILD_PALETTE.length - 1);
+  renderHotbar();
+}
+
+// 鼠标：在画面上移动就用鼠标瞄准；点一下（没拖动）左键放、右键拆
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse') return;
+  buildMouse.x = (e.clientX / innerWidth) * 2 - 1;
+  buildMouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  buildMouse.active = true;
+});
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse') buildMouse.down = { x: e.clientX, y: e.clientY, b: e.button };
+});
+renderer.domElement.addEventListener('pointerup', (e) => {
+  const d = buildMouse.down;
+  buildMouse.down = null;
+  if (!d || !buildOn || !walker || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
+  if (d.b === 0) buildPlace();
+  else if (d.b === 2) buildBreak();
+});
+renderer.domElement.addEventListener('contextmenu', (e) => { if (buildOn && walker) e.preventDefault(); });
+
+// ---------------- 每帧 ----------------
+let buildCursor = null;
+function updateBuild(dt) {
+  const show = buildOn && !!walker;
+  document.body.classList.toggle('building', show);
+  if (show && !$('hotbar').children.length) renderHotbar();
+  $('hotbar').style.display = show ? 'flex' : 'none';
+  if (park) {
+    // 开关：开着时杆子扳下来、红色旋钮发光
+    park.arm.rotation.x += ((buildOn ? -0.6 : 0.6) - park.arm.rotation.x) * Math.min(1, dt * 10);
+    park.knob.material.emissiveIntensity = buildOn ? 2 : 0.3;
+    // 走到开关旁边：提示
+    const near = nearLever();
+    if (near && !park.nearShown && !messageTimer) showMessage(buildOn ? '⛏ 按 E 拉开关：关闭建造模式' : '⛏ 按 E 拉开关：开启建造模式', 1.6);
+    park.nearShown = near;
+  }
+  if (!buildCursor) {
+    buildCursor = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02)), new THREE.LineBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.85 }));
+    const ghost = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
+    buildCursor.add(ghost);
+    buildCursor.userData.ghost = ghost;
+    scene.add(buildCursor);
+  }
+  updateBuildAim();
+  const c = buildAim?.hit ?? buildAim?.place;
+  buildCursor.visible = show && !!c;
+  if (buildCursor.visible) {
+    buildCursor.position.set(c[0] + 0.5, c[1] + 0.5 + BUILD_Y0, c[2] + 0.5);
+    buildCursor.userData.ghost.visible = !buildAim.hit;   // 空地上显示半透明的预放方块
+  }
+}
+// 底部的方块栏
+function renderHotbar() {
+  const bar = $('hotbar');
+  if (!bar.children.length) {
+    bar.innerHTML = BUILD_PALETTE.map((p, i) => {
+      const m = blockMat(FACES[p.type]?.[4] ?? p.type);
+      return `<button data-i="${i}" title="${p.name}"><img src="${m.map.image.toDataURL()}" alt=""><span>${i + 1}</span><em>${p.name}</em></button>`;
+    }).join('') + '<button data-i="-1" class="hb-x" title="关闭建造模式">✕</button>';
+    bar.addEventListener('pointerdown', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      e.preventDefault();
+      const i = Number(b.dataset.i);
+      if (i < 0) { if (buildOn) toggleBuildMode(); } else selectBuildSlot(i);
+    });
+  }
+  [...bar.children].forEach((b, i) => b.classList.toggle('sel', i === buildSlot));
+}
+
 /* ===== js/ui/input.js ===== */
 // 键盘和触屏按键
 'use strict';
@@ -9354,7 +10983,7 @@ const focusPos = () => (walker ? walker.group.position : focusCar().root.positio
 // 输入：键盘 + 触屏按键
 // =====================================================================
 const keys = new Set();
-const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyF'];
+const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyF', 'KeyG', 'ShiftLeft', 'ShiftRight', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'];
 const menu = $('menu');
 const dialog = menu.querySelector('.dialog');
 let menuKind = null;
@@ -9374,6 +11003,7 @@ function press(code) {
   if (raceState === 'replay') return replayKey(code);
   const live = raceState === 'racing' || raceState === 'countdown' || raceState === 'done';
   if (worldMapOpen && (code === 'Tab' || code === 'Escape')) return toggleWorldMap(false);
+  if (code === 'Escape' && talk) return closeTalk();   // 先关聊天框
   if (code === 'Escape') {
     if (menuKind === 'pause') return resume();
     if (live && !menuKind) return openPauseMenu();
@@ -9393,8 +11023,17 @@ function press(code) {
     return;
   }
   if (code === 'KeyF') return toggleWalk();
-  if (walker) {   // 下车走路：只有视角键有用，空格（跳）、方向键在 updateWalk 里读
+  if (walker) {   // 下车走路：视角、召唤车；空格（跳）、Shift（跑）、方向键在 updateWalk 里读
     if (code === 'KeyT') return toggleView();
+    if (code === 'KeyG') return summonCar();
+    if (code === 'KeyQ') return greetMob();
+    if (code === 'KeyE') return nearLever() ? toggleBuildMode() : toggleTalk();   // 工坊开关旁：拉开关
+    if (buildOn && code === 'KeyC') return buildPlace();
+    if (buildOn && code === 'KeyX') return buildBreak();
+    const atk = { KeyJ: 'punch', KeyK: 'kick', KeyL: 'spin', KeyU: 'blast' }[code];
+    if (atk) return walkAttack(atk);
+    if (code.startsWith('Digit') && talk) return talkChoose((Number(code.slice(5)) + 9) % 10);   // 1～9、0 选第 1～10 句
+    if (code.startsWith('Digit') && buildOn) return selectBuildSlot(Number(code.slice(5)) - 1);   // 建造模式：选方块
     return;
   }
   if (code === 'ArrowUp' || code === 'KeyW') onThrottlePress();   // 起步加速 / 小喷都看按下的那一瞬间
@@ -9559,7 +11198,7 @@ function keysHelp() {
     小喷：漂移结束或飞跃落地后马上松开再按一下 <kbd>↑</kbd>，越快越好（0.2 秒内是完美小喷）；发车灯熄灭的瞬间按 <kbd>↑</kbd> 完美起步<br>
     自由驾驶：没有护栏、不管逆行，四张地图由公路连成一片，山、楼、树、大海以外哪里都能去<br>
     <kbd>X</kbd> 使用道具 / <kbd>Z</kbd> 换道具（道具赛，闪电也要抽到才能放）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 鹈鹕视角 / 自由）<br>
-    <kbd>Tab</kbd> 或点击小地图：全景地图　<kbd>R</kbd> 撞车后重新启动（自由驾驶在原地）　<kbd>F</kbd> 自由驾驶时停车后下车走路，走回车旁再按 F 上车（走路时方向键朝哪边按就往哪边走，↓ 转身，空格跳）　<kbd>P</kbd> 暂停　<kbd>M</kbd> 音效开关　<kbd>B</kbd> 背景音乐　<kbd>N</kbd> 下一首　<kbd>V</kbd> 后视镜　<kbd>Esc</kbd> 菜单
+    <kbd>Tab</kbd> 或点击小地图：全景地图　<kbd>R</kbd> 撞车后重新启动（自由驾驶在原地）　<kbd>F</kbd> 自由驾驶时停车后下车走路，走回车旁再按 F 上车（走路时方向键朝哪边按就往哪边走，↓ 转身，按住 Shift 跑，空格跳；走远了跟着头顶的绿箭头和车顶光柱找车，按 G 把车召唤到身边；走路时 Q 打招呼、E 聊天、J 拳击 / K 飞踢 / L 旋风腿 / U 能量波，只能打僵尸、骷髅、苦力帕、墨影人；阳光海滨的「我的世界乐园」里拉下工坊的开关进入建造模式：1～9 选方块，鼠标左键 / C 放，右键 / X 拆）　<kbd>P</kbd> 暂停　<kbd>M</kbd> 音效开关　<kbd>B</kbd> 背景音乐　<kbd>N</kbd> 下一首　<kbd>V</kbd> 后视镜　<kbd>Esc</kbd> 菜单
   </div>`;
 }
 
@@ -9927,7 +11566,7 @@ function updateCamera(dt) {
   }
   // 旷野有起伏：镜头不钻进山坡里
   if (worldMode === 'open' && mode !== 'first') {
-    const gh = terrainH(camera.position.x, camera.position.z) + 1.2;
+    const gh = groundMeshH(camera.position.x, camera.position.z) + 1.2;
     if (camera.position.y < gh) camera.position.y = gh;
   }
   lastCarPos.copy(p);
@@ -9990,6 +11629,22 @@ function drawRoads(g, roads, toXY, trackW, linkW) {
 
 // 画车辆、警车、直升机、钉刺带
 function drawMarkers(g, toXY, big = 1) {
+  if (park && worldMode === 'open') {   // 我的世界乐园（建造工坊）
+    const [x, y] = toXY(park.x, park.z);
+    g.font = `${12 * big}px sans-serif`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('⛏', x, y);
+  }
+  if (walker) {   // 下车走路：人是一个白色小圆点（车还是原来的标记）
+    const [x, y] = toXY(walker.x, walker.z);
+    g.fillStyle = '#ffffff';
+    g.strokeStyle = '#1d3040';
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.arc(x, y, 3.5 * big, 0, Math.PI * 2);
+    g.fill(); g.stroke();
+  }
   for (const sp of spikes) {
     const [x, y] = toXY(sp.x, sp.z);
     g.fillStyle = '#111';
@@ -10249,7 +11904,7 @@ const featureCue = $('featureCue');
 const cuePrev = new WeakMap();
 function updateFeatureCue() {
   const c = player;
-  const live = c && (raceState === 'racing' || raceState === 'countdown') && !c.finished && !isHeliMode();
+  const live = c && (raceState === 'racing' || raceState === 'countdown') && !c.finished && !isHeliMode() && !walker;   // 下车走路时不提示路段
   const T = live ? c.trk ?? mainTrack() : null;
   let best = null;
   if (T?.pads && Math.abs(c.lat) < T.B + 10) {
@@ -10519,7 +12174,7 @@ function updateRace(dt) {
       updateProgress(c);
       collideWalls(c);
       roadFeatures(c);
-      if (worldMode === 'open') collideObstacles(c);
+      if (worldMode === 'open') { collideObstacles(c); collideBuild(c); }
       sanitizeCar(c);
     }
     collideCars(live.filter((c) => c.active));
@@ -10573,6 +12228,8 @@ function update(dt) {
   else if (raceState === 'replay') { if (heli?.active) placeHeli(modelDt); } else updateHeli(dt);
   updateParticles(dt);
   updateWalk(dt);
+  updateInteract(dt);
+  updateBuild(dt);
   updateCamera(dt);
   updateHud(dt);
   updateAudio(dt);
@@ -10621,7 +12278,7 @@ function snapShadow(p) {
 const REC_HZ = 30;
 const REC_K = 17;
 const replayCars = () => [...racers, ...cops];   // 警车数量整场固定（预先建好），可以放进同一帧里
-let rec = { frames: [], acc: 0 };
+let rec = { frames: [], acc: 0, items: [], events: [] };   // items：每帧的道具状态；events：放道具、击中等一次性事件（items.js）
 function recordFrame(dt) {
   rec.acc += dt;
   if (rec.frames.length && rec.acc < 1 / REC_HZ) return;
@@ -10637,6 +12294,7 @@ function recordFrame(dt) {
       c.ctl.brake || (c.ctl.reverse && c.vF > 0.5) ? 1 : 0, c.active ? 1 : 0, c.y, c.vy], 1 + i * REC_K);
   });
   rec.frames.push(f);
+  if (isItems()) rec.items.push(itemSnapshot());
 }
 
 const replay = { t: 0, speed: 1, playing: true, cam: 'tv', focus: 0, saved: null, tv: -1, tvCams: [], uiT: 0 };
@@ -10670,6 +12328,7 @@ function startReplay() {
   document.body.classList.remove('racing');
   document.body.classList.add('replaying');
   for (const id of ['raceHud', 'board', 'speedo', 'pursuitHud', 'modeHud', 'itemBox']) $(id).style.display = 'none';
+  itemsReplayStart();   // 道具赛：显示正在看的那辆车的道具框
   replayBar.style.display = 'block';
   $('rpSeek').max = String(Math.round((rec.frames.at(-1)[0] - rec.frames[0][0]) * 100));
   $('rpTotal').textContent = formatTime(rec.frames.at(-1)[0]);
@@ -10686,6 +12345,7 @@ function exitReplay() {
     c.tumble.rotation.z = sv.tr;
     c.ctl.throttle = sv.throttle;
   });
+  itemsReplayEnd();
   raceState = replay.prevState;
   replayBar.style.display = 'none';
   document.body.classList.remove('replaying');
@@ -10740,6 +12400,7 @@ function applyReplay() {
     c.air = c.y > gy + 0.15;
     c.turboT = 0;
   });
+  applyItemReplay(lo, hi, u);
 }
 
 function updateReplay(dt) {
@@ -10753,6 +12414,7 @@ function updateReplay(dt) {
     }
   }
   applyReplay();
+  replayItemEvents();
   if (replay.playing) {
     for (const c of racers) {
       if (c.state === 'crash' && Math.random() < dt * 25) {
@@ -10800,6 +12462,7 @@ function replayKey(code) {
   if (code === 'KeyM') return toggleSound();
   if (code === 'KeyB') return toggleMusic();
   if (code === 'KeyN') return nextSong();
+  if (code === 'KeyS') return replayScreenshot();
 }
 function toggleReplayPlay() {
   const F = rec.frames;
@@ -10839,6 +12502,123 @@ $('rpSpeed').onclick = () => {
 $('rpCam').onclick = cycleReplayCam;
 $('rpFocus').onclick = () => cycleFocus(1);
 $('rpExit').onclick = exitReplay;
+$('rpShot').onclick = replayScreenshot;
+
+// ---------------- 截图：把当前画面（带道具框、小地图）存成 PNG，弹出系统的「另存为」对话框选位置 ----------------
+// 截的是 3D 画面，再叠上道具框和小地图（按它们在屏幕上的位置画，和看到的一样），不带控制条、按钮和后视镜；自适应分辨率降过的话，截图时临时按屏幕的原始清晰度重画一帧
+let shotWaiters = [];
+function captureFrame() {
+  if (!shotWaiters.length) return;
+  const pr = renderer.getPixelRatio(), full = Math.min(2, devicePixelRatio || 1);
+  if (pr < full) { renderer.setPixelRatio(full); renderer.render(scene, camera); }
+  const url = renderer.domElement.toDataURL('image/png');
+  if (pr < full) { renderer.setPixelRatio(pr); renderer.render(scene, camera); }
+  for (const done of shotWaiters) done(url);
+  shotWaiters = [];
+}
+const grabFrame = () => new Promise((res) => shotWaiters.push(res));
+async function replayScreenshot() {
+  const btn = $('rpShot');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const url = await grabFrame();   // 先截下点按钮那一刻的画面，再选保存位置
+    const blob = await composeShot(url);   // 叠上道具框和小地图
+    const c = focusCar();
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    const name = `鹈鹕赛车-回放-${c.isPlayer ? '你' : c.name}-${formatTime(replay.t).replace(/[:.]/g, '')}-${stamp}.png`;
+    flashShutter();
+    if (window.showSaveFilePicker) {
+      // Chrome / Edge：系统的另存为对话框，可以选文件夹和文件名
+      let handle;
+      try {
+        handle = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'PNG 图片', accept: { 'image/png': ['.png'] } }] });
+      } catch (e) {
+        if (e.name === 'AbortError') return;   // 取消了
+        throw e;
+      }
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      showMessage(`📷 截图已保存<small>${handle.name}</small>`, 1.6);
+    } else {
+      // 其他浏览器：按下载处理（浏览器设置了「下载前询问保存位置」就会弹出对话框）
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      showMessage('📷 截图已下载', 1.4);
+    }
+  } catch (e) {
+    showMessage(`截图保存失败<small>${e.message}</small>`, 2);
+  } finally {
+    btn.disabled = false;
+  }
+}
+// 把 3D 画面和界面上的道具框、小地图合成一张图
+async function composeShot(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const cv = document.createElement('canvas');
+  cv.width = img.width; cv.height = img.height;
+  const g = cv.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const s = img.width / innerWidth;   // 屏幕坐标（CSS 像素）→ 截图像素
+  const shown = (el) => el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+  for (const el of [$('minimap'), itemBoxEl]) if (shown(el)) drawUiBox(g, el, s);
+  // 小地图：直接把它的画布贴上去
+  const mc = $('minimap').querySelector('canvas');
+  if (shown($('minimap'))) { const r = mc.getBoundingClientRect(); g.drawImage(mc, r.left * s, r.top * s, r.width * s, r.height * s); }
+  // 道具框：大图标、名字、后面排着的小格子
+  if (shown(itemBoxEl)) {
+    for (const el of itemBoxEl.querySelectorAll('.slot')) drawUiBox(g, el, s);
+    for (const el of itemBoxEl.querySelectorAll('.icon, .label, .slot')) drawUiText(g, el, s);
+  }
+  return new Promise((res) => cv.toBlob(res, 'image/png'));
+}
+// 按元素的计算样式画背景和边框（圆角、实线 / 虚线）
+function drawUiBox(g, el, s) {
+  const r = el.getBoundingClientRect(), st = getComputedStyle(el);
+  const bw = parseFloat(st.borderTopWidth) || 0, rad = (parseFloat(st.borderTopLeftRadius) || 0) * s;
+  const x = r.left * s, y = r.top * s, w = r.width * s, h = r.height * s;
+  g.save();
+  g.beginPath();
+  g.roundRect(x + (bw * s) / 2, y + (bw * s) / 2, w - bw * s, h - bw * s, rad);
+  if (st.backgroundColor && st.backgroundColor !== 'rgba(0, 0, 0, 0)') { g.fillStyle = st.backgroundColor; g.fill(); }
+  if (bw > 0 && st.borderTopStyle !== 'none') {
+    g.lineWidth = bw * s;
+    g.strokeStyle = st.borderTopColor;
+    if (st.borderTopStyle === 'dashed') g.setLineDash([bw * s * 3, bw * s * 2]);
+    g.stroke();
+  }
+  g.restore();
+}
+// 元素里的文字（图标是 emoji），居中画在元素的位置上
+function drawUiText(g, el, s) {
+  const text = el.textContent.trim();
+  if (!text) return;
+  const r = el.getBoundingClientRect(), st = getComputedStyle(el);
+  g.save();
+  g.font = `${st.fontWeight} ${parseFloat(st.fontSize) * s}px ${st.fontFamily}`;
+  g.fillStyle = st.color;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, (r.left + r.width / 2) * s, (r.top + r.height / 2) * s, r.width * s * 1.2);
+  g.restore();
+}
+// 快门效果：画面白光一闪 + 咔嚓声
+function flashShutter() {
+  const el = $('flash');
+  el.style.transition = 'none';
+  el.style.opacity = '0.5';
+  requestAnimationFrame(() => { el.style.transition = 'opacity 0.35s'; el.style.opacity = '0'; });
+  sound.burst({ duration: 0.05, type: 'highpass', frequency: 3000, gain: 0.3 });
+  sound.burst({ duration: 0.08, type: 'bandpass', frequency: 1200, gain: 0.25, delay: 0.06 });
+}
 $('rpSeek').oninput = (e) => { replay.t = rec.frames[0][0] + +e.target.value / 100; };
 
 /* ===== js/ui/mirror.js ===== */
@@ -10929,6 +12709,7 @@ function animate() {
   else updateAudio(dt);
   updateMirrorUi();
   renderer.render(scene, camera);
+  captureFrame();   // 回放截图：主画面画完、后视镜还没画上去的时候截（replay.js）
   renderMirror();
 }
 

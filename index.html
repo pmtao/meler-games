@@ -43,6 +43,14 @@
   .play { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 700; padding: 11px 22px; border-radius: 12px; }
   .play:hover { filter: brightness(1.08); }
   .note { font-size: 13px; color: var(--muted); margin: 0; }
+  .news { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); text-decoration: none; color: var(--ink); }
+  .news img { width: 132px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; flex: none; }
+  .news b { display: block; font-size: 17px; }
+  .news span { color: var(--muted); font-size: 14px; }
+  .news em { margin-left: auto; font-style: normal; color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .news:hover { border-color: var(--accent); }
+  .links { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: auto; }
+  .links .more { color: var(--accent); font-weight: 700; text-decoration: none; }
   .soon { border-style: dashed; box-shadow: none; background: transparent; justify-content: center; align-items: center; text-align: center; min-height: 180px; color: var(--muted); padding: 24px; }
   .soon b { display: block; font-size: 30px; margin-bottom: 6px; }
   footer.wrap { border-top: 1px solid var(--line); padding-top: 20px; padding-bottom: 36px; color: var(--muted); font-size: 13px; }
@@ -52,6 +60,9 @@
     .card.feature { grid-template-columns: 1fr; }
     .card.feature .cover { min-height: 0; aspect-ratio: 1200 / 630; }
     .modes { columns: 1; }
+    .news { flex-wrap: wrap; }
+    .news img { width: 100%; }
+    .news em { margin-left: 0; }
   }
 </style>
 </head>
@@ -63,17 +74,22 @@
 </header>
 
 <main class="wrap grid">
+  <a class="news" href="pelican-racing/updates/">
+    <img src="pelican-racing/updates/build.jpg" alt="">
+    <div><b>🆕 鹈鹕赛车重大更新</b><span>22 位动物车手、我的世界像素风格、建造模式、下车和旷野生物聊天比武</span></div>
+    <em>看看新内容 →</em>
+  </a>
   <article class="card feature">
     <a class="cover" href="pelican-racing/" style="background-image:url('pelican-racing/cover.jpg')" aria-label="开始玩鹈鹕赛车"><span class="badge">3D 赛车</span></a>
     <div class="body">
       <h2>🏎️ 鹈鹕赛车</h2>
-      <p class="desc">戴着赛车头盔的鹈鹕和 4 位鹈鹕对手一决高下。漂移、氮气、小喷、飞跃跳台，道具赛能攒 3 个道具，五张地图连成一片开放世界，还能开直升机当警察抓逃犯。</p>
-      <ul class="chips"><li>5 张地图</li><li>5 款赛车 · 8 种涂装</li><li>开放世界</li><li>回放</li></ul>
+      <p class="desc">鹈鹕、海绵宝宝、小黄人、蟹老板等 22 位车手同场竞技。漂移、氮气、小喷、飞跃跳台，道具赛能攒 3 个道具；五张地图连成一片开放世界，可以切换成我的世界方块风格，下车和旷野里的生物聊天比武，还能在我的世界乐园里盖房子。</p>
+      <ul class="chips"><li>22 位车手</li><li>5 张地图</li><li>5 款赛车 · 8 种涂装</li><li>像素风格</li><li>开放世界</li><li>建造模式</li><li>回放 · 截图</li></ul>
       <ul class="modes">
         <li>🏁 名次赛</li><li>🍄 道具赛</li><li>⏱ 计时赛（幽灵车）</li><li>🌀 漂移赛</li>
         <li>🚨 警匪追逐</li><li>🚁 空中追捕</li><li>🚗 自由驾驶</li>
       </ul>
-      <a class="play" href="pelican-racing/">开始游戏 →</a>
+      <div class="links"><a class="play" href="pelican-racing/">开始游戏 →</a><a class="more" href="pelican-racing/updates/">🆕 重大更新说明</a></div>
       <p class="note">电脑上用键盘玩最顺手：方向键驾驶、空格刹车、C 氮气、T 切换视角。手机横屏可用触屏按键。</p>
     </div>
   </article>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鹈鹕赛车重大更新 · Meler Games</title>
+<meta name="description" content="鹈鹕赛车重大更新：22 位动物赛车手、我的世界像素风格、我的世界乐园建造模式、下车和旷野生物聊天战斗、道具赛回放与截图。">
+<meta property="og:title" content="鹈鹕赛车重大更新">
+<meta property="og:description" content="22 位动物赛车手、我的世界像素风格、建造模式、旷野生物互动……打开浏览器就能玩。">
+<meta property="og:image" content="https://meler-games.melerpaine.com/pelican-racing/updates/build.jpg">
+<meta property="og:url" content="https://meler-games.melerpaine.com/pelican-racing/updates/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>">
+<style>
+  :root {
+    --bg: #f4f1ea; --card: #ffffff; --ink: #1d2733; --muted: #5d6875; --line: #1d273318;
+    --accent: #d8452a; --accent-ink: #ffffff; --chip: #1d27330d; --shadow: 0 10px 30px #1d27331a;
+    --green: #2e9d4a; --kbd: #1d273312;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --card: #1b2129; --ink: #e9edf1; --muted: #9aa5b1; --line: #ffffff14;
+      --accent: #ff6a4a; --accent-ink: #14171c; --chip: #ffffff0f; --shadow: 0 10px 30px #0006;
+      --green: #4cc46a; --kbd: #ffffff14;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  a { color: var(--accent); }
+  nav.wrap { padding-top: 20px; font-size: 14px; display: flex; gap: 16px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--ink); }
+  header.wrap { padding-top: 28px; padding-bottom: 28px; }
+  .brand { font-size: 14px; letter-spacing: .14em; color: var(--accent); font-weight: 700; }
+  h1 { margin: 6px 0 10px; font-size: clamp(30px, 6vw, 48px); line-height: 1.15; }
+  .lead { margin: 0 0 18px; color: var(--muted); max-width: 680px; font-size: 17px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 0; list-style: none; }
+  .chips li { background: var(--chip); padding: 3px 12px; border-radius: 99px; font-size: 14px; }
+  .play { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 12px; }
+  .play:hover { filter: brightness(1.08); }
+  .hero { margin: 26px 0 0; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); aspect-ratio: 16 / 9; background: #cfdde8; }
+  .hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  main.wrap { display: flex; flex-direction: column; gap: 26px; padding-top: 34px; padding-bottom: 40px; }
+  .feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); display: grid; grid-template-columns: 1.25fr 1fr; }
+  .feat:nth-child(even) { grid-template-columns: 1fr 1.25fr; }
+  .feat:nth-child(even) .shot { order: 2; }
+  .shot { margin: 0; align-self: center; }
+  .shot img { width: 100%; height: auto; display: block; aspect-ratio: 16 / 9; }
+  .text { padding: 24px 26px 26px; display: flex; flex-direction: column; gap: 10px; }
+  .tag { align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); padding: 2px 10px; border-radius: 99px; }
+  h2 { margin: 0; font-size: 25px; line-height: 1.3; }
+  .text p { margin: 0; color: var(--muted); }
+  .text ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; }
+  .text li { margin: 3px 0; }
+  .text b { color: var(--ink); font-weight: 600; }
+  kbd { font: 600 12px/1 ui-monospace, Menlo, monospace; background: var(--kbd); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px; color: var(--ink); white-space: nowrap; }
+  section.more { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px 26px; box-shadow: var(--shadow); }
+  section.more h2 { margin-bottom: 12px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px 28px; margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; }
+  table.keys { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.keys td { padding: 7px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  table.keys td:first-child { width: 40%; white-space: nowrap; }
+  table.keys tr:first-child td { border-top: 0; }
+  .cta { text-align: center; padding: 10px 0 18px; }
+  .cta p { color: var(--muted); margin: 10px 0 0; font-size: 14px; }
+  footer.wrap { border-top: 1px solid var(--line); padding-top: 20px; padding-bottom: 36px; color: var(--muted); font-size: 13px; }
+  footer a { color: inherit; }
+  @media (max-width: 800px) {
+    .feat, .feat:nth-child(even) { grid-template-columns: 1fr; }
+    .feat:nth-child(even) .shot { order: 0; }
+    .text { padding: 20px; }
+    table.keys td:first-child { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<nav class="wrap"><a href="../../">← Meler Games 首页</a><a href="../">直接开始游戏</a></nav>
+
+<header class="wrap">
+  <div class="brand">鹈鹕赛车 · 重大更新 · 2026 年 10 月</div>
+  <h1>动物明星集合，<br>还能下车盖房子</h1>
+  <p class="lead">这次更新给鹈鹕赛车加了 22 位动物和卡通明星车手，一键切换的我的世界方块风格，海边的我的世界乐园可以随便搭房子，下车后还能和旷野里的生物聊天、比武。</p>
+  <ul class="chips">
+    <li>🐼 22 位车手</li><li>⛏️ 我的世界像素风格</li><li>🏗️ 建造模式</li><li>💬 旷野生物聊天</li><li>⚔️ 四种攻击招式</li><li>🍄 道具赛回放</li><li>📷 回放截图</li>
+  </ul>
+  <a class="play" href="../">开始游戏 →</a>
+  <figure class="hero"><img src="build.jpg" alt="像素风格的我的世界乐园：入口拱门、苦力帕雕像、建造工坊和玩家搭的红顶小房子，小黄人站在屋顶上" loading="eager"></figure>
+</header>
+
+<main class="wrap">
+  <article class="feat">
+    <figure class="shot"><img src="roster.jpg" alt="22 位车手站在赛道上排成两排：章鱼哥、蟹老板、小黄鸭、熊猫、机器人、巴斯光年、恐龙、帝企鹅、猴子……" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新车手</span>
+      <h2>22 位动物和卡通明星车手</h2>
+      <p>除了戴头盔的鹈鹕，现在还能选海绵宝宝、派大星、小黄人、蟹老板、章鱼哥、巴斯光年、功夫熊猫、帝企鹅、小霸王龙、猫头鹰、柯基、橘猫、兔子、狐狸、青蛙、小猪、考拉、猴子、机器人、小黄鸭。</p>
+      <ul>
+        <li>主菜单里<b>选择车手</b>，比赛时对手阵容每场从角色库里随机挑，一场最多 <b>11 辆车</b>同场竞技</li>
+        <li>按参考图精心建模：海绵宝宝的三根睫毛和门牙、小黄人的双眼护目镜、蟹老板的长眼柄和大钳子、章鱼哥的大脑门……</li>
+        <li>每个角色都会转头看弯、双手握方向盘；下车走路时各有各的腿和脚（企鹅的蹼、恐龙的白爪、海绵宝宝的条纹袜）</li>
+        <li>看台上的观众也换成了全体角色随机混坐，发车时一起欢呼</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="pixel.jpg" alt="像素方块风格的红岩峡谷：一层层彩色的方块台地，方块化的赛车在比赛" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新画风</span>
+      <h2>我的世界像素风格</h2>
+      <p>在设置里把画面风格切成<b>像素</b>，整个世界都变成一格一格的方块：草方块地面、方块树、陶瓦台地、萤石路灯、羊毛座椅的看台，赛车和车手也会变成方块造型。</p>
+      <ul>
+        <li>五张地图和自由驾驶的开放世界都有像素版，经典 / 像素随时切换</li>
+        <li>红岩峡谷有 70 多座一层层的陶瓦台地，远处还有 180 米高的巨型方块山</li>
+        <li>每个区域中心立着彩色的信标光柱，很远就能看见</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="build2.jpg" alt="建造模式：小黄人站在自己搭的红羊毛房顶上，屏幕下方是九种方块的方块栏" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新玩法</span>
+      <h2>我的世界乐园 · 建造模式</h2>
+      <p>自由驾驶时，阳光海滨的旷野上多了一座<b>我的世界乐园</b>：金白拱门、2.5 倍大的苦力帕雕像、下界传送门，中间是建造工坊。走进工坊拉下开关，就能在旷野上随便盖房子。</p>
+      <ul>
+        <li>草方块、泥土、圆石、木板、原木、石砖、玻璃、红羊毛、萤石，按 <kbd>1</kbd>～<kbd>9</kbd> 选择</li>
+        <li>鼠标指哪放哪：<kbd>左键</kbd> 放方块、<kbd>右键</kbd> 拆方块，手机上用「放 / 拆」按钮</li>
+        <li>方块都是实心的：能站上去、一跳上一格、在楼顶跑来跑去，车也会被你的墙挡住</li>
+        <li>盖好的房子自动保存，下次进来还在</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="talk.jpg" alt="海绵宝宝下车后和小猪聊天，左下角是对话框，小猪在跳舞、橘猫在转圈、史蒂夫在挥手" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新玩法</span>
+      <h2>下车走走，和旷野里的生物聊天</h2>
+      <p>自由驾驶时停好车按 <kbd>F</kbd> 下车，旷野里到处是我的世界的生物：史蒂夫、薯条猫、猪、牛、羊、鸡，还有僵尸、骷髅、苦力帕和墨影人。</p>
+      <ul>
+        <li><kbd>Q</kbd> 打招呼，<kbd>E</kbd> 打开对话框选要说的话，每种生物都有自己的台词和叫声</li>
+        <li>可以让它们<b>跳舞、跟着你走、坐下、跳一跳、转个圈</b></li>
+        <li>对敌对生物说「我们和平相处吧」，它就不追你了，苦力帕也会熄火</li>
+        <li>走路会起伏爬坡，按住 <kbd>Shift</kbd> 跑步；走远了跟着绿色箭头和车顶光柱找车，或者按 <kbd>G</kbd> 把车召唤过来</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="fight.jpg" alt="海绵宝宝用能量波打中僵尸，飘出伤害数字，骷髅、苦力帕、墨影人围上来，头顶显示血条，屏幕上方是生命值和招式栏" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新玩法</span>
+      <h2>四种攻击招式，和僵尸比武</h2>
+      <p>旷野生物分成两组：僵尸、骷髅、苦力帕、墨影人可以攻击；史蒂夫和小动物是朋友，打不了。</p>
+      <ul>
+        <li><kbd>J</kbd> 拳击、<kbd>K</kbd> 飞踢（边冲边踢）、<kbd>L</kbd> 旋风腿（打一圈）、<kbd>U</kbd> 能量波（飞 30 米）</li>
+        <li>打中会闪红、被击退、飘出伤害数字，头顶显示血条</li>
+        <li>它们也会还手：你有 10 颗心，墨影人打完还会闪到你身后；倒下后在车旁复活</li>
+        <li>人和生物之间有碰撞，不会再从它们身上穿过去</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="items.jpg" alt="道具赛：绿龟壳在前方飞，路上的彩虹道具箱，左上角的道具框里拿着加速蘑菇和追踪红壳" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">玩法升级</span>
+      <h2>道具赛更热闹，回放能看到每一发龟壳</h2>
+      <p>道具最多能攒 3 个，<kbd>Z</kbd> 换顺序；赛道加宽到原来的两倍，道具箱多到 56 个，还有更高的跳台和随机摆放的加速带。</p>
+      <ul>
+        <li>闪电只有抽到闪电道具的人才能放，屏幕上会写清楚是谁放的</li>
+        <li>比赛回放里能看到香蕉皮、飞行中的龟壳、护盾、无敌星和闪电，就像当时一样</li>
+        <li>回放控制条新增 <b>📷 截图</b>（按 <kbd>S</kbd>），带上道具框和小地图，存到你选的位置</li>
+      </ul>
+    </div>
+  </article>
+
+  <section class="more">
+    <h2>还有这些改进</h2>
+    <ul class="cols">
+      <li>开放世界的旷野有了起伏的山坡和斑马纹草地，开上坡会减速</li>
+      <li>旷野里撞车后按 <kbd>R</kbd> 就地扶正，不再被送回赛道</li>
+      <li>特色路段进入前都有警示牌和屏幕提示</li>
+      <li>小地图上标出你下车后的位置和乐园</li>
+      <li>手机横屏下车后有拳击、飞踢、聊天、召唤车等触屏按钮</li>
+      <li>修复了旷野生物头顶缺一面、坡上脚陷进地里等问题</li>
+    </ul>
+  </section>
+
+  <section class="more">
+    <h2>新增按键速查</h2>
+    <table class="keys">
+      <tr><td><kbd>F</kbd></td><td>停车后下车 / 走回车旁上车（自由驾驶）</td></tr>
+      <tr><td><kbd>方向键</kbd> <kbd>Shift</kbd> <kbd>空格</kbd></td><td>走路（按镜头方向） / 跑 / 跳</td></tr>
+      <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>打招呼 / 聊天（在工坊开关旁：开关建造模式）</td></tr>
+      <tr><td><kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> <kbd>U</kbd></td><td>拳击 / 飞踢 / 旋风腿 / 能量波</td></tr>
+      <tr><td><kbd>G</kbd></td><td>把车召唤到身边</td></tr>
+      <tr><td><kbd>1</kbd>～<kbd>9</kbd> <kbd>左键</kbd> <kbd>右键</kbd></td><td>建造模式：选方块 / 放方块 / 拆方块</td></tr>
+      <tr><td><kbd>S</kbd></td><td>回放时截图</td></tr>
+    </table>
+  </section>
+
+  <div class="cta">
+    <a class="play" href="../">现在就去玩 →</a>
+    <p>电脑上用键盘玩最顺手；手机横屏可以用触屏按键。截图保存对话框在 Chrome / Edge 里可用，其他浏览器会直接下载。</p>
+  </div>
+</main>
+
+<footer class="wrap">
+  © <span id="y">2026</span> Meler Games · <a href="../../">首页</a> · <a href="https://github.com/pmtao/meler-games">GitHub</a>
+</footer>
+<script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>
