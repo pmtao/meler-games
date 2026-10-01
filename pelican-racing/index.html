@@ -218,6 +218,39 @@ body.touch #talkPanel { left: 50%; transform: translateX(-50%); bottom: auto; to
 #talkPanel .tp-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 #talkPanel .tp-opts button { text-align: left; background: #ffffff20; border: 1px solid #ffffff30; color: #fff; border-radius: 8px; padding: 4px 6px; font-size: 13px; cursor: pointer; }
 #talkPanel .tp-opts button:hover { background: #ffffff38; }
+body.resting #carCue, body.resting #walkHp, body.resting #featureCue, body.resting #speedo { display: none !important; }   /* 躺椅上休息：藏起找车、生命值这些提示 */
+#beachPanel { position: fixed; left: calc(16px + var(--sl)); bottom: 64px; z-index: 30; display: none; width: min(400px, calc(100vw - 32px));
+  background: #0f4c6ee6; color: #fff; border-radius: 14px; padding: 8px 10px; box-shadow: 0 6px 20px #0005; }
+#beachPanel .tp-head { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+#beachPanel .tp-head span { font-weight: 400; font-size: 12px; opacity: 0.8; flex: 1; }
+#beachPanel .bp-mode { margin-left: auto; background: #ffffff22; border: 1px solid #ffffff40; color: #fff; border-radius: 7px; padding: 2px 8px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+#beachPanel .tp-x { margin-left: 4px; background: none; border: 0; color: #fff; font-size: 16px; cursor: pointer; }
+#beachPanel .tp-line { margin: 6px 0; font-size: 14px; background: #ffffff18; padding: 6px 10px; border-radius: 8px; }
+#beachPanel .tp-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+#beachPanel button:not(.tp-x):not(.bp-mode) { text-align: left; background: #ffffff20; border: 1px solid #ffffff30; color: #fff; border-radius: 8px; padding: 5px 8px; font-size: 13px; cursor: pointer; }
+#beachPanel button:not(.tp-x):not(.bp-mode):hover { background: #ffffff38; }
+#beachPanel kbd { background: #fff3; border-radius: 3px; padding: 0 4px; margin-right: 5px; font: inherit; font-size: 11px; }
+#beachPanel .bp-list { display: flex; flex-direction: column; gap: 3px; margin: 6px 0; max-height: 46vh; overflow-y: auto; }
+#beachPanel .bp-list button { display: flex; align-items: baseline; gap: 2px; }
+#beachPanel .bp-list button b { font-weight: 600; }
+#beachPanel .bp-list button small { margin-left: auto; padding-left: 10px; opacity: 0.75; font-size: 11px; white-space: nowrap; }
+#beachPanel .bp-list button { flex-wrap: wrap; }
+#beachPanel .bp-list button i { flex-basis: 100%; padding-left: 26px; font-style: normal; font-size: 10px; opacity: 0.6; }
+/* 当前曲目下面的进度：时间一行，下面是带圆点的进度条（可以点、可以拖） */
+#beachPanel .bp-seek { margin: 2px 6px 6px 30px; }
+#beachPanel .bp-time { font-size: 11px; opacity: 0.85; text-align: right; margin-bottom: 5px; }
+#beachPanel .bp-track { position: relative; height: 18px; cursor: pointer; touch-action: none; }
+#beachPanel .bp-track::before { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 4px; border-radius: 2px; background: #ffffff40; }
+#beachPanel .bp-fill { position: absolute; left: 0; top: 7px; height: 4px; width: 0; border-radius: 2px; background: #f2c430; }
+#beachPanel .bp-knob { position: absolute; top: 2px; left: 0; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px #0006; border: 2px solid #f2c430; box-sizing: border-box; }
+#beachPanel .bp-track:hover .bp-knob { transform: scale(1.15); }
+#beachPanel .bp-group { font-size: 12px; font-weight: 700; opacity: 0.85; margin: 4px 0 1px; }
+#beachPanel .bp-list button.on { background: #f2c430; color: #1d3040; border-color: #f2c430; }
+#beachPanel .bp-list button.on kbd { background: #1d304022; }
+#beachPanel .bp-bar { display: flex; gap: 4px; }
+#beachPanel .bp-bar button { flex: 1; text-align: center !important; white-space: nowrap; padding: 5px 4px !important; font-size: 12px !important; }
+#beachPanel .bp-note { margin-top: 5px; font-size: 10px; opacity: 0.7; }
+body.touch #beachPanel { left: 50%; transform: translateX(-50%); bottom: auto; top: calc(56px + var(--st)); max-height: 70vh; overflow-y: auto; }
 #walkHp { position: fixed; left: 50%; top: 134px; transform: translateX(-50%); z-index: 20; display: none; pointer-events: none; text-align: center; }
 #walkHp .hearts { font-size: 16px; letter-spacing: -2px; filter: drop-shadow(0 1px 2px #0006); }
 #walkHp .moves { margin-top: 3px; display: flex; gap: 4px; justify-content: center; }
@@ -304,6 +337,7 @@ body.audio-locked #audioHint { display: block; }
 <div id="walkHp"></div>
 <div id="hurtFlash"></div>
 <div id="hotbar"></div>
+<div id="beachPanel"></div>
 <div id="audioHint">🔈 点击任意位置开启声音</div>
 <div id="hint" class="card"><kbd>↑</kbd> 油门 <kbd>↓</kbd> 减速/倒车 <kbd>←</kbd><kbd>→</kbd> 转向 <kbd>空格</kbd> 刹车 <kbd>C</kbd> 氮气 <kbd>X</kbd> 道具 <kbd>Z</kbd> 换道具 <kbd>T</kbd> 切换视角 <kbd>R</kbd> 重新启动 <kbd>F</kbd> 下车/上车 <kbd>G</kbd> 召唤车 <kbd>P</kbd> 暂停 <kbd>V</kbd> 后视镜 <kbd>Tab</kbd> 地图 <kbd>Esc</kbd> 菜单</div>
 <div id="hintWalk" class="card"><kbd>方向键</kbd> 走 <kbd>Shift</kbd> 跑 <kbd>空格</kbd> 跳 <kbd>Q</kbd> 打招呼 <kbd>E</kbd> 聊天 / 拉开关 <kbd>J</kbd> 拳击 <kbd>K</kbd> 飞踢 <kbd>L</kbd> 旋风腿 <kbd>U</kbd> 能量波 <kbd>F</kbd> 上车 <kbd>G</kbd> 召唤车 <kbd>T</kbd> 视角<span class="hw-build"> · 建造：<kbd>1</kbd>～<kbd>9</kbd> 选方块 <kbd>左键</kbd>/<kbd>C</kbd> 放 <kbd>右键</kbd>/<kbd>X</kbd> 拆</span></div>
@@ -2476,6 +2510,11 @@ function createDriver(charId, helmetColor, suitColor) {
   const ch = CHAR_BY_ID[charId];
   const group = new THREE.Group();
   ch.torso(charKit(group));
+  // 身体最宽处的半宽：站着垂下手臂时，胳膊要从这个宽度外面过（派大星、蟹老板、熊猫的肚子比肩膀宽很多）
+  const bodyBox = new THREE.Box3();
+  group.updateMatrixWorld(true);
+  for (const o of group.children) bodyBox.expandByObject(o);
+  const armClear = bodyBox.isEmpty() ? 0.24 : Math.max(bodyBox.max.x, -bodyBox.min.x) + 0.05;
   const head = new THREE.Group();
   const headZ = ch.headZ ?? 0.08, headY = ch.headY ?? 0.7;
   head.position.set(0, headY, headZ);
@@ -2502,7 +2541,7 @@ function createDriver(charId, helmetColor, suitColor) {
     group.add(upper, fore, hand);
     return { side: s, shoulder: v(0.2 * s, 0.36, 0.02), elbow: v(0.27 * s, 0.2, 0.2), upper, fore, hand };
   });
-  return { group, head, bill, pouch: null, crest: look, crestAnim: false, headZ, wings, pouchOffset: 0, pouchVel: 0, headYaw: 0, headPitch: 0 };
+  return { group, head, bill, pouch: null, crest: look, crestAnim: false, headZ, wings, armClear, neck: group.children.find((o) => o.isMesh && o.geometry.type === 'CylinderGeometry' && Math.abs(o.position.y - (headY + 0.36) / 2) < 1e-6) ?? null, pouchOffset: 0, pouchVel: 0, headYaw: 0, headPitch: 0 };
 }
 
 // ---------------- 下车走路时的腿和脚（每个角色不一样） ----------------
@@ -3332,14 +3371,17 @@ function buildSeaside(rng, theme) {
   instancedIn(world, palm.fronds, palm.frondMat, palms);
 
   // 大海在北边（z 大的一侧），前面一条沙滩
-  const sand = mesh(new THREE.PlaneGeometry(7000, 80).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: noiseTexture(128, '#e8d6a8', [['#d8c290', 0.8], ['#f6ead0', 0.6]], [600, 8]), roughness: 1 }), false);
-  sand.position.set(T.bounds.cx, 0.01, shoreZ + 20);
-  const sea = mesh(new THREE.PlaneGeometry(7000, 3000).rotateX(-Math.PI / 2), new THREE.MeshPhysicalMaterial({ color: 0x1b6f95, roughness: 0.08, metalness: 0.1, clearcoat: 1 }), false);
+  // 沙滩：从陆地一侧的边缘铺到海边（岸线外 50 米，正好接上海面，不和海面重叠）
+  const sandZ0 = worldMode === 'open' ? beachEdgeZ() : shoreZ - 20, sandZ1 = shoreZ + 50;
+  const sand = mesh(new THREE.PlaneGeometry(7000, sandZ1 - sandZ0).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: noiseTexture(128, '#e8d6a8', [['#d8c290', 0.8], ['#f6ead0', 0.6]], [600, 8]), roughness: 1, ...LAYER(1) }), false);   // 沙滩只比地面高 1 厘米：用深度偏移压在地面上，远处斜着看也不会被草地盖住
+  sand.position.set(T.bounds.cx, 0.01, (sandZ0 + sandZ1) / 2);
+  const sea = mesh(new THREE.PlaneGeometry(7000, 3000).rotateX(-Math.PI / 2), new THREE.MeshPhysicalMaterial({ color: 0x1a74a0, roughness: 0.32, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.2, envMapIntensity: 0.45 }), false);   // 反光别太强，不然远处的海映成一片白
   sea.position.set(T.bounds.cx, 0.05, shoreZ + 50 + 1500);
-  const foam = mesh(new THREE.PlaneGeometry(7000, 4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }), false);
+  const foam = mesh(new THREE.PlaneGeometry(7000, 4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false, ...LAYER(2) }), false);
   foam.position.set(T.bounds.cx, 0.07, shoreZ + 50);
   world.add(sand, sea, foam);
   world.userData.foam = foam;
+  buildSurf(T.bounds.cx, shoreZ, false);   // 一阵阵涌上沙滩又退回去的浪（beach.js）
 
   // 沙滩上的遮阳伞
   const umbrellas = [], uColors = [];
@@ -3350,6 +3392,8 @@ function buildSeaside(rng, theme) {
   }
   instancedIn(world, new THREE.ConeGeometry(1.4, 0.5, 12, 1, true).translate(0, 2.3, 0), new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, roughness: 0.8 }), umbrellas, uColors);
   instancedIn(world, new THREE.CylinderGeometry(0.03, 0.03, 2.4).translate(0, 1.2, 0), PM.metal, umbrellas);
+  // 每把伞下一张面朝大海的躺椅（下车走到伞下可以坐下休息，beach.js）
+  buildBeachChairs(umbrellas.map((m) => { const p = v().setFromMatrixPosition(m); return { x: p.x + 0.55, z: p.z + 0.1 }; }), false);
 
   // 小房子和岩石
   spotFilter = (x, z) => z < shoreZ - 15;
@@ -4353,13 +4397,17 @@ const PIX_DECOR = {
     const height = pixelHills(rng, blocks, { count: 14, filter: (x, z) => z < shoreZ - 60, top: 'grass', side: 'dirt', core: 'stone' });
     pixelTrees(rng, blocks, height, { count: 170, filter: (x, z) => z < shoreZ - 6, kinds: ['oak', 'oak', 'birch'] });
     pixelHouses(rng, blocks, height, { count: 26, filter: (x, z) => z < shoreZ - 15, wall: 'planks', post: 'log', roof: 'darkPlanks', base: 'cobble' });
+    const chairs = [];
     for (let i = 0; i < 60; i++) {   // 沙滩上的羊毛遮阳伞
       const x = Math.round(T.bounds.cx + (rng() - 0.5) * 900), z = Math.round(shoreZ + 6 + rng() * 36);
       if (!pixFree(x, z, 2)) continue;
       for (let y = 0; y < 3; y++) blocks.add('planks', x, y, z);
       const col = pick(['#a12722', '#f8c627', '#35399d', '#e9ecec', '#f07613', '#169c9c']);
       for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) blocks.add(col, x + dx, 3, z + dz);
+      chairs.push({ x: x + 1.5, z: z + 0.6 });   // 伞柱旁边一格放躺椅
     }
+    buildBeachChairs(chairs, true);   // 面朝大海的躺椅（beach.js）
+    buildSurf(T.bounds.cx, shoreZ, true);   // 一阵阵涌上沙滩又退回去的浪
   },
   canyon(rng, blocks) {
     // 陶瓦台地（仿《我的世界》的恶地）：和经典版一样多、一样大的山——近处 3 米的方块，远处巨型台地用 8 米的方块
@@ -5138,6 +5186,7 @@ function resetWorld() {
   oceanZ = Infinity;
   world = new THREE.Group();
   world.userData.stands = [];
+  world.userData.chairs = [];   // 沙滩躺椅（beach.js）
   scene.add(world);
 }
 
@@ -5211,6 +5260,11 @@ function terrainGrad(x, z) {
 // 画出来的地面高度：地面是 25 米一格的三角形网格，格子中间不等于 terrainH（弯曲的山坡被拉成平面），
 // 人、车、生物站在地面上要用这个，不然凹下去的坡上脚会埋进地里。两种风格格子的对角线方向不同
 const GROUND_CELL = 25, GROUND_HALF = 3800;
+// 开放世界里沙滩陆地一侧的边缘：岸线往陆地 20 米附近、对齐到地面网格的一行（沙滩平面和压低地面都按它来，边缘不会重叠闪烁）
+function beachEdgeZ() {
+  const oz = WORLD_CENTER[1] - GROUND_HALF;
+  return oz + Math.ceil((terrainShoreZ - 20 - oz) / GROUND_CELL) * GROUND_CELL;
+}
 function groundMeshH(x, z) {
   if (worldMode !== 'open') return 0;
   const ox = WORLD_CENTER[0] - GROUND_HALF, oz = WORLD_CENTER[1] - GROUND_HALF;
@@ -5231,7 +5285,10 @@ const zebraShade = (x, z) => (Math.floor((x + z) / 25) % 2 === 0 ? 1 : 0.8);
 function buildOpenGround() {
   const geo = new THREE.PlaneGeometry(7600, 7600, 304, 304).rotateX(-Math.PI / 2).translate(WORLD_CENTER[0], 0, WORLD_CENTER[1]);
   const pos = geo.attributes.position, colors = [];
-  for (let i = 0; i < pos.count; i++) pos.setY(i, terrainH(pos.getX(i), pos.getZ(i)));
+  // 海边：沙滩（高 1 厘米）和海面（高 5 厘米）各是一张平面，地面在它们下面压低半米，
+  // 免得几厘米的间隔在远处 / 高处看时深度精度不够，草地一闪一闪地盖过沙滩和海面。
+  const lowZ = beachEdgeZ() + 1;   // 沙滩陆地一侧的边缘正好在一行网格上，从下一行起压低（倾斜的那一段都在沙滩底下）
+  for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getZ(i) > lowZ ? -0.5 : terrainH(pos.getX(i), pos.getZ(i)));
   geo.computeVertexNormals();
   const cols = Object.fromEntries(TRACKS.map((d) => [d.id, new THREE.Color(THEMES[d.theme].ground[0])]));
   const c = new THREE.Color();
@@ -5883,7 +5940,7 @@ class EngineVoice {
 }
 
 /* ===== js/audio/music.js ===== */
-// 背景音乐：6 首程序生成的曲子，随机切换
+// 背景音乐：6 首程序生成的曲子随机切换；另有 2 首海滨曲（波萨诺瓦、卡里普索）只在沙滩躺椅上选着听
 'use strict';
 
 // =====================================================================
@@ -5959,6 +6016,34 @@ const SONGS = (() => {
     padWave: 'triangle', padCut: 2200, padLevel: 0.05, arp: [0, 2, 1, 3, 2, 1, 3, 2, 0, 2, 1, 3, 2, 3, 1, 2], arpWave: 'triangle', arpDecay: 0.3,
     lead: { wave: 'triangle', rhythm: [X, _, _, X, _, _, X, _, _, _, X, _, X, _, _, _], seed: 99, cut: 4000, decay: 0.35 },
   },
+  // ---- 海滨曲（beach: true）：只在沙滩躺椅的选曲里出现，不进比赛时的随机轮换 ----
+  {
+    name: '椰林晚风', style: '波萨诺瓦', bpm: 128, gain: 1.0, beach: true, beachLevel: 0.55,   // beachLevel：躺椅上播时的音量（和 MP3 一样响）
+    prog: [[36, [60, 64, 67, 71]], [33, [60, 64, 67, 69]], [38, [62, 65, 69, 72]], [31, [59, 62, 65, 67]]],   // Cmaj7 Am7 Dm7 G7
+    kick: [X, _, _, o, _, _, _, _, X, _, _, o, _, _, _, _],
+    snare: [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
+    hat: [o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o],       // 沙锤
+    clave: [X, _, _, X, _, _, X, _, _, _, X, _, _, X, _, _],     // 波萨诺瓦的边击节奏
+    bass: [0, null, null, 7, null, null, null, null, 0, null, null, 7, null, null, 12, null], bassWave: 'sine', bassCut: 600, bassLevel: 0.34, bassDecay: 2.2,
+    padWave: 'sine', padCut: 1400, padLevel: 0.025,
+    strum: [X, _, _, X, _, _, X, _, _, _, X, _, X, _, _, _],     // 尼龙弦吉他扫弦
+    arp: null,
+    lead: { voice: 'flute', wave: 'sine', rhythm: [X, _, _, _, X, _, X, _, _, _, X, _, _, _, _, _], seed: 131, cut: 3000, decay: 0.6 },
+    swing: 0.06,
+  },
+  {
+    name: '钢鼓假日', style: '卡里普索', bpm: 112, gain: 0.95, beach: true, beachLevel: 0.65,
+    prog: [[36, [60, 64, 67]], [29, [60, 65, 69]], [31, [59, 62, 67]], [36, [60, 64, 67]]],   // C F G C
+    kick: [X, _, _, _, _, _, _, _, X, _, _, _, _, _, _, _],
+    snare: [_, _, _, _, o, _, _, _, _, _, _, _, o, _, _, _],
+    hat: [_, o, X, o, _, o, X, o, _, o, X, o, _, o, X, o],
+    conga: [_, _, _, X, _, _, X, _, _, _, _, X, _, X, X, _],
+    bass: [0, null, null, 7, null, null, 12, null, 0, null, null, 7, null, 5, 7, null], bassWave: 'triangle', bassCut: 900, bassLevel: 0.32, bassDecay: 0.8,
+    padWave: 'triangle', padCut: 1500, padLevel: 0.02,
+    arp: [0, 2, 1, 2, 0, 2, 1, 3, 0, 2, 1, 2, 3, 2, 1, 2], arpVoice: 'steel', arpDecay: 0.35,
+    lead: { voice: 'steel', wave: 'sine', rhythm: [X, _, X, _, _, X, _, X, _, X, _, _, X, _, X, _], seed: 157, cut: 5000, decay: 0.5 },
+    swing: 0.1,
+  },
 ];
 })();
 const SONG_BARS = 32;
@@ -5979,7 +6064,8 @@ class MusicBox {
   // 随机选一首和当前不同的曲子，并生成它的主旋律
   pickSong(index = null) {
     let next = index;
-    while (next === null || (next === this.songIndex && SONGS.length > 1)) next = Math.floor(Math.random() * SONGS.length);
+    const pool = SONGS.map((s, i) => i).filter((i) => !SONGS[i].beach);   // 随机换歌不选海滨曲
+    while (next === null || (next === this.songIndex && pool.length > 1)) next = pool[Math.floor(Math.random() * pool.length)];
     this.songIndex = next;
     this.song = SONGS[next];
     this.stepDur = 60 / this.song.bpm / 4;
@@ -6032,6 +6118,22 @@ class MusicBox {
     }, 450);
   }
 
+  // 立刻换成指定的一首（沙滩选曲用）：淡出后从头播
+  playIndex(index) {
+    const ctx = this.fx.ctx;
+    const go = () => {
+      this.pickSong(index);
+      this.nextTime = ctx.currentTime + 0.1;
+      clearInterval(this.timer);
+      this.timer = setInterval(() => this.schedule(), 25);
+      this.bus.gain.setTargetAtTime(this.level, ctx.currentTime, 0.4);
+    };
+    this.on = true;
+    this.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.15);
+    clearInterval(this.timer);
+    setTimeout(go, 300);
+  }
+
   // 菜单里响一些，比赛时压低让引擎声为主
   setLevel(level) {
     if (Math.abs(level - this.level) < 0.001) return;
@@ -6043,7 +6145,7 @@ class MusicBox {
     const ctx = this.fx.ctx;
     while (this.nextTime < ctx.currentTime + 0.15) {
       if (this.step >= SONG_BARS * 16) {
-        this.pickSong();
+        if (this.hold) { this.step = 0; this.onHoldEnd?.(); } else this.pickSong();   // hold：沙滩上选的曲子，播完一遍通知一下（顺序 / 随机播放时换下一首）
         this.nextTime += this.stepDur * 2;   // 两首之间留半拍
       }
       const swing = this.step % 2 === 1 ? (this.song.swing ?? 0) * this.stepDur : 0;
@@ -6067,13 +6169,20 @@ class MusicBox {
     if (!intro && song.bass[s] !== null && !breakdown) this.bass(t, root + song.bass[s], this.stepDur * (song.bassDecay ?? 0.9));
     if (s === 0) this.pad(t, chord, this.stepDur * 16);
     if (song.stabs && drums && song.stabs[s]) this.stab(t, chord);
+    if (song.clave?.[s] && !intro) this.clave(t);
+    if (song.conga?.[s] && drums) this.conga(t, s % 4 === 3 ? 1 : 0);
+    if (song.strum?.[s] && bar >= 2) this.strum(t, chord, s === 0 ? 1 : 0.7);
     if (arpOn && song.arp) {
       const notes = [...chord.map((m) => m + 12), chord[0] + 24];
-      this.pluck(t, notes[song.arp[s] % notes.length], song.arpWave, climax ? 0.045 : 0.032, song.arpDecay ?? 0.14, 2600);
+      const n = notes[song.arp[s] % notes.length];
+      if (song.arpVoice === 'steel') this.steel(t, n, climax ? 0.04 : 0.028, song.arpDecay);
+      else this.pluck(t, n, song.arpWave, climax ? 0.045 : 0.032, song.arpDecay ?? 0.14, 2600);
     }
     if (leadOn) {
       const m = this.melody[(bar % 4) * 16 + s];
-      if (m) this.pluck(t, m, song.lead.wave, 0.055, song.lead.decay ?? 0.22, song.lead.cut);
+      if (m && song.lead.voice === 'steel') this.steel(t, m, 0.06, song.lead.decay);
+      else if (m && song.lead.voice === 'flute') this.flute(t, m, 0.05, this.stepDur * 3);
+      else if (m) this.pluck(t, m, song.lead.wave, 0.055, song.lead.decay ?? 0.22, song.lead.cut);
     }
   }
 
@@ -6173,6 +6282,48 @@ class MusicBox {
     f.type = 'lowpass'; f.frequency.value = cut;
     osc.connect(f).connect(this.env(t, peak, 0.004, decay));
     osc.start(t); osc.stop(t + decay + 0.06);
+  }
+
+  // ---- 海滨曲的乐器 ----
+  // 边击（木头敲击声）：很短的带通噪声 + 高音
+  clave(t) {
+    this.noiseHit(t, 'bandpass', 2600, 6, 0.09, 0.04);
+  }
+  // 康加鼓：音高往下滑的正弦（高音鼓 / 低音鼓）
+  conga(t, low) {
+    const ctx = this.fx.ctx, osc = ctx.createOscillator();
+    osc.type = 'sine';
+    const f0 = low ? 210 : 320;
+    osc.frequency.setValueAtTime(f0 * 1.3, t);
+    osc.frequency.exponentialRampToValueAtTime(f0, t + 0.04);
+    osc.connect(this.env(t, 0.16, 0.003, 0.18));
+    osc.start(t); osc.stop(t + 0.25);
+  }
+  // 尼龙弦吉他扫弦：和弦里的音一个接一个拨响（三角波，衰减快、低通柔和）
+  strum(t, notes, vel) {
+    notes.forEach((m, i) => this.pluck(t + i * 0.012, m, 'triangle', 0.035 * vel, 0.45, 1800));
+  }
+  // 钢鼓：基音 + 2 倍、3.8 倍泛音（有点金属的钟声感），起音快、尾音长
+  steel(t, midi, peak, decay = 0.5) {
+    const ctx = this.fx.ctx, f = mtof(midi);
+    for (const [mul, k] of [[1, 1], [2, 0.45], [3.8, 0.18]]) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f * mul;
+      osc.connect(this.env(t, peak * k, 0.003, decay / mul ** 0.3));
+      osc.start(t); osc.stop(t + decay + 0.1);
+    }
+  }
+  // 长笛：正弦 + 一点颤音，慢起慢收
+  flute(t, midi, peak, dur) {
+    const ctx = this.fx.ctx, osc = ctx.createOscillator(), lfo = ctx.createOscillator(), depth = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = mtof(midi);
+    lfo.frequency.value = 5.2;
+    depth.gain.value = mtof(midi) * 0.006;
+    lfo.connect(depth).connect(osc.frequency);
+    osc.connect(this.env(t, peak, 0.06, dur));
+    osc.start(t); lfo.start(t); osc.stop(t + dur + 0.15); lfo.stop(t + dur + 0.15);
   }
 }
 
@@ -9686,6 +9837,17 @@ function toggleWalk() {
 function buildWalkerModel(charId = player.character, color = player.color ?? 0xd42020) {
   const pel = createDriver(charId, 0xffffff, color);
   const { legs, len } = buildCharLegs(charId, color);   // 每个角色自己的腿和脚（characters.js）
+  // 坐着开车时头是往前探的（看路）；站着 / 躺着时把头挪回身体正上方，头的后面和后背对齐，不会像驼背一样往前倾
+  if (charId && charId !== 'pelican') {
+    const skip = new Set([pel.head, pel.neck, ...pel.wings.flatMap((w) => [w.upper, w.fore, w.hand])]);
+    const box = new THREE.Box3();
+    pel.group.updateMatrixWorld(true);
+    for (const o of pel.group.children) if (!skip.has(o)) box.expandByObject(o);
+    const cz = box.isEmpty() ? 0 : (box.min.z + box.max.z) / 2;
+    pel.head.position.z = cz;
+    pel.headZ = cz;
+    if (pel.neck) pel.neck.position.z = cz;
+  }
   if (pixelActive) {
     voxelizePelican(pel);
     for (const h of legs) voxelizeGroup(h, 0.025);
@@ -9754,7 +9916,7 @@ function walkFeetGround(w) {
   const [fx, fz] = forwardOf(w.heading), r = 0.3 * WALK_SCALE;
   let g = walkGround(w.x, w.z);
   for (const [a, b] of [[fx, fz], [-fx, -fz], [fz, -fx], [-fz, fx]]) g = Math.max(g, walkGround(w.x + a * r, w.z + b * r));
-  return Math.max(g, buildGroundUnder(w.x, w.z, w.y, 0.3));   // 站在方块上（乐园建筑、自己搭的）
+  return Math.max(g, buildGroundUnder(w.x, w.z, w.y, 0.3)) - seaDepthAt(w.x, w.z);   // 站在方块上（乐园建筑、自己搭的）；走进海里时脚往下沉（水越来越深）
 }
 
 // ---------------- 找车：头顶的指路箭头 + 车顶的光柱 + 屏幕上的距离 ----------------
@@ -9837,6 +9999,14 @@ function footstep(w, run) {
   const onRoad = q && Math.abs(trackCoords(q.road, w.x, w.z, q.i).lat) <= q.road.B + 0.5;
   const theme = TRACK_BY_ID[nearestRegion(w.x, w.z)].theme;
   const g = run ? 1.4 : 1;
+  if (inWaterAt(w.x, w.z)) {   // 踩在水里：哗啦一声，脚边溅起水花
+    sound.burst({ duration: 0.18, type: 'bandpass', frequency: 1300 + Math.random() * 700, gain: 0.16 * g });
+    sound.burst({ duration: 0.12, type: 'lowpass', frequency: 450, gain: 0.12 * g });
+    const [fx, fz] = forwardOf(w.heading);
+    const wy = w.y + seaDepthAt(w.x, w.z) + 0.05;
+    for (let k = 0; k < 6; k++) emit(sparkPool, v(w.x + fx * 0.3 + rand(-0.3, 0.3), wy, w.z + fz * 0.3 + rand(-0.3, 0.3)), { vel: v(rand(-1.2, 1.2), rand(1.5, 3), rand(-1.2, 1.2)), life: 0.45, size0: 0.25, size1: 0.08, color: 0xe8f8ff, gravity: 9, alpha: 0.9 });
+    return;
+  }
   if (onRoad) {
     sound.burst({ duration: 0.05, type: 'bandpass', frequency: 1800 + Math.random() * 500, gain: 0.16 * g });
     sound.tone({ frequency: 140, slideTo: 80, duration: 0.06, gain: 0.12 * g });
@@ -9859,7 +10029,10 @@ function walkCollide(w) {
   // 自己的车也挡路
   const dx = w.x - player.x, dz = w.z - player.z, d = Math.hypot(dx, dz) || 0.01, need = player.built.half[0] + R;
   if (d < need) { w.x = player.x + (dx / d) * need; w.z = player.z + (dz / d) * need; }
-  if (w.z > oceanZ - 2) w.z = oceanZ - 2;
+  // 海边：能走进浅水区（海面开始往外 WADE_MAX 米），再往外太深了过不去；没有浪的地方还是到岸边为止
+  const surf = world?.userData.surf;
+  const seaLimit = surf ? surf.seaZ + WADE_MAX : oceanZ - 2;
+  if (w.z > seaLimit) w.z = seaLimit;
   const cx = w.x - WORLD_CENTER[0], cz = w.z - WORLD_CENTER[1], cd = Math.hypot(cx, cz);
   if (cd > WORLD_RADIUS - 3) { w.x = WORLD_CENTER[0] + (cx / cd) * (WORLD_RADIUS - 3); w.z = WORLD_CENTER[1] + (cz / cd) * (WORLD_RADIUS - 3); }
 }
@@ -9879,7 +10052,8 @@ function updateWalk(dt) {
   const fwd = !down && (keys.has('ArrowUp') || keys.has('KeyW')), back = !down && (keys.has('ArrowDown') || keys.has('KeyS'));
   const ix = (left ? 1 : 0) - (right ? 1 : 0), iz = (fwd ? 1 : 0) - (back ? 1 : 0);
   const run = keys.has('ShiftLeft') || keys.has('ShiftRight');
-  const top = run ? WALK_RUN : WALK_SPEED;
+  const wade = seaDepthAt(w.x, w.z) / WADE_DEPTH;   // 在海里：水越深走得越慢
+  const top = (run ? WALK_RUN : WALK_SPEED) * (1 - 0.5 * wade);
   let want = 0;
   if (viewMode === 'first') {
     // 第一人称：←→ 原地转身，↑ 前进、↓ 后退
@@ -9928,8 +10102,10 @@ function updateWalk(dt) {
   w.legs[1].rotation.x = w.air ? -0.5 : -swing;
   for (const wing of w.pel.wings) {
     const a = swing * wing.side;
-    const elbow = v(wing.shoulder.x * 1.15, wing.shoulder.y - 0.17 + runK * 0.05, wing.shoulder.z + a * 0.12);
-    const hand = v(wing.shoulder.x * 1.2, wing.shoulder.y - 0.32 + runK * 0.14, wing.shoulder.z + a * (0.24 + runK * 0.1) + 0.04 + runK * 0.08);
+    // 手臂从身体外侧垂下来（胖的角色往外让开，不插进肚子里）
+    const sx = wing.side * Math.max(Math.abs(wing.shoulder.x) * 1.15, w.pel.armClear ?? 0);
+    const elbow = v(sx, wing.shoulder.y - 0.17 + runK * 0.05, wing.shoulder.z + a * 0.12);
+    const hand = v(sx * 1.04, wing.shoulder.y - 0.32 + runK * 0.14, wing.shoulder.z + a * (0.24 + runK * 0.1) + 0.04 + runK * 0.08);
     setLimb(wing.upper, wing.shoulder, elbow, 0.06, 0.055);
     setLimb(wing.fore, elbow, hand, 0.045, 0.04);
     wing.hand.position.copy(hand);
@@ -9949,6 +10125,7 @@ function updateWalk(dt) {
 // 走路时的镜头：跟在角色身后稍高一点
 function updateWalkCamera(dt) {
   const w = walker;
+  if (beachSitting()) return updateBeachCamera(dt);   // 躺在沙滩躺椅上：看海的镜头（beach.js）
   if (viewMode === 'free') {
     // 自由视角：镜头围着人转，鼠标 / 手指拖动转向、滚轮 / 双指缩放（OrbitControls），人走动时镜头跟着平移
     const tx = w.x, ty = w.y + 1.2, tz = w.z;
@@ -10977,6 +11154,501 @@ function renderHotbar() {
   [...bar.children].forEach((b, i) => b.classList.toggle('sel', i === buildSlot));
 }
 
+/* ===== js/game/beach.js ===== */
+// 阳光海滨的沙滩休息：每把遮阳伞下有一张面朝大海的躺椅。下车走到伞下会问「要坐下休息吗？」，
+// 坐下后人躺在躺椅上看海，镜头转到身后，听着海浪声，弹出选曲面板挑海滨音乐（网上的 CC0 曲子 + 程序合成的海滨曲）；
+// 按方向键 / E / F 或点「起身」站起来，背景音乐换回原来的。
+'use strict';
+
+// 选曲：file 是 music/ 里的 MP3（来源和授权见 music/CREDITS.md），song 是 music.js 里的海滨合成曲；group：🎻 古典（排在最前面）/ 🎤 有人唱的歌 / 🎶 纯音乐 / 🎹 游戏原创
+const ENDE = 'Sascha Ende · ende.app · CC BY 4.0';
+const BEACH_TRACKS = [
+  { group: '🎻', file: 'music/clair-de-lune.mp3', name: '月光', by: '德彪西 · 演奏 Laurens Goedhart · 公共领域', style: '钢琴 · 《贝加马斯克组曲》' },
+  { group: '🎻', file: 'music/gymnopedie-1.mp3', name: '裸体歌舞 第 1 号', by: '萨蒂 · 演奏 Robin Alciatore（Musopen）· 公共领域', style: '钢琴' },
+  { group: '🎻', file: 'music/chopin-nocturne-op9-2.mp3', name: '降 E 大调夜曲 Op.9 No.2', by: '肖邦 · 演奏 Peter Johnston（Musopen）· CC0', style: '钢琴' },
+  { group: '🎻', file: 'music/bach-air.mp3', name: 'G 弦上的咏叹调', by: '巴赫 · 美国空军乐团弦乐队 · 公共领域', style: '弦乐' },
+  { group: '🎻', file: 'music/bach-prelude-c.mp3', name: 'C 大调前奏曲 BWV 846', by: '巴赫 · 演奏 Kimiko Ishizaka · CC0', style: '钢琴 · 《平均律》' },
+  { group: '🎻', file: 'music/pachelbel-canon.mp3', name: 'D 大调卡农', by: '帕赫贝尔 · Kevin MacLeod（incompetech.com）· CC BY 3.0', style: '弦乐' },
+  { group: '🎻', file: 'music/mozart-serenade.mp3', name: '弦乐小夜曲 第一乐章', by: '莫扎特 · European Archive（Musopen）· 公共领域', style: '弦乐 · K.525' },
+  { group: '🎻', file: 'music/vivaldi-spring.mp3', name: '四季 ·「春」第一乐章', by: '维瓦尔第 · 小提琴 John Harrison、Wichita State University Chamber Players · CC BY-SA 4.0', style: '小提琴协奏曲' },
+  { group: '🎻', file: 'music/fur-elise.mp3', name: '致爱丽丝', by: '贝多芬 · 演奏 Qoo（日文维基百科用户 Tenko）· CC BY-SA 2.5', style: '钢琴' },
+  { group: '🎻', file: 'music/handel-passacaglia.mp3', name: '帕萨卡利亚', by: '亨德尔–哈尔沃森 · 小提琴 Roxana Pavel Goldstein、中提琴 Elias Goldstein · CC BY-SA 2.0', style: '小提琴和中提琴二重奏' },
+  { group: '🎻', file: 'music/scarlatti-k380.mp3', name: 'E 大调奏鸣曲 K.380', by: '斯卡拉蒂 · 钢琴 Raymond Smullyan · CC BY-SA 2.0', style: '钢琴' },
+  { group: '🎻', file: 'music/scarlatti-k9.mp3', name: 'd 小调奏鸣曲 K.9', by: '斯卡拉蒂 · 钢琴 Florence Robineau · CC BY-SA 3.0', style: '钢琴' },
+  { group: '🎻', file: 'music/bach-goldberg-aria.mp3', name: '哥德堡变奏曲 · 咏叹调', by: '巴赫 · 钢琴 Kimiko Ishizaka · CC0', style: '钢琴' },
+  { group: '🎻', file: 'music/bach-cello-prelude.mp3', name: '第一号无伴奏大提琴组曲 · 前奏曲', by: '巴赫 · 大提琴 Pablo Casals · 公共领域', style: '大提琴' },
+  { group: '🎻', file: 'music/mozart-turkish-march.mp3', name: '土耳其进行曲', by: '莫扎特 · 公共领域', style: '钢琴 · K.331 第三乐章' },
+  { group: '🎻', file: 'music/mozart-k545.mp3', name: 'C 大调奏鸣曲 K.545 第一乐章', by: '莫扎特 · Musopen · 公共领域', style: '钢琴' },
+  { group: '🎻', file: 'music/grieg-morning.mp3', name: '晨景（培尔·金特）', by: '格里格 · 捷克国家交响乐团（Musopen）· 公共领域', style: '管弦乐' },
+  { group: '🎻', file: 'music/handel-sarabande.mp3', name: '水上音乐 · 萨拉班德', by: '亨德尔 · 美国海军陆战队乐团室内乐团 · 公共领域', style: '室内乐团' },
+  { group: '🎻', file: 'music/liszt-liebestraum.mp3', name: '爱之梦 第 3 号', by: '李斯特 · CC BY-SA 2.0', style: '钢琴' },
+  { group: '🎤', file: 'music/summer-in-our-soul.mp3', name: 'Summer In Our Soul', by: ENDE, style: '女声 · 舞曲流行' },
+  { group: '🎤', file: 'music/caipirinha.mp3', name: 'Caipirinha', by: ENDE, style: '男女对唱 · 拉丁流行' },
+  { group: '🎤', file: 'music/na-na-na.mp3', name: 'Na-na-na, na-na-na', by: ENDE, style: '女声 · 电子流行' },
+  { group: '🎤', file: 'music/rapunzel.mp3', name: 'Rapunzel, Drop Your Hair', by: ENDE, style: '男声说唱 · 尤克里里' },
+  { group: '🎶', file: 'music/vintage-hawaii.mp3', name: 'Vintage Hawaii', by: 'Tarush Singhal · CC0', style: '复古夏威夷 · 尤克里里' },
+  { group: '🎶', file: 'music/bossa-town.mp3', name: 'Bossa Town', by: 'KarateStudios · CC0', style: '海边小镇 · 波萨诺瓦' },
+  { group: '🎶', file: 'music/summer-island-rhythms.mp3', name: 'Summer Island Rhythms', by: ENDE, style: '轻松雷鬼' },
+  { group: '🎶', file: 'music/sunset-paradise.mp3', name: 'Sunset Paradise', by: ENDE, style: '钢鼓风热带' },
+  { group: '🎶', file: 'music/feel-good-island.mp3', name: 'Feel Good Island', by: 'AntumDeluge · CC0', style: '轻松海岛' },
+  { group: '🎶', file: 'music/beach-sports.mp3', name: 'Beach Sports Theme', by: 'Trex0n · CC0', style: '欢快沙滩' },
+  { group: '🎶', file: 'music/tropical-loop.mp3', name: 'Tropical Loop', by: 'wipics · CC0', style: '热带 · 康加鼓' },
+  { group: '🎶', file: 'music/8bit-bossa.mp3', name: '8bit Bossa', by: 'Joth · CC0', style: '8 位芯片 · 波萨诺瓦' },
+  { group: '🎹', song: '椰林晚风', by: '游戏原创（实时合成）', style: '波萨诺瓦 · 吉他和长笛' },
+  { group: '🎹', song: '钢鼓假日', by: '游戏原创（实时合成）', style: '卡里普索 · 钢鼓' },
+];
+const BEACH_GROUPS = { '🎻': '🎻 古典音乐', '🎤': '🎤 歌曲（有人唱）', '🎶': '🎶 海滨纯音乐', '🎹': '🎹 游戏原创' };
+const beach = { near: null, asked: null, sit: null, track: -1, audio: null, paused: false, waves: null, camT: 0, view: 0, mode: store.get('animal-rush-beach-mode', 'seq') };
+// 播放模式（L 切换，会记住）：顺序播放（默认）/ 单曲循环 / 随机播放
+const BEACH_MODES = { seq: '🔁 顺序播放', one: '🔂 单曲循环', shuffle: '🔀 随机播放' };
+// 休息时的视角（T 切换）：看海（侧后方）/ 我的视角（躺着看出去）/ 正面（从海这边看人）/ 全景（高处俯瞰）/ 自由（鼠标拖动环绕）
+const BEACH_VIEWS = ['看海', '我的视角', '正面', '全景', '自由'];
+const SEAT_Y = 0.42;   // 躺椅坐垫的高度
+
+// ---------------- 躺椅（建世界时调用；经典 / 像素风格共用一份模型，像素风格换方块贴图） ----------------
+function buildBeachChairs(spots, pixel) {
+  if (!spots.length) return;
+  // 每张躺椅朝 +z（大海）：前面是平的坐垫（放腿），后面是斜着的靠背
+  const frame = merge([
+    ...[[-0.28, -0.55], [0.28, -0.55], [-0.28, 0.75], [0.28, 0.75]].map(([x, z]) => [new THREE.BoxGeometry(0.05, SEAT_Y, 0.05), compose(v(x, SEAT_Y / 2, z))]),
+    [new THREE.BoxGeometry(0.62, 0.04, 1.4), compose(v(0, SEAT_Y - 0.04, 0.1))],                       // 坐垫下的架子
+  ]);
+  const cloth = merge([
+    [new THREE.BoxGeometry(0.56, 0.05, 1.25), compose(v(0, SEAT_Y, 0.15))],                            // 坐垫
+    [new THREE.BoxGeometry(0.56, 0.05, 0.75), compose(v(0, SEAT_Y + 0.28, -0.72), new THREE.Euler(0.85, 0, 0))],   // 靠背：往后倒（高的一头在背后，低的一头接着坐垫）
+  ]);
+  frame.userData.shared = cloth.userData.shared = false;
+  const mats = spots.map((p) => compose(v(p.x, groundMeshH(p.x, p.z), p.z)));
+  const cols = spots.map((_, i) => new THREE.Color(['#f2f2f2', '#2f8fd8', '#f2c430', '#e85a4a', '#34b38a'][i % 5]));
+  const frameMat = pixel ? new THREE.MeshStandardMaterial({ map: blockMat('planks').map, roughness: 0.9 }) : new THREE.MeshStandardMaterial({ color: 0xc89a5a, roughness: 0.7 });
+  const clothMat = pixel ? new THREE.MeshStandardMaterial({ map: blockMat('#e9ecec').map, roughness: 0.95 }) : new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 });
+  const fm = instancedIn(world, frame, frameMat, mats, null, true);
+  const cm = instancedIn(world, cloth, clothMat, mats, cols, true);
+  for (const m of [fm, cm]) { m.frustumCulled = false; m.userData.noCull = true; }
+  for (const p of spots) world.userData.chairs.push({ x: p.x, z: p.z, y: groundMeshH(p.x, p.z) });
+}
+
+// ---------------- 面板（问要不要坐下 / 选曲） ----------------
+const beachPanel = $('beachPanel');
+function renderBeachAsk() {
+  beachPanel.innerHTML = `<div class="tp-head">⛱️ 要坐下休息吗？<button class="tp-x" data-act="no">✕</button></div>
+    <div class="tp-line">躺椅面朝大海，坐下来听听海浪和音乐吧。</div>
+    <div class="tp-opts"><button data-act="sit"><kbd>E</kbd>🏖️ 坐下休息</button><button data-act="no"><kbd>2</kbd>不用了</button></div>`;
+  beachPanel.style.display = 'block';
+}
+function renderBeachMusic() {
+  // 重画前记住列表滚到哪了，重画后还原（不然点歌 / 下一首会跳回顶部）
+  const oldList = beachPanel.querySelector('.bp-list');
+  const scroll = oldList ? oldList.scrollTop : null;
+  // 按组列出：组名一行，下面是曲子；前 10 首能用数字键 1～9、0 选；正在放的那首底下有播放进度
+  const rows = BEACH_TRACKS.map((t, i) => (i === 0 || BEACH_TRACKS[i - 1].group !== t.group ? `<div class="bp-group">${BEACH_GROUPS[t.group]}</div>` : '') +
+    `<button data-act="track" data-i="${i}" class="${i === beach.track ? 'on' : ''}"><kbd>${i < 10 ? (i + 1) % 10 : '·'}</kbd><b>${i === beach.track ? (beach.paused ? '⏸ ' : '🎵 ') : ''}${t.name ?? t.song}</b><small>${t.style}</small><i>${t.by}</i></button>` +
+    (i === beach.track ? '<div class="bp-seek"><div class="bp-time"></div><div class="bp-track"><span class="bp-fill"></span><span class="bp-knob"></span></div></div>' : '')).join('');
+  beachPanel.innerHTML = `<div class="tp-head">🎵 海滨音乐 <span>面朝大海，春暖花开</span><button class="bp-mode" data-act="mode" title="切换播放模式（L）">${BEACH_MODES[beach.mode]}</button><button class="tp-x" data-act="stand" title="起身">✕</button></div>
+    <div class="bp-list">${rows}</div>
+    <div class="bp-bar"><button data-act="pause"><kbd>空格</kbd>${beach.paused || beach.track < 0 ? '▶ 播放' : '⏸ 暂停'}</button><button data-act="next"><kbd>N</kbd>下一首</button><button data-act="view"><kbd>T</kbd>📷 ${BEACH_VIEWS[beach.view]}</button><button data-act="stand"><kbd>E</kbd>🚶 起身</button></div>
+    <div class="bp-note">🎻 古典音乐的录音来自维基共享资源（公共领域 / CC 授权，演奏者见每首下方）；🎤 歌曲和部分纯音乐来自 Sascha Ende（ende.app，CC BY 4.0），其余纯音乐来自 OpenGameArt.org（CC0）；🎹 是游戏实时合成的</div>`;
+  beachPanel.style.display = 'block';
+  const list = beachPanel.querySelector('.bp-list');
+  if (scroll !== null) list.scrollTop = scroll;
+  // 换了曲子：当前这首不在可见范围里就滚过去（只滚列表，不动整个页面）
+  if (beach.track !== beach.shownTrack) {
+    beach.shownTrack = beach.track;
+    const cur = list.querySelector('button.on');
+    if (cur) {
+      const top = cur.offsetTop - list.offsetTop, bottom = top + cur.offsetHeight;
+      if (top < list.scrollTop || bottom > list.scrollTop + list.clientHeight) list.scrollTop = top - (list.clientHeight - cur.offsetHeight) / 2;
+    }
+  }
+  updateBeachProgress();
+}
+// 播放进度：当前这首下面的时间（上面一行）和进度条（带圆点，可以点击、拖动换位置）
+const fmtSec = (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+function beachPos() {
+  const t = BEACH_TRACKS[beach.track];
+  if (t?.file && beach.audio) return [beach.audio.currentTime || 0, beach.audio.duration || 0];
+  if (t?.song && sound.music) { const mb = sound.music, dur = SONG_BARS * 16 * mb.stepDur; return [Math.min(dur, mb.step * mb.stepDur), dur]; }
+  return [0, 0];
+}
+function updateBeachProgress() {
+  const fill = beachPanel.querySelector('.bp-fill'), knob = beachPanel.querySelector('.bp-knob'), lab = beachPanel.querySelector('.bp-time');
+  if (!fill) return;
+  const [pos0, dur] = beachPos();
+  const pos = beach.dragFrac != null ? beach.dragFrac * dur : pos0;   // 拖动时跟着手指 / 鼠标走
+  const pct = dur ? (100 * pos) / dur : 0;
+  fill.style.width = `${pct}%`;
+  knob.style.left = `${pct}%`;
+  lab.textContent = dur ? `${fmtSec(pos)} / ${fmtSec(dur)}` : '加载中…';
+}
+// 跳到某个位置（0～1）：MP3 改 currentTime，合成曲改从第几步开始
+function seekBeach(frac) {
+  const t = BEACH_TRACKS[beach.track];
+  frac = clamp(frac, 0, 0.999);
+  if (t?.file && beach.audio?.duration) beach.audio.currentTime = frac * beach.audio.duration;
+  else if (t?.song && sound.music) sound.music.step = Math.floor(frac * SONG_BARS * 16);
+}
+// 进度条：按下就跳过去，按住拖动时圆点跟着走，松开时定下来
+beachPanel.addEventListener('pointerdown', (e) => {
+  const track = e.target.closest('.bp-track');
+  if (!track) return;
+  e.preventDefault(); e.stopPropagation();
+  track.setPointerCapture(e.pointerId);
+  const at = (ev) => { const r = track.getBoundingClientRect(); return clamp((ev.clientX - r.left) / r.width, 0, 1); };
+  beach.dragFrac = at(e);
+  updateBeachProgress();
+  const move = (ev) => { beach.dragFrac = at(ev); updateBeachProgress(); };
+  const up = (ev) => {
+    seekBeach(at(ev));
+    beach.dragFrac = null;
+    track.removeEventListener('pointermove', move);
+    track.removeEventListener('pointerup', up);
+    track.removeEventListener('pointercancel', up);
+    setTimeout(updateBeachProgress, 50);
+  };
+  track.addEventListener('pointermove', move);
+  track.addEventListener('pointerup', up);
+  track.addEventListener('pointercancel', up);
+}, true);
+beachPanel.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  e.preventDefault();
+  sound.init();
+  const act = b.dataset.act;
+  if (act === 'sit') sitDown();
+  else if (act === 'no') declineSit();
+  else if (act === 'stand') standUp();
+  else if (act === 'track') playBeachTrack(Number(b.dataset.i));
+  else if (act === 'pause') toggleBeachPause();
+  else if (act === 'next') nextBeachTrack();
+  else if (act === 'mode') cycleBeachMode();
+  else if (act === 'view') cycleBeachView();
+});
+function closeBeachPanel() { beachPanel.style.display = 'none'; }
+function declineSit() { beach.asked = beach.near; closeBeachPanel(); }
+
+// ---------------- 坐下 / 起身 ----------------
+const beachSitting = () => !!(walker && beach.sit);
+function sitDown() {
+  const c = beach.near;
+  if (!walker || !c) return;
+  beach.sit = c;
+  walker.speed = 0; walker.air = false; walker.vy = 0; walker.atk = null;
+  closeTalk?.();
+  sound.burst({ duration: 0.25, type: 'lowpass', frequency: 400, gain: 0.25 });
+  startWaves();
+  beach.camT = 0;
+  setBeachView(0);
+  renderBeachMusic();
+  if (beach.track < 0) playBeachTrack(0);   // 第一次坐下：放第一首
+  else playBeachTrack(beach.track);
+  showMessage('🏖️ 面朝大海<small>选一首喜欢的音乐 · 方向键 / E 起身</small>', 2.4);
+}
+function standUp() {
+  const c = beach.sit;
+  if (!c) return;
+  beach.sit = null;
+  setBeachView(0);
+  controls.enabled = viewMode === 'free';
+  closeBeachPanel();
+  stopBeachMusic();
+  stopWaves();
+  if (walker) {
+    // 站到躺椅旁边（靠背那一侧），恢复站姿
+    walker.x = c.x - 0.9; walker.z = c.z - 0.4;
+    walker.y = walkGround(walker.x, walker.z);
+    walker.heading = walker.camHeading = 0;
+    walker.pel.group.rotation.x = 0;
+    for (const h of walker.legs) h.rotation.x = 0;
+  }
+  beach.asked = c;   // 起身后不马上再问
+}
+
+// ---------------- 音乐 ----------------
+// 停掉一首：光暂停的话浏览器还会在后台继续下载它、占着连接（同一个网站最多 6 个），快速切几首后新的曲子就加载不出来；
+// 清掉地址让它立刻中止下载
+function releaseAudio(a) {
+  a.pause();
+  a.removeAttribute('src');
+  a.load();
+}
+function stopBeachMusic() {
+  if (beach.audio) { releaseAudio(beach.audio); beach.audio = null; }
+  const mb = sound.music;
+  if (mb) {
+    mb.hold = false;
+    mb.onHoldEnd = null;
+    mb.pickSong();   // 换回比赛时的随机曲子
+    if (sound.musicOn) { mb.on = false; mb.start(); } else mb.stop();
+  }
+  beach.paused = false;
+}
+function playBeachTrack(i) {
+  const t = BEACH_TRACKS[i];
+  if (!t) return;
+  beach.track = i;
+  beach.paused = false;
+  if (beach.audio) { releaseAudio(beach.audio); beach.audio = null; }
+  const mb = sound.music;
+  if (t.file) {
+    mb?.stop();
+    const a = new Audio(t.file);
+    a.loop = beach.mode === 'one';
+    a.addEventListener('ended', () => { if (beach.audio === a && beach.sit) nextBeachTrack(true); });   // 播完：按模式接下一首
+    a.volume = sound.enabled ? 0.7 : 0;
+    a.play().catch((e) => { if (e.name !== 'AbortError' && beach.audio === a) showMessage('🎵 这首曲子加载失败<small>换一首试试（需要从网站或本地服务器打开游戏）</small>', 2); });   // 切歌打断上一首会报 AbortError，不算失败
+    beach.audio = a;
+  } else if (mb) {
+    const idx = SONGS.findIndex((s) => s.name === t.song);
+    mb.hold = true;
+    mb.onHoldEnd = () => { if (beach.sit && BEACH_TRACKS[beach.track] === t) nextBeachTrack(true); };   // 合成曲播完一遍
+    mb.playIndex(idx);
+  }
+  showNowPlaying({ name: t.name ?? t.song, style: `${t.style} · ${t.by}` });
+  if (beach.sit) renderBeachMusic();
+}
+function nextBeachTrack(auto = false) {
+  const n = BEACH_TRACKS.length;
+  if (auto && beach.mode === 'one') return playBeachTrack(beach.track);   // 单曲循环：播完再从头放这一首
+  if (beach.mode === 'shuffle') {
+    let i = beach.track;
+    while (n > 1 && i === beach.track) i = Math.floor(Math.random() * n);
+    return playBeachTrack(i);
+  }
+  playBeachTrack((beach.track + 1) % n);
+}
+function cycleBeachMode() {
+  const order = Object.keys(BEACH_MODES);
+  beach.mode = order[(order.indexOf(beach.mode) + 1) % order.length];
+  store.set('animal-rush-beach-mode', beach.mode);
+  if (beach.audio) beach.audio.loop = beach.mode === 'one';
+  showMessage(BEACH_MODES[beach.mode], 1);
+  if (beach.sit) renderBeachMusic();
+}
+function toggleBeachPause() {
+  if (beach.track < 0) return playBeachTrack(0);
+  beach.paused = !beach.paused;
+  const t = BEACH_TRACKS[beach.track];
+  if (t.file && beach.audio) { if (beach.paused) beach.audio.pause(); else beach.audio.play(); }
+  else if (sound.music) { if (beach.paused) sound.music.stop(); else { sound.music.hold = true; sound.music.start(); } }
+  renderBeachMusic();
+}
+
+// 海浪声：低通的噪声，音量随一个很慢的波起伏（一波一波地涌上来）
+function startWaves() {
+  if (!sound.ready || beach.waves) return;
+  const ctx = sound.ctx;
+  const src = ctx.createBufferSource();
+  src.buffer = sound.noise;
+  src.loop = true;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 650;
+  const g = ctx.createGain();
+  g.gain.value = 0.0;
+  const lfo = ctx.createOscillator(), depth = ctx.createGain();
+  lfo.frequency.value = 0.11;
+  depth.gain.value = 0.09;
+  lfo.connect(depth).connect(g.gain);
+  const base = ctx.createConstantSource();
+  base.offset.value = 0.12;
+  base.connect(g.gain);
+  src.connect(lp).connect(g).connect(sound.master);
+  src.start(); lfo.start(); base.start();
+  beach.waves = { src, lfo, base, g };
+}
+function stopWaves() {
+  const w = beach.waves;
+  if (!w) return;
+  const t = sound.ctx.currentTime;
+  w.g.gain.cancelScheduledValues(t);
+  for (const n of [w.src, w.lfo, w.base]) n.stop(t + 0.6);
+  w.base.offset.setTargetAtTime(0, t, 0.15);
+  beach.waves = null;
+}
+
+// ---------------- 每帧（在 updateInteract 之后） ----------------
+function updateBeach(dt) {
+  const chairs = world?.userData.chairs;
+  if (!walker || !chairs?.length) {
+    if (beach.sit) { beach.sit = null; stopBeachMusic(); stopWaves(); }
+    document.body.classList.remove('resting');
+    if (beachPanel.style.display !== 'none') closeBeachPanel();
+    beach.near = null;
+    return;
+  }
+  const w = walker;
+  document.body.classList.toggle('resting', !!beach.sit);
+  if (beach.sit) {
+    const c = beach.sit;
+    // 躺在躺椅上：面朝大海，腿往前伸，上身往后靠
+    w.speed = 0; w.vy = 0; w.air = false;
+    w.x = c.x; w.z = c.z - 0.12; w.heading = 0;   // 坐在坐垫靠前一点，仰着的头正好在椅背上方（往后坐的话大头角色的脸会倒进椅背后面）
+    const S = w.group.scale.x;
+    w.y = c.y + SEAT_Y + 0.03 - (w.legLen ?? 0.42) * S;
+    w.group.position.set(w.x, w.y, w.z);
+    w.group.rotation.set(0, 0, 0);
+    w.pel.group.rotation.x = -0.5;
+    for (const h of w.legs) h.rotation.x = -1.45;
+    // 敌对生物不来打扰
+    for (const m of mobs) if (m.t.hostile && Math.hypot(m.x - w.x, m.z - w.z) < 40) { m.calmT = Math.max(m.calmT, 1); m.provoked = false; }
+    w.hp = Math.min(20, (w.hp ?? 20) + dt * 0.5);   // 休息回血
+    if (w.arrow) w.arrow.visible = false;
+    beach.progT = (beach.progT ?? 0) - dt;
+    if (beach.progT <= 0) { beach.progT = 0.25; updateBeachProgress(); }
+    return;
+  }
+  // 走到伞下：问要不要坐下
+  let near = null, bd = 1.7;
+  for (const c of chairs) {
+    const d = Math.hypot(c.x - w.x, c.z - w.z);
+    if (d < bd) { bd = d; near = c; }
+  }
+  beach.near = near;
+  if (!near) { if (beach.asked) beach.asked = null; if (beachPanel.style.display !== 'none') closeBeachPanel(); return; }
+  if (beach.asked !== near && beachPanel.style.display === 'none' && !talk && !buildOn) renderBeachAsk();
+}
+const beachAskOpen = () => !beach.sit && beach.near && beachPanel.style.display !== 'none';
+
+function setBeachView(i) {
+  beach.view = i;
+  const free = BEACH_VIEWS[i] === '自由';
+  controls.enabled = free;
+  if (free && beach.sit) {   // 自由视角：围着躺椅上的人转，从侧后方开始
+    const c = beach.sit;
+    controls.target.set(c.x, c.y + 0.7, c.z);
+    camera.position.set(c.x + 3, c.y + 2.2, c.z - 3.5);
+    controls.update();
+  }
+  if (walker) walker.pel.crest.visible = BEACH_VIEWS[i] !== '我的视角';   // 自己的头别挡住眼睛
+}
+function cycleBeachView() {
+  setBeachView((beach.view + 1) % BEACH_VIEWS.length);
+  showMessage(`📷 视角：${BEACH_VIEWS[beach.view]}`, 1);
+  if (beach.sit) renderBeachMusic();
+}
+const beachEye = new THREE.Vector3();
+// 坐着时的镜头（按 T 切换）；默认在躺椅后上方，越过人看向大海，慢慢地左右轻晃
+function updateBeachCamera(dt) {
+  const c = beach.sit;
+  beach.camT += dt;
+  const view = BEACH_VIEWS[beach.view];
+  if (view === '自由') {
+    controls.target.set(c.x, c.y + 0.7, c.z);
+    controls.update();
+    camFov += (55 - camFov) * Math.min(1, dt * 3);
+    return;
+  }
+  if (view === '我的视角') {   // 躺在椅子上看出去：眼睛的位置，看向海平线，随着呼吸轻轻起伏
+    walker.pel.head.updateWorldMatrix(true, false);
+    walker.pel.head.localToWorld(beachEye.set(0, 0.09, 0.08));
+    camera.position.copy(beachEye);
+    lookTarget.set(c.x + Math.sin(beach.camT * 0.15) * 3, c.y + 1.4 + Math.sin(beach.camT * 0.5) * 0.15, c.z + 40);
+    camera.lookAt(lookTarget);
+    camFov += (68 - camFov) * Math.min(1, dt * 3);
+    return;
+  }
+  if (view === '正面') {   // 站在海这边回头看：躺椅上的人、头顶的伞
+    camera.position.lerp(v(c.x + 0.8, c.y + 1.5, c.z + 4.2), Math.min(1, dt * 2.5));
+    lookTarget.set(c.x, c.y + 0.75, c.z - 0.4);
+    camera.lookAt(lookTarget);
+    camFov += (55 - camFov) * Math.min(1, dt * 3);
+    return;
+  }
+  if (view === '全景') {   // 高处俯瞰：整片沙滩、遮阳伞和大海，镜头慢慢绕
+    const a = beach.camT * 0.05;
+    camera.position.lerp(v(c.x + Math.sin(a) * 14, c.y + 11, c.z - 12 + Math.cos(a) * 3), Math.min(1, dt * 1.5));
+    lookTarget.set(c.x, c.y, c.z + 12);
+    camera.lookAt(lookTarget);
+    camFov += (60 - camFov) * Math.min(1, dt * 3);
+    return;
+  }
+  const sway = Math.sin(beach.camT * 0.2) * 0.5;
+  // 在躺椅右后方（伞柱在躺椅左边、伞面也在左上方，不挡视线），越过人看向远处的海面
+  const p = v(c.x + 2.6 + sway, c.y + 2.4, c.z - 4.6);
+  camera.position.lerp(p, Math.min(1, dt * 2.5));
+  lookTarget.set(c.x + 0.2, c.y + 0.2, c.z + 16);
+  camera.lookAt(lookTarget);
+  camFov += (58 - camFov) * Math.min(1, dt * 2);
+}
+
+// =====================================================================
+// 海浪：潮起潮落拍打沙滩（经典 / 像素风格都有），以及人可以走进去的浅水区
+// =====================================================================
+const SURF_PERIOD = 7.2, SURF_RUN = 10, WADE_MAX = 14, WADE_DEPTH = 0.9;
+// 海面开始的地方（再往外就是海水）：经典风格是岸线外 50 米那张海面平面，像素风格是第一排水方块（25 米一格）
+function seaStartZ(shoreZ, pixel) {
+  if (!pixel) return shoreZ + 50;
+  const oz = worldMode === 'open' ? WORLD_CENTER[1] - GROUND_HALF : T.bounds.cz - 3500;
+  return oz + Math.ceil((shoreZ + 37.5 - oz) / 25) * 25;
+}
+// 浪：一张半透明的水面，靠沙滩的一头是白色浪花、越往海里越不透明，按时间往沙滩上涌、再退回去（两道浪错开）
+function buildSurf(cx, shoreZ, pixel) {
+  const seaZ = seaStartZ(shoreZ, pixel);
+  const tex = canvasTexture(pixel ? 16 : 128, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    const grd = g.createLinearGradient(0, 0, 0, h);   // 上面（v=1）是海那一头，下面是浪尖
+    grd.addColorStop(0, pixel ? '#3f76e4d8' : '#2a8fb8d0');
+    grd.addColorStop(0.75, pixel ? '#5a8fe8a0' : '#5ab8d488');
+    grd.addColorStop(0.92, '#e8f6fae0');
+    grd.addColorStop(1, '#ffffff00');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    if (!pixel) for (let i = 0; i < 400; i++) { g.fillStyle = '#ffffff70'; g.fillRect(Math.random() * w, h * (0.86 + Math.random() * 0.1), 3, 1.5); }   // 浪尖上的泡沫点
+  }, { height: pixel ? 16 : 128 });
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.repeat.set(pixel ? 120 : 60, 1);
+  if (pixel) { tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; }
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, ...LAYER(3) });
+  const waves = [0, 0.42].map((phase, i) => {
+    // 平面的 z 从 0（浪尖）到 +18（往海里），往海里那一截压在海面底下看不见
+    const m = mesh(new THREE.PlaneGeometry(7000, 18).rotateX(-Math.PI / 2).translate(0, 0, 9), i ? mat.clone() : mat, false);
+    m.position.set(cx, 0.03 + i * 0.004, seaZ);
+    m.renderOrder = 2;
+    m.frustumCulled = false;
+    m.userData.noCull = true;
+    world.add(m);
+    return { m, phase, size: i ? 0.55 : 1 };
+  });
+  world.userData.surf = { waves, seaZ, cx, crashed: false };
+}
+// 浪的位置：一个周期里先快速涌上来（35% 的时间），再慢慢退回去
+function surfRun(t, phase) {
+  const u = (((t / SURF_PERIOD + phase) % 1) + 1) % 1;
+  const ease = (x) => 1 - (1 - x) ** 2;
+  return u < 0.35 ? ease(u / 0.35) : 1 - (u - 0.35) / 0.65 * (1 - 0.15 * Math.sin(((u - 0.35) / 0.65) * Math.PI));
+}
+function updateSurf(dt) {
+  const s = world?.userData.surf;
+  if (!s) return;
+  for (const w of s.waves) {
+    const r = surfRun(elapsed, w.phase) * SURF_RUN * w.size;
+    w.m.position.z = s.seaZ - r;
+    w.m.material.opacity = 0.75 + 0.25 * Math.min(1, r / (SURF_RUN * w.size));
+  }
+  // 大浪冲到最高处：哗——的一声（镜头离海边近才听得到）
+  const u = ((elapsed / SURF_PERIOD) % 1 + 1) % 1;
+  const near = Math.abs(camera.position.z - s.seaZ) < 80 && Math.abs(camera.position.x - s.cx) < 3600;
+  if (u > 0.3 && u < 0.4 && !s.crashed) {
+    s.crashed = true;
+    if (near && sound.ready) {
+      sound.burst({ duration: 1.6, type: 'lowpass', frequency: 900, gain: 0.22 });
+      sound.burst({ duration: 0.9, type: 'highpass', frequency: 2500, gain: 0.06, delay: 0.1 });
+    }
+  } else if (u > 0.5) s.crashed = false;
+}
+// 浅水区的水深（0～WADE_DEPTH）：海面开始往外越走越深；浪冲上来的那一截沙滩只是湿脚
+function seaDepthAt(x, z) {
+  const s = world?.userData.surf;
+  if (!s || worldMode !== 'open') return 0;
+  return clamp((z - s.seaZ) / WADE_MAX, 0, 1) * WADE_DEPTH;
+}
+// 这个位置是不是有水（海里，或者正好被浪冲到）
+function inWaterAt(x, z) {
+  const s = world?.userData.surf;
+  if (!s) return false;
+  const front = s.seaZ - surfRun(elapsed, 0) * SURF_RUN;
+  return z > front;
+}
+
 /* ===== js/ui/input.js ===== */
 // 键盘和触屏按键
 'use strict';
@@ -11025,6 +11697,18 @@ function press(code) {
     return;
   }
   if (code === 'KeyF') return toggleWalk();
+  if (walker && beachSitting()) {   // 躺在沙滩躺椅上：数字键选曲、空格暂停、T 切换视角，走动 / E / F 起身
+    if (code.startsWith('Digit')) return playBeachTrack((Number(code.slice(5)) + 9) % 10);   // 1～9、0 选前 10 首
+    if (code === 'Space') return toggleBeachPause();
+    if (code === 'KeyL') return cycleBeachMode();
+    if (code === 'KeyT') return cycleBeachView();
+    if (['KeyE', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code)) return standUp();
+    return;
+  }
+  if (walker && beachAskOpen()) {   // 伞下问要不要坐下：E / 1 坐下，2 不坐
+    if (code === 'KeyE' || code === 'Digit1') return sitDown();
+    if (code === 'Digit2') return declineSit();
+  }
   if (walker) {   // 下车走路：视角、召唤车；空格（跳）、Shift（跑）、方向键在 updateWalk 里读
     if (code === 'KeyT') return toggleView();
     if (code === 'KeyG') return summonCar();
@@ -11126,6 +11810,7 @@ function toggleSound() {
   $('sound').textContent = sound.enabled ? '音效：开' : '音效：关';
 }
 function toggleMusic() {
+  if (beachSitting()) return toggleBeachPause();   // 躺椅上：暂停 / 继续海滨音乐
   settings.music = !sound.musicOn;
   saveSettings();
   sound.setMusic(settings.music);
@@ -11134,6 +11819,7 @@ function toggleMusic() {
 $('music').onclick = () => { sound.init(); toggleMusic(); };
 $('nextSong').onclick = () => { sound.init(); nextSong(); };
 function nextSong() {
+  if (beachSitting()) return nextBeachTrack();
   if (!sound.music) return;
   if (!sound.musicOn) toggleMusic();
   sound.music.skip();
@@ -11142,8 +11828,8 @@ function nextSong() {
 let nowPlayingTimer = null;
 function showNowPlaying(song) {
   const el = $('nowPlaying');
-  if (!el || !sound.musicOn) return;
-  el.innerHTML = `♪ ${song.name} <small>${song.style} · ${song.bpm} BPM</small>`;
+  if (!el || (!sound.musicOn && !beachSitting())) return;
+  el.innerHTML = `♪ ${song.name} <small>${song.style}${song.bpm ? ` · ${song.bpm} BPM` : ''}</small>`;
   el.classList.add('show');
   clearTimeout(nowPlayingTimer);
   nowPlayingTimer = setTimeout(() => el.classList.remove('show'), 4000);
@@ -12020,7 +12706,9 @@ function engineRpm(c) {
 
 function updateAudio(dt) {
   if (!sound.ctx || !player) return;
-  sound.music?.setLevel(raceState === 'menu' || menuKind ? 0.2 : 0.11);
+  // 比赛时压低音乐让引擎声为主；沙滩躺椅上听海滨合成曲时调到和 MP3 歌曲差不多响
+  const mb = sound.music;
+  mb?.setLevel(beachSitting() && mb.hold ? mb.song.beachLevel ?? 0.6 : raceState === 'menu' || menuKind ? 0.2 : 0.11);
   const c = focusCar();
   let npc = null, best = 70;
   for (const o of allCars()) {
@@ -12232,6 +12920,7 @@ function update(dt) {
   updateWalk(dt);
   updateInteract(dt);
   updateBuild(dt);
+  updateBeach(dt);
   updateCamera(dt);
   updateHud(dt);
   updateAudio(dt);
@@ -12240,6 +12929,7 @@ function update(dt) {
   if (worldMode === 'open' && player) applyBlendedTheme(focusPos().x, focusPos().z);
   updateSnow(dt);
   if (world?.userData.foam) world.userData.foam.material.opacity = 0.45 + Math.sin(elapsed * 1.5) * 0.2;
+  updateSurf(dt);   // 海浪（beach.js）
 
   if (messageTimer > 0) {
     messageTimer -= dt;
