@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>鹈鹕赛车</title>
+<title>动物狂飙世界</title>
 <style>
 body { margin: 0; overflow: hidden; background: #0d1622; font-family: -apple-system, "PingFang SC", sans-serif; }
 button { font: inherit; }
@@ -836,7 +836,7 @@ function gearMaterials(helmetColor, suitColor) {
     g.font = `900 ${h * 0.16}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
     for (const u of [0.0, 0.5, 1.0]) g.fillText('P', u * w, h * 0.56);
     g.fillStyle = stripe; g.font = `900 ${h * 0.1}px Arial`;
-    g.fillText('PELICAN', 0.75 * w, h * 0.62);
+    g.fillText('RUSH', 0.75 * w, h * 0.62);
   }, { height: 256 * sz });
   const helmet = new THREE.MeshPhysicalMaterial({ map: pixelateTex(helmetTex), metalness: 0.2, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.04, flatShading: pixelActive });
   // 赛车服：车队色 + 两侧白色竖条 + 胸前赞助商贴片
@@ -846,7 +846,7 @@ function gearMaterials(helmetColor, suitColor) {
     for (const u of [0.0, 0.5, 1.0]) g.fillRect((u - 0.03) * w, 0, 0.06 * w, h);   // 两侧竖条
     g.fillRect(0.14 * w, 0.42 * h, 0.22 * w, 0.12 * h);                            // 胸前贴片
     g.fillStyle = '#d8452a'; g.font = `900 ${h * 0.08}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('PELICAN', 0.25 * w, 0.48 * h);
+    g.fillText('RUSH', 0.25 * w, 0.48 * h);
     g.fillStyle = '#00000030'; g.fillRect(0, 0.62 * h, w, 0.02 * h);              // 腰带
   }, { height: 256 * sz });
   const suit = new THREE.MeshStandardMaterial({ map: pixelateTex(suitTex), roughness: 0.8, flatShading: pixelActive });
@@ -1589,7 +1589,7 @@ const CAR_BUILDERS = {
       } else paintPattern(P, st, look, color);
       P.rect(-3, 3, 0, 0.12, '#1a1a1a'); P.rect(-3, 3, 0.88, 1, '#1a1a1a');  // 底板一圈黑色
       P.round(-0.3, 0.62, 0.43, 0.57, 18, '#121214');     // 驾驶舱开口
-      P.sideText('PELICAN', -0.7, 0.05, toCss(accent), { vLeft: 0.2 });
+      P.sideText('RUSH', -0.7, 0.05, toCss(accent), { vLeft: 0.2 });
       P.sideDisc(-1.35, 0.3, 0.05, '#ffffff');
       P.sideText('7', -1.35, 0.07, '#111', { vLeft: 0.3 });
     });
@@ -1671,7 +1671,7 @@ const CAR_BUILDERS = {
       if (look.pattern !== 'police') {   // 警车不画号码和赞助商
         P.sideDisc(0.1, 0.24, 0.07, '#ffffff');
         P.sideText('23', 0.1, 0.09, '#111', { vLeft: 0.24 });
-        P.sideText('PELICAN', -1.3, 0.035, '#ffffffcc', { vLeft: 0.3 });
+        P.sideText('RUSH', -1.3, 0.035, '#ffffffcc', { vLeft: 0.3 });
       }
     });
     const g = new THREE.Group();
@@ -1764,7 +1764,7 @@ const CAR_BUILDERS = {
       P.rect(-3, 3, 0, 0.09, '#1a1a1a'); P.rect(-3, 3, 0.91, 1, '#1a1a1a');
       for (const vv of [0.3, 0.7]) P.rect(-0.55, 0.55, vv - 0.07, vv + 0.07, '#ffffff');   // 车门号码牌
       P.sideText('12', 0, 0.11, '#111', { vLeft: 0.3 });
-      P.sideText('PELICAN RALLY TEAM', -1.45, 0.035, '#ffffff', { vLeft: 0.23 });
+      P.sideText('ANIMAL RUSH RALLY', -1.45, 0.035, '#ffffff', { vLeft: 0.23 });
       // 分缝线：前后门、油箱盖、门把手
       sideLines(P, [[0.62, 0.632, 0.12, 0.4], [-0.62, -0.608, 0.12, 0.4], [-1.45, -1.438, 0.12, 0.4], [0.35, 0.5, 0.36, 0.372], [-0.85, -0.7, 0.36, 0.372]]);
       P.round(-1.75, -1.62, 0.33, 0.38, 6, '#0000003a');
@@ -1792,7 +1792,7 @@ const CAR_BUILDERS = {
       P.honeycomb(-0.45, 0.45, 0.33, 0.45, 0.03);
       P.round(-0.2, 0.2, 0.51, 0.6, 0.012, '#f4f4f4');
       P.text('PR · 12', 0, 0.555, 0.06, '#1a2a60');
-      P.text('PELICAN', 0, 0.66, 0.04, '#f4f4f4');
+      P.text('RUSH', 0, 0.66, 0.04, '#f4f4f4');
       P.line([[-0.72, 0.5], [0.72, 0.5]]);
       for (const X of [-0.72, 0.72]) P.line([[X, 0.5], [X, 0.9]]);
     }));
@@ -1873,7 +1873,7 @@ const CAR_BUILDERS = {
       sideLines(P, [[-0.9, -0.888, 0.12, 0.4], [0.62, 0.632, 0.12, 0.4], [-0.45, -0.3, 0.36, 0.372]]);
       P.rect(0.9, 0.912, 0.4, 0.6, '#0000004a'); P.rect(-1.62, -1.608, 0.4, 0.6, '#0000004a');
       P.sideDisc(-1.9, 0.36, 0.035, '#c9ccd1');
-      P.sideText('PELICAN', -0.2, 0.05, '#f4f4f4', { vLeft: 0.22, font: 'italic 900' });
+      P.sideText('RUSH', -0.2, 0.05, '#f4f4f4', { vLeft: 0.22, font: 'italic 900' });
     });
     const g = new THREE.Group();
     const wheels = [];
@@ -3227,9 +3227,11 @@ function buildStartArea(theme) {
     grad.addColorStop(0, '#c9241c'); grad.addColorStop(1, '#f07a1a');
     g.fillStyle = grad; g.fillRect(0, 0, w, h);
     g.fillStyle = '#fff';
-    g.font = 'bold 84px "PingFang SC", sans-serif';
+    const text = '🏁 动物狂飙世界大奖赛 · ANIMAL RUSH GP 🏁';
+    let size = 84;   // 字号按横幅宽度自动缩小
+    do { g.font = `bold ${size}px "PingFang SC", sans-serif`; size -= 2; } while (g.measureText(text).width > w * 0.95 && size > 30);
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('🏁 鹈鹕大奖赛 · PELICAN GP 🏁', w / 2, h / 2 + 4);
+    g.fillText(text, w / 2, h / 2 + 4);
   }, { height: 128 });
   banner.wrapS = banner.wrapT = THREE.ClampToEdgeWrapping;
   const bannerMat = new THREE.MeshStandardMaterial({ map: banner, roughness: 0.6, side: THREE.DoubleSide });
@@ -3622,7 +3624,7 @@ function buildSunset(rng) {
   instancedIn(world, hill, mat(0x5e5068, { roughness: 1, flatShading: true }), ridge, null, false);
 
   // 广告牌：立在直道外侧
-  const ads = [['鹈鹕快递', '#d8452a'], ['极速加油站', '#1d6f8f'], ['PELICAN COLA', '#b3122e'], ['落日汽车旅馆', '#7b2cbf'], ['警察提示：限速 120', '#1f3a8a']];
+  const ads = [['狂飙快递', '#d8452a'], ['极速加油站', '#1d6f8f'], ['RUSH COLA', '#b3122e'], ['落日汽车旅馆', '#7b2cbf'], ['警察提示：限速 120', '#1f3a8a']];
   for (let k = 0; k < 10; k++) {
     const i = Math.floor((k + 0.5) * T.N / 10);
     if (Math.abs(T.k[i]) > 1 / 300) continue;
@@ -4590,8 +4592,8 @@ function buildPixelStart() {
   const banner = pixelTexture((g, w, h) => {
     g.fillStyle = '#a12722'; g.fillRect(0, 0, w, h);
     g.fillStyle = '#f8c627'; g.fillRect(0, 0, w, 1); g.fillRect(0, h - 1, w, 1);
-    g.fillStyle = '#ffffff'; g.font = 'bold 11px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('PELICAN GP', w / 2, h / 2 + 1);
+    g.fillStyle = '#ffffff'; g.font = 'bold 12px "PingFang SC", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('动物狂飙世界', w / 2, h / 2 + 1);
   }, { w: 96, h: 16, seed: 32 });
   banner.wrapS = banner.wrapT = THREE.ClampToEdgeWrapping;
   const bannerMat = new THREE.MeshStandardMaterial({ map: banner, roughness: 0.8, side: THREE.DoubleSide });
@@ -5936,7 +5938,7 @@ const SONGS = (() => {
     chip: true,
   },
   {
-    name: '鹈鹕放克', style: '放克', bpm: 108, gain: 1.1,
+    name: '狂飙放克', style: '放克', bpm: 108, gain: 1.1,
     prog: [[28, [59, 62, 64, 67]], [33, [57, 61, 64, 67]], [28, [59, 62, 64, 67]], [35, [59, 63, 66, 69]]],   // Em7 A7 Em7 B7
     kick: [X, _, _, o, _, _, X, _, _, _, X, _, _, o, _, _],
     snare: [_, _, _, _, X, _, _, o, _, _, _, _, X, _, _, _],
@@ -7661,7 +7663,7 @@ function startCountdown() {
     $('board').style.display = 'none';
     raceState = 'racing';
     raceTime = 0;
-    showMessage('🚗 自由驾驶<small>随便开，其他鹈鹕也在兜风 · 按 Esc 打开菜单</small>', 3);
+    showMessage('🚗 自由驾驶<small>随便开，其他车手也在兜风 · 按 Esc 打开菜单</small>', 3);
     return;
   }
   if (isSolo()) $('board').style.display = 'none';
@@ -11197,7 +11199,7 @@ function keysHelp() {
     漂移：高速过弯时打满方向 + 踩油门（或点一下刹车），漂移超过 1 秒会奖励氮气<br>
     小喷：漂移结束或飞跃落地后马上松开再按一下 <kbd>↑</kbd>，越快越好（0.2 秒内是完美小喷）；发车灯熄灭的瞬间按 <kbd>↑</kbd> 完美起步<br>
     自由驾驶：没有护栏、不管逆行，四张地图由公路连成一片，山、楼、树、大海以外哪里都能去<br>
-    <kbd>X</kbd> 使用道具 / <kbd>Z</kbd> 换道具（道具赛，闪电也要抽到才能放）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 鹈鹕视角 / 自由）<br>
+    <kbd>X</kbd> 使用道具 / <kbd>Z</kbd> 换道具（道具赛，闪电也要抽到才能放）　<kbd>C</kbd> 氮气加速（每 10 秒充满一次）　<kbd>T</kbd> 切换视角（追车 / 我的视角 / 自由）<br>
     <kbd>Tab</kbd> 或点击小地图：全景地图　<kbd>R</kbd> 撞车后重新启动（自由驾驶在原地）　<kbd>F</kbd> 自由驾驶时停车后下车走路，走回车旁再按 F 上车（走路时方向键朝哪边按就往哪边走，↓ 转身，按住 Shift 跑，空格跳；走远了跟着头顶的绿箭头和车顶光柱找车，按 G 把车召唤到身边；走路时 Q 打招呼、E 聊天、J 拳击 / K 飞踢 / L 旋风腿 / U 能量波，只能打僵尸、骷髅、苦力帕、墨影人；阳光海滨的「我的世界乐园」里拉下工坊的开关进入建造模式：1～9 选方块，鼠标左键 / C 放，右键 / X 拆）　<kbd>P</kbd> 暂停　<kbd>M</kbd> 音效开关　<kbd>B</kbd> 背景音乐　<kbd>N</kbd> 下一首　<kbd>V</kbd> 后视镜　<kbd>Esc</kbd> 菜单
   </div>`;
 }
@@ -11266,8 +11268,8 @@ function openMainMenu() {
     `<button data-${key}="${val}" class="${String(settings[key]) === String(val) ? 'sel' : ''}">${label}</button>`).join('')}</span>`;
 
   showDialog('main', `
-    <h2>🏁 鹈鹕赛车</h2>
-    <p class="lead">开着赛车的鹈鹕和 10 位对手（猫头鹰、海绵宝宝、派大星、小黄人、帝企鹅……每场随机）同场竞技，率先跑完全部圈数就是冠军！</p>
+    <h2>🏁 动物狂飙世界</h2>
+    <p class="lead">选一位车手，和 10 位对手（鹈鹕、海绵宝宝、小黄人、蟹老板、功夫熊猫……每场随机）同场竞技，率先跑完全部圈数就是冠军！</p>
     <h3>${isFree() ? '选择出发地（自由驾驶时四张地图由公路连成一片）' : '选择赛道'}</h3><div class="grid tracks">${trackCards}</div>
     <h3>选择车手</h3><div style="margin-bottom:6px"><span class="seg wrap chars">${CHARACTERS.map((ch) => `<button data-character="${ch.id}" class="${settings.character === ch.id ? 'sel' : ''}">${ch.icon} ${ch.name}</button>`).join('')}</span></div>
     <h3>选择赛车</h3><div class="grid cars">${carCards}</div>
@@ -11396,7 +11398,7 @@ function continueFree() {
   player.perf = player.skill = 1;
   player.lapStart = raceTime;
   $('board').style.display = 'none';
-  showMessage('🚗 继续自由驾驶<small>随便开，其他鹈鹕也在兜风 · 按 Esc 打开菜单</small>', 3);
+  showMessage('🚗 继续自由驾驶<small>随便开，其他车手也在兜风 · 按 Esc 打开菜单</small>', 3);
 }
 
 // 计时赛 / 漂移赛的成绩单
@@ -11462,14 +11464,14 @@ function showHeliResults() {
 }
 
 /* ===== js/game/camera.js ===== */
-// 视角：追车 / 鹈鹕视角 / 自由环绕
+// 视角：追车 / 我的视角 / 自由环绕
 'use strict';
 
 // =====================================================================
-// 视角：追车（第三人称）/ 鹈鹕视角（第一人称）/ 自由环绕
+// 视角：追车（第三人称）/ 我的视角（第一人称，车手的眼睛）/ 自由环绕
 // =====================================================================
 let viewMode = 'chase';
-const VIEW_NAMES = { chase: '追车', first: '鹈鹕视角', free: '自由' };
+const VIEW_NAMES = { chase: '追车', first: '我的视角', free: '自由' };
 let camHeading = 0, camFov = 62, camDistLag = 0, camY = 0;
 const lastCarPos = new THREE.Vector3();
 const FP_EYE = v(0, 0.09, 0.05);
@@ -12273,7 +12275,7 @@ function snapShadow(p) {
 'use strict';
 
 // =====================================================================
-// 回放：比赛中以 30 帧/秒记录每辆车的状态，结束后可以用电视转播 / 追车 / 鹈鹕视角重看
+// 回放：比赛中以 30 帧/秒记录每辆车的状态，结束后可以用电视转播 / 追车 / 我的视角重看
 // =====================================================================
 const REC_HZ = 30;
 const REC_K = 17;
@@ -12298,7 +12300,7 @@ function recordFrame(dt) {
 }
 
 const replay = { t: 0, speed: 1, playing: true, cam: 'tv', focus: 0, saved: null, tv: -1, tvCams: [], uiT: 0 };
-const REPLAY_CAMS = { tv: '电视转播', chase: '追车', first: '鹈鹕视角' };
+const REPLAY_CAMS = { tv: '电视转播', chase: '追车', first: '我的视角' };
 const SAVE_KEYS = ['x', 'z', 'heading', 'vx', 'vz', 'vF', 'vL', 'steer', 'accel', 'yawRate', 'idx', 's', 'lat', 'state', 'crashT', 'ghost', 'nitroTime', 'y', 'vy', 'air', 'turboT', 'bankSlope'];
 const replayBar = $('replayBar');
 
@@ -12526,7 +12528,7 @@ async function replayScreenshot() {
     const blob = await composeShot(url);   // 叠上道具框和小地图
     const c = focusCar();
     const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-    const name = `鹈鹕赛车-回放-${c.isPlayer ? '你' : c.name}-${formatTime(replay.t).replace(/[:.]/g, '')}-${stamp}.png`;
+    const name = `动物狂飙世界-回放-${c.isPlayer ? '你' : c.name}-${formatTime(replay.t).replace(/[:.]/g, '')}-${stamp}.png`;
     flashShutter();
     if (window.showSaveFilePicker) {
       // Chrome / Edge：系统的另存为对话框，可以选文件夹和文件名

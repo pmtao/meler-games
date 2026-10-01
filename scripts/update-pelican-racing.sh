@@ -1,6 +1,6 @@
 #!/bin/sh
-# 把鹈鹕赛车重新打包，复制到本站的 pelican-racing/index.html
-# 用法：sh scripts/update-pelican-racing.sh [鹈鹕赛车源码目录，默认 ../pelican-racing]
+# 把动物狂飙世界（原名鹈鹕赛车）重新打包，复制到本站的 pelican-racing/index.html
+# 用法：sh scripts/update-pelican-racing.sh [游戏源码目录，默认 ../pelican-racing]
 set -e
 cd "$(dirname "$0")/.."
 SRC="${1:-../pelican-racing}"

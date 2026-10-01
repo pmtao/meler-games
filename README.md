@@ -4,7 +4,7 @@
 
 | 游戏 | 地址 | 源码 |
 | --- | --- | --- |
-| 🏎️ 鹈鹕赛车 | <https://meler-games.melerpaine.com/pelican-racing/> | 本地 `pelican-racing` 工程（`python3 build.py` 打包成单个 HTML） |
+| 🏎️ 动物狂飙世界（原名鹈鹕赛车） | <https://meler-games.melerpaine.com/pelican-racing/> | 本地 `pelican-racing` 工程（`python3 build.py` 打包成单个 HTML） |
 
 ## 目录结构
 
@@ -12,10 +12,10 @@
 CNAME                       自定义域名 meler-games.melerpaine.com（GitHub Pages 设置里改域名时会自动更新，不要删）
 index.html                  游戏大厅首页
 pelican-racing/
-  index.html                鹈鹕赛车（打包好的单文件）
+  index.html                动物狂飙世界（打包好的单文件）
   cover.jpg                 首页卡片封面 / 分享图
 scripts/
-  update-pelican-racing.sh  重新打包并复制鹈鹕赛车
+  update-pelican-racing.sh  重新打包并复制动物狂飙世界
 .nojekyll                   让 GitHub Pages 直接按原样发布文件（不经过 Jekyll 处理）
 ```
 
@@ -23,7 +23,7 @@ scripts/
 
 ```bash
 sh scripts/update-pelican-racing.sh      # 默认从 ../pelican-racing 打包
-git add -A && git commit -m "更新鹈鹕赛车" && git push
+git add -A && git commit -m "更新动物狂飙世界" && git push
 ```
 
 推送到 `main` 分支后，GitHub Pages 一两分钟内自动更新。
