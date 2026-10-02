@@ -304,6 +304,8 @@ body.audio-locked #audioHint { display: block; }
     "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
 } }
 </script>
+<!-- 访问统计（GoatCounter，不用 Cookie）：本地打开时不上报 -->
+<script data-stat-id="page" data-goatcounter="https://meler-games.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 <div id="panel" class="card">
@@ -636,6 +638,29 @@ const shareAll = (obj) => {
     }
   }
 };
+
+/* ===== js/core/stats.js ===== */
+// 访问统计（GoatCounter，https://meler-games.goatcounter.com）：页面访问由 index.html 里的 count.js 自动统计；
+// 这里记游戏里的行为（选了哪种玩法、车手、风格，用了哪些功能、听了哪些曲子），作为「事件」上报。
+// 不用 Cookie、不收集个人信息；本地开发（localhost / file://）和测试时 count.js 自己不上报；脚本加载不到也不影响游戏。
+'use strict';
+
+// 统计项用语义化 ID（登记在 stats/stat-items.json，文档见 stats/STATS.md）；上报到 GoatCounter 的路径 = ID 的点换成斜杠，
+// 带参数的再接「/参数值」，例如 track('game.mode', 'free') → game/mode/free。新增统计项要先登记，再跑 python3 stats/stats.py check。
+const statsSent = new Set();   // 同一次打开页面里，同一个事件只报一次（反复开局不会刷数字）
+const statsQueue = [];
+function track(id, value = null, title = id) {
+  const path = id.replace(/\./g, '/') + (value != null ? `/${value}` : '');
+  if (statsSent.has(path)) return;
+  statsSent.add(path);
+  statsQueue.push({ path, title, event: true });
+  flushStats();
+}
+function flushStats() {
+  const gc = window.goatcounter;
+  if (!gc?.count) { if (statsQueue.length && !flushStats.timer) flushStats.timer = setTimeout(() => { flushStats.timer = 0; flushStats(); }, 2000); return; }
+  while (statsQueue.length) { try { gc.count(statsQueue.shift()); } catch { /* 统计失败不影响游戏 */ } }
+}
 
 /* ===== js/core/quality.js ===== */
 // 自适应分辨率（参考 claude-opus-5-5-demo 的鹈鹕骑车）：按真实帧率自动调渲染分辨率
@@ -7801,6 +7826,13 @@ function setupRace({ newRivals = false } = {}) {
 }
 
 function startCountdown() {
+  // 统计：这一局选的玩法、车手、风格、地图、车型
+  const md = MODES.find((m) => m[0] === settings.mode);
+  track('game.mode', settings.mode, `玩法：${md ? md[1] : settings.mode}`);
+  track('game.character', settings.character ?? 'pelican', `车手：${CHAR_BY_ID[settings.character]?.name ?? '鹈鹕'}`);
+  track('game.style', settings.style, `画面风格：${settings.style === 'pixel' ? '像素' : '经典'}`);
+  track('game.track', settings.track, `地图：${TRACK_BY_ID[settings.track]?.name ?? settings.track}`);
+  track('game.car', settings.car, `车型：${CARS.find((c) => c.id === settings.car)?.name ?? settings.car}`);
   raceState = 'countdown';
   countdownT = 0;
   lightsOn = 0;
@@ -9861,6 +9893,7 @@ function buildWalkerModel(charId = player.character, color = player.color ?? 0xd
 }
 
 function exitCar() {
+  track('game.feature.walk', null, '功能：下车走路');
   const [fx, fz] = forwardOf(player.heading);
   const side = [fz, -fx];   // 从左边车门下车
   const off = player.built.half[0] + 1.2;
@@ -10283,6 +10316,7 @@ function startAct(m, kind) {
 
 // ---------------- Q 打招呼 ----------------
 function greetMob() {
+  track('game.feature.greet', null, '功能：和生物打招呼');
   if (!walker || walker.atk) return;
   walker.wave = 1.2;
   const m = nearestMob(10);
@@ -10296,6 +10330,7 @@ function greetMob() {
 
 // ---------------- E 聊天 ----------------
 function toggleTalk() {
+  track('game.feature.talk', null, '功能：和生物聊天');
   if (!walker) return;
   if (talk) return closeTalk();
   const m = nearestMob(5);
@@ -10483,6 +10518,7 @@ function walkerRevive() {
 
 // ---------------- 攻击 ----------------
 function walkAttack(kind) {
+  track('game.feature.attack', null, '功能：攻击招式');
   const w = walker;
   if (!w || w.downT > 0 || w.atk || (w.cd[kind] ?? 0) > 0) return;
   const mv = MOVES[kind];
@@ -11006,6 +11042,7 @@ const saveBuild = () => store.set(BUILD_SAVE_KEY, [...bgrid].filter(([, b]) => !
 const nearLever = () => walker && park && Math.hypot(walker.x - park.leverPos.x, walker.z - park.leverPos.z) < 2.6 && Math.abs(walker.y - park.leverPos.y + 1) < 2;
 function toggleBuildMode() {
   buildOn = !buildOn;
+  if (buildOn) track('game.feature.build', null, '功能：建造模式');
   sound.tone({ frequency: buildOn ? 500 : 700, slideTo: buildOn ? 900 : 350, duration: 0.25, type: 'square', gain: 0.12 });
   sound.burst({ duration: 0.08, type: 'bandpass', frequency: 1500, gain: 0.3 });
   showMessage(buildOn ? '⛏ 建造模式开启！<small>1～9 选方块 · 鼠标左键 / C 放方块 · 右键 / X 拆方块 · 再拉一次开关关闭</small>' : '建造模式已关闭<small>搭好的房子会一直保留</small>', 2.6);
@@ -11330,6 +11367,7 @@ function declineSit() { beach.asked = beach.near; closeBeachPanel(); }
 // ---------------- 坐下 / 起身 ----------------
 const beachSitting = () => !!(walker && beach.sit);
 function sitDown() {
+  track('game.feature.beach', null, '功能：沙滩休息');
   const c = beach.near;
   if (!walker || !c) return;
   beach.sit = c;
@@ -11386,6 +11424,7 @@ function stopBeachMusic() {
 function playBeachTrack(i) {
   const t = BEACH_TRACKS[i];
   if (!t) return;
+  track('game.music', (t.file ?? t.song).replace(/^music\/|\.mp3$/g, ''), `音乐：${t.name ?? t.song}`);
   beach.track = i;
   beach.paused = false;
   if (beach.audio) { releaseAudio(beach.audio); beach.audio = null; }
@@ -12995,6 +13034,7 @@ const SAVE_KEYS = ['x', 'z', 'heading', 'vx', 'vz', 'vF', 'vL', 'steer', 'accel'
 const replayBar = $('replayBar');
 
 function startReplay() {
+  track('game.feature.replay', null, '功能：看回放');
   if (rec.frames.length < 2) return;
   closeDialog();
   hideMessage();
@@ -13210,6 +13250,7 @@ function captureFrame() {
 }
 const grabFrame = () => new Promise((res) => shotWaiters.push(res));
 async function replayScreenshot() {
+  track('game.feature.screenshot', null, '功能：回放截图');
   const btn = $('rpShot');
   if (btn.disabled) return;
   btn.disabled = true;
