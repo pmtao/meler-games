@@ -10363,7 +10363,7 @@ const ACT_TIME = { wave: 1.6, dance: 7, sit: 25, jump: 2, spin: 1.2, swing: 0.35
 // ---------------- 攻击招式 ----------------
 // reach 出手距离、arc 前方扇形（cos，-1 = 一圈都打）、hitAt 出手时刻、dmg 伤害、kb 击退速度、cd 冷却
 const MOVES = {
-  punch: { name: '拳击', key: 'J', dur: 0.32, hitAt: 0.12, reach: 1.7, arc: 0.45, dmg: 4, kb: 6, cd: 0.35 },
+  punch: { name: '拳击', key: 'J', dur: 0.32, hitAt: 0.12, reach: 1.7, arc: 0.45, dmg: 4, kb: 6, cd: 0.22 },
   kick: { name: '飞踢', key: 'K', dur: 0.6, hitAt: 0.1, hitEnd: 0.5, reach: 1.7, arc: 0.2, dmg: 8, kb: 14, cd: 1.1 },
   spin: { name: '旋风腿', key: 'L', dur: 0.55, hitAt: 0.28, reach: 3.2, arc: -1, dmg: 6, kb: 10, cd: 2.5 },
   blast: { name: '能量波', key: 'U', dur: 0.45, hitAt: 0.18, dmg: 10, kb: 12, cd: 2 },
@@ -10648,11 +10648,17 @@ function walkerRevive() {
 }
 
 // ---------------- 攻击 ----------------
-function walkAttack(kind) {
-  track('game.feature.attack', null, '功能：攻击招式');
-  const w = walker;
-  if (!w || w.downT > 0 || w.atk || (w.cd[kind] ?? 0) > 0) return;
-  const mv = MOVES[kind];
+// 连击：前一招出手（打中判定）之后就能接下一招，不用等动作做完；
+// 还没到时机或还在冷却时按下的键会记下来（0.4 秒内有效），一到时机就自动出招
+function atkCancelable(a) {
+  const mv = a.mv;
+  return a.t >= (a.kind === 'kick' ? mv.hitEnd : mv.hitAt + (mv.dur - mv.hitAt) * 0.3);
+}
+function startAttack(kind) {
+  const w = walker, mv = MOVES[kind];
+  if (!w || w.downT > 0 || (w.cd[kind] ?? 0) > 0) return false;
+  if (w.atk && !atkCancelable(w.atk)) return false;
+  if (w.atk) { w.legs[0].rotation.z = 0; w.legs[1].rotation.z = 0; w.group.rotation.x = 0; }   // 打断上一招的姿势
   w.atk = { kind, t: 0, mv, hit: new Set(), fired: false };
   w.cd[kind] = mv.cd;
   w.wave = 0;
@@ -10661,6 +10667,13 @@ function walkAttack(kind) {
   sound.whoosh?.();
   sound.burst({ duration: kind === 'spin' ? 0.45 : 0.15, type: 'bandpass', frequency: kind === 'spin' ? 900 : 1400, gain: 0.18 });
   if (kind === 'blast') sound.tone({ frequency: 300, slideTo: 1200, duration: 0.35, type: 'sawtooth', gain: 0.12 });
+  return true;
+}
+function walkAttack(kind) {
+  track('game.feature.attack', null, '功能：攻击招式');
+  const w = walker;
+  if (!w || w.downT > 0) return;
+  if (!startAttack(kind)) w.queued = { kind, t: 0.4 };
 }
 // 命中检测：在扇形范围里的生物；友好的不受伤，只提示
 function strike(mv, filter = null) {
@@ -10750,6 +10763,10 @@ function updateInteract(dt) {
     m.x -= (dx / d) * push * (1 - share); m.z -= (dz / d) * push * (1 - share);
   }
   // 招式
+  if (w.queued) {   // 提前按下的招：时机一到就出
+    w.queued.t -= dt;
+    if (startAttack(w.queued.kind) || w.queued.t <= 0) w.queued = null;
+  }
   if (w.atk) {
     const a = w.atk, mv = a.mv;
     a.t += dt;
@@ -10811,7 +10828,7 @@ function fireBlast(w) {
   const mesh_ = new THREE.Mesh(BLAST_GEO, new THREE.MeshBasicMaterial({ color: dragon ? 0xffb020 : 0x66ccff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   mesh_.position.set(w.x + fx * 0.8, w.y + 1.3, w.z + fz * 0.8);
   scene.add(mesh_);
-  blasts.push({ mesh: mesh_, vx: fx * 28, vz: fz * 28, life: 1.1, size: dragon ? 1.7 : 1, spark: dragon ? 0xffd27a : 0x9fe0ff });
+  blasts.push({ mesh: mesh_, vx: fx * 28, vz: fz * 28, life: 1.1, size: dragon ? 2.4 : 1.6, hitR: dragon ? 2.3 : 1.7, splashR: dragon ? 4.5 : 3.4, spark: dragon ? 0xffd27a : 0x9fe0ff });
 }
 function updateBlasts(dt) {
   for (const b of [...blasts]) {
@@ -10824,17 +10841,29 @@ function updateBlasts(dt) {
     let blocked = false;
     obstacles.query(p.x, p.z, 2, (o) => { if (Math.hypot(o.x - p.x, o.z - p.z) < o.r) blocked = true; });
     if (blocked || p.y < groundMeshH(p.x, p.z) || buildSolidAt(p.x, p.y, p.z)) done = true;
+    // 命中范围：球周围 hitR 米（不只是正中线上），优先打敌对的；只擦到友好生物才算打到朋友
+    let hit = null, hitD = 1e9, friend = null;
     if (!done) for (const m of mobs) {
-      const dx = m.x - p.x, dz = m.z - p.z;
-      if (Math.hypot(dx, dz) > 0.6 + (m.t.r ?? 0.4) || Math.abs(groundMeshH(m.x, m.z) + m.height / 2 - p.y) > m.height / 2 + 0.6) continue;
-      const len = Math.hypot(b.vx, b.vz);
-      if (m.t.hostile) hitMob(m, Math.round(MOVES.blast.dmg * weaponMul('blast')), b.vx / len, b.vz / len, MOVES.blast.kb);
-      else warnFriend(m);
+      const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz);
+      if (Math.abs(groundMeshH(m.x, m.z) + m.height / 2 - p.y) > m.height / 2 + 1.4) continue;
+      if (m.t.hostile) { if (d < b.hitR + (m.t.r ?? 0.4) && d < hitD) { hit = m; hitD = d; } }
+      else if (d < 0.6 + (m.t.r ?? 0.4)) friend = m;
+    }
+    const len = Math.hypot(b.vx, b.vz);
+    if (hit || friend || (blocked && !hit)) {
+      if (hit) hitMob(hit, Math.round(MOVES.blast.dmg * weaponMul('blast')), b.vx / len, b.vz / len, MOVES.blast.kb);
+      else if (friend) warnFriend(friend);
+      // 爆炸溅射：周围一圈的敌对生物也受伤（六成）
+      for (const m of [...mobs]) {
+        if (m === hit || !m.t.hostile || !mobs.includes(m)) continue;
+        const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz);
+        if (d > b.splashR || Math.abs(groundMeshH(m.x, m.z) - p.y) > 3.5) continue;
+        hitMob(m, Math.max(1, Math.round(MOVES.blast.dmg * weaponMul('blast') * 0.6)), dx / (d || 1), dz / (d || 1), MOVES.blast.kb * 0.7);
+      }
       done = true;
-      break;
     }
     if (done) {
-      for (let k = 0; k < 12; k++) emit(sparkPool, p.clone(), { vel: v(rand(-5, 5), rand(-1, 5), rand(-5, 5)), life: 0.4, size0: 0.5 * b.size, size1: 0.05, color: b.spark, gravity: 6, alpha: 1 });
+      for (let k = 0; k < 12 + Math.round(b.size * 6); k++) emit(sparkPool, p.clone(), { vel: v(rand(-5, 5) * b.size * 0.8, rand(-1, 5), rand(-5, 5) * b.size * 0.8), life: 0.4, size0: 0.5 * b.size, size1: 0.05, color: b.spark, gravity: 6, alpha: 1 });
       scene.remove(b.mesh);
       b.mesh.material.dispose();
       blasts.splice(blasts.indexOf(b), 1);
@@ -12389,7 +12418,7 @@ const REWARDS = {
   'outfit-chef': { kind: 'outfit', icon: '👨‍🍳', name: '蟹堡王厨师帽', desc: '海绵宝宝送的高高的白色厨师帽，下车走路、开车都戴着' },
   'outfit-wizard': { kind: 'outfit', icon: '🧙', name: '星空魔法帽', desc: '猫头鹰送的紫色尖顶帽，上面缀着金色的星星' },
   'outfit-crown': { kind: 'outfit', icon: '👑', name: '黄金王冠', desc: '集齐六个彩蛋的最终奖励：传说中的狂飙之王' },
-  'weapon-diamond': { kind: 'weapon', icon: '🗡️', name: '钻石剑', desc: '史蒂夫打造的钻石剑：拳击和飞踢的伤害 ×2，拿在右手里', mul: { punch: 2, kick: 2, spin: 1.3, blast: 1 } },
+  'weapon-diamond': { kind: 'weapon', icon: '🗡️', name: '钻石剑', desc: '史蒂夫打造的钻石剑：拳击和飞踢的伤害 ×2，平时背在背上、出拳时自动拔出来', mul: { punch: 2, kick: 2, spin: 1.3, blast: 1 } },
   'weapon-dragon': { kind: 'weapon', icon: '🐉', name: '神龙拳套', desc: '熊猫阿宝的金色拳套：所有招式伤害 ×1.5，能量波变成金色的大火球', mul: { punch: 1.5, kick: 1.5, spin: 1.5, blast: 1.5 } },
   'livery-fossil': { kind: 'livery', icon: '🦴', name: '化石涂装', desc: '恐龙送的隐藏款车身：砂岩底色上印着恐龙骨架' },
   'livery-neon': { kind: 'livery', icon: '🌈', name: '霓虹涂装', desc: '机器人送的隐藏款车身：深色车身上发光的霓虹线条' },
@@ -12899,6 +12928,7 @@ function drawQuestMarkers(g, toXY, big) {
 
 // ---------------- 装备：衣服（头饰）和武器 ----------------
 // 头饰挂在头上（按头部的包围盒找到头顶），开车和下车走路都戴
+const HAT_SINK = 0.26;   // 帽子往下压的深度（占头高的比例）
 function wearOutfit(pel, outfit = qs.outfit) {
   if (!outfit || !pel?.head) return;
   pel.head.updateMatrixWorld(true);
@@ -12937,12 +12967,12 @@ function wearOutfit(pel, outfit = qs.outfit) {
     }
   }
   if (pixelActive) voxelizeGroup(hat, 0.025);
-  hat.position.set(0, top - 0.015, cz);
+  hat.position.set(0, top - Math.max(0.02, (box.max.y - box.min.y) * HAT_SINK), cz);   // 往下压进头里，把头顶的头发 / 角 / 冠羽包住
   hat.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   pel.head.add(hat);
   pel.hat = hat;
 }
-// 武器：钻石剑拿在右手；神龙拳套把手套换成金色
+// 武器：钻石剑背在背上；神龙拳套把手套换成金色
 const SWORD_MATS = { blade: new THREE.MeshPhysicalMaterial({ color: 0x6ff0ff, roughness: 0.15, metalness: 0.2, clearcoat: 1, emissive: 0x0a5a6a, emissiveIntensity: 0.35 }), hilt: mat(0x6b4423), guard: mat(0x2f9fbf, { metalness: 0.6, roughness: 0.3 }) };
 const GOLD_GLOVE = new THREE.MeshPhysicalMaterial({ color: 0xffc83a, metalness: 0.9, roughness: 0.25, emissive: 0x6a4400, emissiveIntensity: 0.4 });
 for (const m of [...Object.values(SWORD_MATS), GOLD_GLOVE]) m.userData.shared = true;
@@ -12951,12 +12981,51 @@ function equipWalkerGear(w) {
   if (w.sword) { w.sword.removeFromParent(); w.sword = null; }
   for (const wing of w.pel.wings) { wing.hand.userData.origMat ??= wing.hand.material; wing.hand.material = qs.weapon === 'weapon-dragon' ? GOLD_GLOVE : wing.hand.userData.origMat; }
   if (qs.weapon === 'weapon-diamond') {
+    // 平时背在背上（贴着后背）；用手出招（拳击、旋风腿、能量波）时自动拔到手里，招式结束后再收回去
     const s = new THREE.Group();
     s.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.62, 0.012), SWORD_MATS.blade).translateY(0.42));
     s.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.04, 0.04), SWORD_MATS.guard).translateY(0.1));
     s.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.16, 0.035), SWORD_MATS.hilt));
-    w.pel.group.add(s);
-    w.sword = s;
+    const pel = w.pel;
+    pel.group.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(pel.group.matrixWorld).invert();
+    const skip = new Set([pel.head, pel.neck, pel.hat, ...pel.wings.flatMap((x) => [x.upper, x.fore, x.hand])]);
+    const body = pel.group.children.filter((o) => !skip.has(o));
+    const hull = pel.group.children.filter((o) => o !== pel.hat && !pel.wings.some((x) => [x.upper, x.fore, x.hand].includes(o)));   // 量背面形状时连头一起算（剑柄靠近脖子）
+    const box = new THREE.Box3();
+    for (const o of body) box.union(new THREE.Box3().setFromObject(o).applyMatrix4(inv));
+    const sc = box.isEmpty() ? 1 : clamp((box.max.y - box.min.y) / 0.75, 0.6, 1.3);
+    s.scale.setScalar(sc);
+    // 背上的位置：剑柄在肩上方，剑身斜着往另一侧的腰挂；用射线量出后背的形状，让整把剑贴在背上
+    // 剑柄在右肩上方，剑身斜着往左边的腰挂；倾斜角按身体宽度算，剑尖不会探出身体侧面
+    const hw = box.isEmpty() ? 0.2 : (box.max.x - box.min.x) / 2, L = 0.7 * sc;
+    const tilt = Math.asin(clamp(1.4 * hw / L, 0.15, 0.8)), ang = Math.PI + tilt;
+    const hx = -0.7 * hw, hy = (box.isEmpty() ? 0.6 : box.max.y) - 0.04 * sc;
+    const at = (t) => [hx - Math.sin(ang) * t * sc, hy + Math.cos(ang) * t * sc];   // 沿剑身 t 米处的 x、y（身体坐标）
+    const surf = (x, y) => {   // 后背表面在这个高度的 z：从背后很远处朝前射
+      const ray = new THREE.Raycaster(), o = new THREE.Vector3(x, y, box.min.z - 2).applyMatrix4(pel.group.matrixWorld);
+      ray.set(o, new THREE.Vector3(0, 0, 1).transformDirection(pel.group.matrixWorld));
+      const h = ray.intersectObjects(hull, true)[0];
+      return h ? h.point.clone().applyMatrix4(inv).z : null;
+    };
+    const T0 = 0.0, T1 = 0.7, line = [];   // line: [沿剑身的距离（身体单位）, 后背表面 z]
+    for (let k = 0; k <= 8; k++) { const t = T0 + (T1 - T0) * k / 8, [x, y] = at(t), z = surf(x, y); if (z != null) line.push([t * sc, z]); }
+    let z0 = box.isEmpty() ? -0.25 : box.min.z, slope = 0;   // 贴合的直线：z = z0 + slope * u（u = 沿剑身的距离）
+    if (line.length >= 2) {
+      const [ua, za] = line[0], [ub, zb] = line[line.length - 1];
+      slope = clamp((zb - za) / (ub - ua), -0.5, 0.5); z0 = za - slope * ua;
+      z0 += Math.min(...line.map(([u, z]) => z - (z0 + slope * u)));   // 直线在哪一点比身体表面更靠里（插进去了）就整体往外挪到刚好贴上
+    } else if (line.length === 1) z0 = line[0][1];
+    z0 -= 0.014;   // 剑身厚度的一半
+    const [x0, y0] = at(T0), [x1, y1] = at(T1);
+    const yAxis = new THREE.Vector3(x1 - x0, y1 - y0, slope * (T1 - T0) * sc).normalize();
+    const xAxis = new THREE.Vector3().crossVectors(yAxis, new THREE.Vector3(0, 0, 1)).normalize();
+    const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis);
+    s.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis));
+    s.position.set(x0, y0, z0);
+    s.userData.back = { pos: s.position.clone(), quat: s.quaternion.clone() };
+    pel.group.add(s);
+    w.sword = s; w.swordK = 0;
   }
 }
 function refreshWalkerGear() {
@@ -12965,14 +13034,18 @@ function refreshWalkerGear() {
   wearOutfit(walker.pel);
   equipWalkerGear(walker);
 }
-// 每帧：剑跟着右手（从前臂方向往外伸）
-const swordUp = new THREE.Vector3(0, 1, 0), swordDir = new THREE.Vector3();
-function updateWalkerGear(w) {
+// 每帧：用手出招（拳击、旋风腿、能量波）时剑拔到右手里，招式结束 0.4 秒后收回背上；两个姿势之间平滑过渡
+const swordUp = new THREE.Vector3(0, 1, 0), swordDir = new THREE.Vector3(), swordQ = new THREE.Quaternion();
+function updateWalkerGear(w, dt) {
   if (!w?.sword) return;
-  const wing = w.pel.wings.find((x) => x.side < 0) ?? w.pel.wings[0];
-  w.sword.position.copy(wing.hand.position);
+  if (w.atk && w.atk.kind !== 'kick') w.swordT = 0.4; else w.swordT = Math.max(0, (w.swordT ?? 0) - dt);
+  w.swordK += ((w.swordT > 0 ? 1 : 0) - w.swordK) * Math.min(1, dt * 14);
+  const s = w.sword, back = s.userData.back, wing = w.pel.wings[0];
+  if (w.swordK < 0.002) { s.position.copy(back.pos); s.quaternion.copy(back.quat); return; }
   swordDir.copy(wing.hand.position).sub(wing.fore.position).normalize();
-  w.sword.quaternion.setFromUnitVectors(swordUp, swordDir);
+  swordQ.setFromUnitVectors(swordUp, swordDir);
+  s.position.copy(back.pos).lerp(wing.hand.position, w.swordK);
+  s.quaternion.copy(back.quat).slerp(swordQ, w.swordK);
 }
 // 招式伤害倍率（interact.js 用）
 const weaponMul = (kind) => REWARDS[qs.weapon]?.mul?.[kind] ?? 1;
@@ -14295,7 +14368,7 @@ function update(dt) {
   updateWalk(dt);
   updateInteract(dt);
   updateQuests(dt);   // 彩蛋剧情（quests.js）
-  updateWalkerGear(walker);
+  updateWalkerGear(walker, dt);   // 钻石剑拔出 / 收回
   updateBuild(dt);
   updateBeach(dt);
   updateCamera(dt);
