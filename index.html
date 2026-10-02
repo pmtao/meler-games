@@ -50,6 +50,10 @@
   .news span { color: var(--muted); font-size: 14px; }
   .news em { margin-left: auto; font-style: normal; color: var(--accent); font-weight: 700; white-space: nowrap; }
   .news:hover { border-color: var(--accent); }
+  .news.old { margin-top: -10px; padding: 10px 18px; box-shadow: none; }
+  .news.old img { width: 96px; }
+  .news.old b { font-size: 15px; }
+  .news.old em { color: var(--muted); font-weight: 600; }
   .links { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: auto; }
   .links .more { color: var(--accent); font-weight: 700; text-decoration: none; }
   .soon { border-style: dashed; box-shadow: none; background: transparent; justify-content: center; align-items: center; text-align: center; min-height: 180px; color: var(--muted); padding: 24px; }
@@ -63,6 +67,9 @@
     .modes { columns: 1; }
     .news { flex-wrap: wrap; }
     .news img { width: 100%; }
+    .news.old { flex-wrap: nowrap; }
+    .news.old img { width: 84px; }
+    .news.old span { display: none; }
     .news em { margin-left: 0; }
   }
 </style>
@@ -81,6 +88,11 @@
     <img src="pelican-racing/updates/v1.1/quest.jpg" alt="">
     <div><b>🆕 动物狂飙世界 v1.1 更新</b><span>彩蛋剧情和隐藏奖励、真实海浪、动物冲浪、潜水看鱼群、沙滩躺椅听音乐</span></div>
     <em>看看新内容 →</em>
+  </a>
+  <a class="news old" href="pelican-racing/updates/" data-stat-id="home.click.news-v10" data-goatcounter-click="home/click/news-v10" data-goatcounter-title="首页：v1.0 更新说明">
+    <img src="pelican-racing/updates/build.jpg" alt="">
+    <div><b>v1.0 重大更新（原名鹈鹕赛车）</b><span>22 位动物车手、我的世界像素风格、建造模式、下车和旷野生物聊天比武</span></div>
+    <em>回顾 →</em>
   </a>
   <article class="card feature">
     <a class="cover" href="pelican-racing/" data-stat-id="home.click.cover" data-goatcounter-click="home/click/cover" data-goatcounter-title="首页：封面图" style="background-image:url('pelican-racing/cover.jpg')" aria-label="开始玩动物狂飙世界"><span class="badge">3D 赛车</span></a>
