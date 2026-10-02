@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动物狂飙世界 v1.1 · Meler Games</title>
+<meta name="description" content="动物狂飙世界 v1.1 更新说明：彩蛋系统和隐藏剧情、隐藏款涂装 / 帽子 / 武器、会起伏的真实海浪、动物冲浪、游泳潜水看鱼群、沙滩躺椅听 33 首海滨音乐和古典名曲。">
+<meta property="og:title" content="动物狂飙世界 v1.1：彩蛋剧情和大海">
+<meta property="og:description" content="和 NPC 聊出隐藏剧情，赢隐藏涂装和装备；冲浪、潜水看鱼群、躺在沙滩上听古典音乐。打开浏览器就能玩。">
+<meta property="og:image" content="https://meler-games.melerpaine.com/pelican-racing/updates/v1.1/quest.jpg">
+<meta property="og:url" content="https://meler-games.melerpaine.com/pelican-racing/updates/v1.1/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>">
+<style>
+  :root {
+    --bg: #f4f1ea; --card: #ffffff; --ink: #1d2733; --muted: #5d6875; --line: #1d273318;
+    --accent: #d8452a; --accent-ink: #ffffff; --chip: #1d27330d; --shadow: 0 10px 30px #1d27331a;
+    --green: #2e9d4a; --kbd: #1d273312;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --card: #1b2129; --ink: #e9edf1; --muted: #9aa5b1; --line: #ffffff14;
+      --accent: #ff6a4a; --accent-ink: #14171c; --chip: #ffffff0f; --shadow: 0 10px 30px #0006;
+      --green: #4cc46a; --kbd: #ffffff14;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  a { color: var(--accent); }
+  nav.wrap { padding-top: 20px; font-size: 14px; display: flex; gap: 16px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--ink); }
+  header.wrap { padding-top: 28px; padding-bottom: 28px; }
+  .brand { font-size: 14px; letter-spacing: .14em; color: var(--accent); font-weight: 700; }
+  h1 { margin: 6px 0 10px; font-size: clamp(30px, 6vw, 48px); line-height: 1.15; }
+  .lead { margin: 0 0 18px; color: var(--muted); max-width: 680px; font-size: 17px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 0; list-style: none; }
+  .chips li { background: var(--chip); padding: 3px 12px; border-radius: 99px; font-size: 14px; }
+  .play { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 12px; }
+  .play:hover { filter: brightness(1.08); }
+  .hero { margin: 26px 0 0; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); aspect-ratio: 16 / 9; background: #cfdde8; }
+  .hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  main.wrap { display: flex; flex-direction: column; gap: 26px; padding-top: 34px; padding-bottom: 40px; }
+  .feat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); display: grid; grid-template-columns: 1.25fr 1fr; }
+  .feat:nth-child(even) { grid-template-columns: 1fr 1.25fr; }
+  .feat:nth-child(even) .shot { order: 2; }
+  .shot { margin: 0; align-self: center; }
+  .shot img { width: 100%; height: auto; display: block; aspect-ratio: 16 / 9; }
+  .text { padding: 24px 26px 26px; display: flex; flex-direction: column; gap: 10px; }
+  .tag { align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); padding: 2px 10px; border-radius: 99px; }
+  h2 { margin: 0; font-size: 25px; line-height: 1.3; }
+  .text p { margin: 0; color: var(--muted); }
+  .text ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; }
+  .text li { margin: 3px 0; }
+  .text b { color: var(--ink); font-weight: 600; }
+  kbd { font: 600 12px/1 ui-monospace, Menlo, monospace; background: var(--kbd); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px; color: var(--ink); white-space: nowrap; }
+  section.more { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px 26px; box-shadow: var(--shadow); }
+  section.more h2 { margin-bottom: 12px; }
+  section.more.text { padding: 24px 26px; }
+  section.more.text h2 { margin-bottom: 0; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px 28px; margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; }
+  table.keys { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.keys td { padding: 7px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  table.keys td:first-child { width: 40%; white-space: nowrap; }
+  table.keys tr:first-child td { border-top: 0; }
+  .cta { text-align: center; padding: 10px 0 18px; }
+  .cta p { color: var(--muted); margin: 10px 0 0; font-size: 14px; }
+  footer.wrap { border-top: 1px solid var(--line); padding-top: 20px; padding-bottom: 36px; color: var(--muted); font-size: 13px; }
+  footer a { color: inherit; }
+  @media (max-width: 800px) {
+    .feat, .feat:nth-child(even) { grid-template-columns: 1fr; }
+    .feat:nth-child(even) .shot { order: 0; }
+    .text { padding: 20px; }
+    table.keys td:first-child { white-space: normal; }
+  }
+  .ver { display: inline-block; font-size: 13px; font-weight: 700; color: var(--accent-ink); background: var(--accent); padding: 1px 10px; border-radius: 99px; margin-right: 8px; letter-spacing: 0; vertical-align: 1px; }
+  .quests { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .quests th { text-align: left; font-size: 13px; color: var(--muted); font-weight: 600; padding: 6px; border-bottom: 1px solid var(--line); }
+  .quests td { padding: 9px 6px; border-top: 1px solid var(--line); vertical-align: top; color: var(--muted); }
+  .quests td:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .quests td:last-child { color: var(--ink); white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  .hint { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
+  .versions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .versions a { display: block; background: var(--chip); border-radius: 12px; padding: 10px 16px; text-decoration: none; color: var(--ink); }
+  .versions a small { display: block; color: var(--muted); font-size: 13px; }
+  @media (max-width: 800px) { .quests td:last-child, .quests td:first-child { white-space: normal; } }
+  @media (max-width: 600px) {
+    .quests tr:first-child { display: none; }
+    .quests tr { display: block; border-top: 1px solid var(--line); padding: 8px 0; }
+    .quests td { display: block; border: 0; padding: 2px 4px; }
+  }
+</style>
+<!-- 访问统计（GoatCounter，不用 Cookie）：页面访问自动统计，带 data-goatcounter-click 的按钮记点击 -->
+<script data-stat-id="page" data-goatcounter="https://meler-games.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<nav class="wrap"><a href="../../../">← Meler Games 首页</a><a href="../../" data-stat-id="updates11.click.nav-play" data-goatcounter-click="updates11/click/nav-play" data-goatcounter-title="v1.1 更新页：顶部直接开始游戏">直接开始游戏</a><a href="../" data-stat-id="updates11.click.prev" data-goatcounter-click="updates11/click/prev" data-goatcounter-title="v1.1 更新页：看 v1.0 更新说明">v1.0 更新说明</a></nav>
+
+<header class="wrap">
+  <div class="brand"><span class="ver">v1.1</span>动物狂飙世界 · 更新说明 · 2026 年 10 月 2 日</div>
+  <h1>和 NPC 聊出隐藏剧情，<br>再去海里潜个水</h1>
+  <p class="lead">这次更新在自由驾驶的开放世界里藏了 <b>6 个彩蛋</b>：问对了问题，NPC 就会请你帮忙，做完能拿到隐藏款涂装、帽子和打怪装备。阳光海滨的大海也重做了——海浪真的会起伏，动物们在浅海冲浪，你可以游出去、潜到海底看鱼群，累了就躺在沙滩躺椅上听海滨音乐。</p>
+  <ul class="chips">
+    <li>🥚 6 个彩蛋剧情</li><li>🎨 3 款隐藏涂装</li><li>👑 帽子和武器</li><li>🌊 真实海浪</li><li>🏄 动物冲浪</li><li>🐠 潜水看鱼群</li><li>⛱️ 沙滩躺椅</li><li>🎻 33 首海滨音乐</li>
+  </ul>
+  <a class="play" href="../../" data-stat-id="updates11.click.play-top" data-goatcounter-click="updates11/click/play-top" data-goatcounter-title="v1.1 更新页：开始游戏（顶部）">开始游戏 →</a>
+  <figure class="hero"><img src="quest.jpg" alt="戴着黄金王冠、拿着钻石剑的鹈鹕在沙滩上和海绵宝宝聊天，海绵宝宝头顶有黄色感叹号，左下角对话框里出现了隐藏选项「秘方……出什么事了吗？」" loading="eager"></figure>
+</header>
+
+<main class="wrap">
+  <section class="more text">
+      <span class="tag">新玩法</span>
+      <h2>彩蛋系统：和 NPC 聊出隐藏剧情</h2>
+      <p>自由驾驶时，五张地图里住着 6 位有故事的朋友，头顶有黄色的 <b>「!」</b>，小地图上也有标记。停车按 <kbd>F</kbd> 下车，走过去按 <kbd>E</kbd> 聊天。</p>
+      <ul>
+        <li>平时他们只会闲聊，要<b>顺着话题问到点子上</b>，才会说出自己的烦恼、请你帮忙——每个人的问法都不一样</li>
+        <li>任务进度显示在屏幕右边，做完回去找他，头顶变成绿色的 <b>「?」</b> 就能领奖励</li>
+        <li>六个都完成，会解锁最终隐藏剧情「<b>狂飙之王</b>」</li>
+      </ul>
+  </section>
+
+  <section class="more">
+    <h2>六位朋友和他们的烦恼</h2>
+    <div class="tablewrap">
+    <table class="quests">
+      <tr><th>谁（在哪）</th><th>要你帮的忙</th><th>奖励</th></tr>
+      <tr><td>🧽 海绵宝宝（阳光海滨沙滩）</td><td>蟹老板的秘方瓶掉进海里了，潜到海底把发光的瓶子找回来</td><td>👨‍🍳 蟹堡王厨师帽</td></tr>
+      <tr><td>⛏️ 史蒂夫（我的世界乐园门口）</td><td>想让乐园里到处都是房子，用建造模式放 20 块方块</td><td>🗡️ 钻石剑</td></tr>
+      <tr><td>🦖 小恐龙（红岩峡谷）</td><td>五颗蛋滚得到处都是，在峡谷里找回发绿光的恐龙蛋</td><td>🦴 化石涂装</td></tr>
+      <tr><td>🐼 熊猫阿宝（雪山松林）</td><td>怪物来偷包子，打败 5 个僵尸、骷髅、苦力帕或墨影人</td><td>🐉 神龙拳套</td></tr>
+      <tr><td>🤖 机器人（霓虹夜城）</td><td>电量只剩 12%，75 秒内开车依次穿过 5 个霓虹能量环</td><td>🌈 霓虹涂装</td></tr>
+      <tr><td>🦉 猫头鹰（落日公路）</td><td>回答三个谜语（答错了可以重来）</td><td>🧙 星空魔法帽</td></tr>
+      <tr><td>👑 集齐六个</td><td>帮助动物狂飙世界里的每一位朋友</td><td>🏆 黄金涂装 + 👑 黄金王冠</td></tr>
+    </table>
+    </div>
+    <p class="hint">怎么问才能触发剧情？这里先不剧透，多换几种说法试试 😉</p>
+  </section>
+
+  <article class="feat">
+    <figure class="shot"><img src="bag.jpg" alt="收藏面板：衣服、装备、隐藏涂装三栏，黄金王冠和钻石剑正在装备中" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新奖励</span>
+      <h2>帽子、武器，一键换装</h2>
+      <p>拿到的奖励都在左上角的 <b>🎒 收藏</b>（或按 <kbd>I</kbd>）里，点一下就能换上或卸下。</p>
+      <ul>
+        <li><b>帽子</b>：厨师帽、魔法帽、黄金王冠，开车和下车走路都戴着</li>
+        <li><b>钻石剑</b>：拿在手里，拳击和飞踢的伤害翻倍</li>
+        <li><b>神龙拳套</b>：金色的拳头，所有招式伤害 ×1.5，能量波变成金色的大火球</li>
+        <li>面板里还能看到每段剧情的进度，没解锁的奖励显示成问号</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="liveries.jpg" alt="三辆赛车停在落日公路上：化石涂装的拉力车、黄金涂装的跑车、霓虹涂装的方程式赛车" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">隐藏款</span>
+      <h2>三款隐藏涂装</h2>
+      <p>化石、霓虹、黄金三款车身只能通过彩蛋拿到，拿到之后会出现在菜单的「车身涂装」里，五款车都能用。</p>
+      <ul>
+        <li><b>🦴 化石</b>：砂岩底色上印着两副恐龙骨架</li>
+        <li><b>🌈 霓虹</b>：深紫色车身上发光的霓虹线条</li>
+        <li><b>🏆 黄金</b>：一道道金色渐变和高光，最终奖励</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="surf.jpg" alt="猫头鹰站在冲浪板上冲浪，海面高低起伏，远处云缝里照下几道太阳光束" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">大海重做</span>
+      <h2>会起伏的海浪，动物们在冲浪</h2>
+      <p>阳光海滨的大海换成了真正会起伏的海浪：五组不同方向的波浪叠在一起，近处浅蓝绿、往外渐深，能反射天空和阳光，浪尖还有白沫。</p>
+      <ul>
+        <li>浪一波波涌上沙滩，前沿一道白色浪花，退下去留下一片湿沙</li>
+        <li>浅海里有 6 位动物在冲浪：站在板上冲向岸边，再趴在板上划回去</li>
+        <li>远处海面上有几道从云缝里照下来的太阳光束</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="dive.jpg" alt="企鹅潜到海底，前方是一大群黄色、粉色、蓝色的鱼，海底有海草，水里晃动着光纹" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新玩法</span>
+      <h2>下水游泳，潜到海底看鱼群</h2>
+      <p>下车后一直往海里走，离岸 14 米就开始游泳（自由泳划水、打腿、溅水花），最远能游出 160 米。</p>
+      <ul>
+        <li>按住 <kbd>空格</kbd> 往下潜，镜头跟着到水下：画面变成蓝绿色，水面的光纹在晃</li>
+        <li>海底越往外越深，有礁石、海草、彩色珊瑚，<b>8 群不同颜色的鱼</b>在身边游，尾巴会左右摆</li>
+        <li>松开空格浮回水面，往回游就能上岸</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="feat">
+    <figure class="shot"><img src="beach.jpg" alt="海绵宝宝躺在遮阳伞下的躺椅上面朝大海，左边是海滨音乐选曲面板，正在播放德彪西《月光》" loading="lazy"></figure>
+    <div class="text">
+      <span class="tag">新玩法</span>
+      <h2>沙滩躺椅，听 33 首海滨音乐</h2>
+      <p>沙滩上每把遮阳伞下都有一张躺椅，走过去按 <kbd>E</kbd> 躺下，面朝大海听海浪声，生命值慢慢回满，怪物也不会来打扰。</p>
+      <ul>
+        <li>选曲面板一共 33 首：19 首古典名曲（德彪西《月光》、巴赫、莫扎特、肖邦……）、有人唱的歌、海滨纯音乐、游戏里实时合成的曲子</li>
+        <li>能看播放进度、拖动进度条，顺序播放 / 单曲循环 / 随机播放随便切</li>
+        <li>按 <kbd>T</kbd> 换五种视角：看海、躺着的视角、正面、全景、自由环绕</li>
+      </ul>
+    </div>
+  </article>
+
+  <section class="more">
+    <h2>还有这些改进</h2>
+    <ul class="cols">
+      <li>鹈鹕车手的喙变成从粉色到金黄再到橙色的渐变，喉囊有透光感，羽毛有柔和的光泽，还会眨眼</li>
+      <li>海边可以走进浅水区，越往里水越深、走得越慢，脚下溅起水花</li>
+      <li>修复了开放世界海边地面一闪一闪冒出绿色草地的问题</li>
+      <li>修复了大头角色躺在躺椅上脸被椅背挡住的问题</li>
+      <li>主菜单标题旁边显示当前版本号</li>
+    </ul>
+  </section>
+
+  <section class="more">
+    <h2>新增按键速查</h2>
+    <table class="keys">
+      <tr><td><kbd>E</kbd></td><td>和剧情 NPC 聊天 / 在躺椅旁坐下</td></tr>
+      <tr><td><kbd>1</kbd>～<kbd>9</kbd></td><td>聊天时选要说的话 / 躺椅上选曲</td></tr>
+      <tr><td><kbd>I</kbd></td><td>打开收藏面板（换帽子、武器、隐藏涂装，看剧情进度）</td></tr>
+      <tr><td><kbd>空格</kbd></td><td>游泳时按住往下潜</td></tr>
+      <tr><td><kbd>T</kbd> <kbd>L</kbd> <kbd>N</kbd></td><td>躺椅上：换视角 / 换播放模式 / 下一首</td></tr>
+    </table>
+  </section>
+
+  <section class="more">
+    <h2>版本记录</h2>
+    <ul class="versions">
+      <li><a href="./"><b>v1.1</b> · 2026-10-02<small>彩蛋剧情、大海冲浪潜水、沙滩音乐（本页）</small></a></li>
+      <li><a href="../" data-stat-id="updates11.click.prev-list" data-goatcounter-click="updates11/click/prev-list" data-goatcounter-title="v1.1 更新页：版本记录里的 v1.0"><b>v1.0</b> · 2026-10-01<small>改名动物狂飙世界、22 位车手、像素风格、建造模式</small></a></li>
+    </ul>
+  </section>
+
+  <div class="cta">
+    <a class="play" href="../../" data-stat-id="updates11.click.play-bottom" data-goatcounter-click="updates11/click/play-bottom" data-goatcounter-title="v1.1 更新页：现在就去玩（底部）">现在就去玩 →</a>
+    <p>彩蛋在「自由驾驶」里；电脑上用键盘玩最顺手，手机横屏可以用触屏按键。游泳和潜水只在经典画面风格里有。</p>
+  </div>
+</main>
+
+<footer class="wrap">
+  © <span id="y">2026</span> Meler Games · <a href="../../../">首页</a> · <a href="https://github.com/pmtao/meler-games">GitHub</a>
+</footer>
+<script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>

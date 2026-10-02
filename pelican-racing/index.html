@@ -296,6 +296,45 @@ body.audio-locked #audioHint { display: block; }
 
 /* ?fps=1 帧率显示 */
 #fps { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 50; font: 12px/1.4 ui-monospace, monospace; color: #fff; background: #0008; padding: 2px 8px; border-radius: 6px; pointer-events: none; }
+/* 潜到水下：画面加一层蓝绿色调（静态）+ 慢慢晃动的光纹（焦散）。
+   光纹层只用 transform 平移（交给合成器，不用每帧重绘整屏），以前改 background-position 在 Safari / 高分屏上会很卡 */
+body.underwater::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  background: radial-gradient(ellipse at 50% -20%, rgba(140,225,255,0.28), rgba(0,40,60,0.35) 70%);
+}
+body.underwater::before {
+  content: ''; position: fixed; left: -50%; top: -50%; width: 200%; height: 200%; pointer-events: none; z-index: 5;
+  background:
+    repeating-linear-gradient(115deg, rgba(180,240,255,0) 0 38px, rgba(180,240,255,0.07) 46px, rgba(180,240,255,0) 58px),
+    repeating-linear-gradient(65deg, rgba(180,240,255,0) 0 52px, rgba(180,240,255,0.05) 60px, rgba(180,240,255,0) 74px);
+  will-change: transform;
+  animation: caustics 9s linear infinite alternate;
+}
+@keyframes caustics { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(8%, 5%, 0); } }
+
+/* 彩蛋剧情（quests.js）：收藏按钮（开放世界里显示在左上按钮条下面）、右上角的任务进度、收藏面板 */
+#bagBtn { position: fixed; left: calc(14px + var(--sl)); top: calc(62px + var(--st)); z-index: 12; display: none; border: 0; border-radius: 8px; padding: 5px 12px; background: #1d6f8fe8; color: #fff; font-size: 13px; cursor: pointer; box-shadow: 0 3px 10px #0003; }
+body.touch #bagBtn { top: calc(48px + var(--st)); font-size: 11px; padding: 4px 8px; }
+#questHud { position: fixed; right: calc(16px + var(--sr, 0px)); top: calc(250px + var(--st)); z-index: 12; display: none; max-width: 260px; padding: 8px 12px; font-size: 13px; }
+#questHud > div + div { margin-top: 6px; }
+#questHud small { display: block; opacity: 0.8; font-size: 12px; }
+#collection { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 40; display: none; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 80px); overflow-y: auto; padding: 14px 16px;
+  background: #1d3040f0; color: #fff; border-radius: 16px; box-shadow: 0 10px 30px #0006; }
+#collection .col-head { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+#collection .col-head span { font-weight: 400; font-size: 13px; opacity: 0.8; flex: 1; }
+#collection .col-head button { background: none; border: 0; color: #fff; font-size: 18px; cursor: pointer; }
+#collection h4 { margin: 12px 0 6px; font-size: 14px; }
+#collection .col-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; }
+#collection .col-item { display: flex; gap: 10px; align-items: flex-start; background: #ffffff14; border: 1px solid #ffffff22; border-radius: 10px; padding: 8px; }
+#collection .col-item.on { border-color: #f2c430; background: #f2c43022; }
+#collection .col-item.locked { opacity: 0.55; }
+#collection .ci-icon { font-size: 28px; line-height: 1; }
+#collection .col-item small { display: block; font-size: 12px; opacity: 0.8; margin: 2px 0 4px; }
+#collection .col-item button { background: #ffffff22; border: 1px solid #ffffff40; color: #fff; border-radius: 7px; padding: 2px 8px; font-size: 12px; cursor: pointer; }
+#collection .lock { font-size: 12px; opacity: 0.8; }
+#collection .col-quests { margin: 0; padding-left: 4px; list-style: none; font-size: 13px; line-height: 1.7; }
+#collection .col-quests .none { opacity: 0.6; }
+#collection .col-tip { font-size: 12px; opacity: 0.7; margin: 10px 0 0; }
 
 </style>
 <script type="importmap">
@@ -336,6 +375,9 @@ body.audio-locked #audioHint { display: block; }
 <div id="carCue"></div>
 <div id="mobUi"></div>
 <div id="talkPanel"></div>
+<button id="bagBtn" title="收藏：彩蛋奖励和剧情（I）">🎒 收藏</button>
+<div id="questHud" class="card"></div>
+<div id="collection"></div>
 <div id="walkHp"></div>
 <div id="hurtFlash"></div>
 <div id="hotbar"></div>
@@ -444,6 +486,8 @@ scene.add(hemi);
 // =====================================================================
 // 工具函数
 // =====================================================================
+// 版本号：发布新版本时改这里，并在 CHANGELOG.md 和网站的更新说明页（meler-games/pelican-racing/updates/）同步
+const GAME_VERSION = '1.1';
 const v = (x, y, z = 0) => new THREE.Vector3(x, y, z);
 const UP = v(0, 1, 0);
 const Z_AXIS = v(0, 0, 1);
@@ -582,7 +626,8 @@ function drawFeatherScales(g, s, base, shade) {
 function plumageMaterial(color, repeat, shade = 'rgba(150,120,110,0.22)') {
   const map = canvasTexture(256, (g, s) => drawFeatherScales(g, s, '#ffffff', shade), { repeat });
   const bump = canvasTexture(256, (g, s) => drawFeatherScales(g, s, '#ffffff', 'rgba(0,0,0,0.45)'), { srgb: false, repeat });
-  return new THREE.MeshStandardMaterial({ color, map, bumpMap: bump, bumpScale: 0.8, roughness: 0.9 });
+  // 绒面光泽（sheen）：羽毛边缘逆光时泛一层柔和的白光，比普通材质更像羽毛（参考 pelican-bike）
+  return new THREE.MeshPhysicalMaterial({ color, map, bumpMap: bump, bumpScale: 0.8, roughness: 0.9, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffffff) });
 }
 
 function featherGeometry(length, width) {
@@ -812,9 +857,11 @@ const PM = {
   skin: mat(0xf3b09a, { roughness: 0.45 }),
   iris: new THREE.MeshPhysicalMaterial({ color: 0x8a2a1a, roughness: 0.1, clearcoat: 1 }),
   pupil: mat(0x050505, { roughness: 0.05 }),
-  bill: new THREE.MeshPhysicalMaterial({ color: 0xd9a8a0, roughness: 0.35, clearcoat: 0.6 }),
+  bill: new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.25 }),   // 颜色在几何体的顶点色里：嘴根粉、中段金黄、往嘴尖变橙
   hook: mat(0xd6452e, { roughness: 0.3 }),
-  pouch: new THREE.MeshPhysicalMaterial({ color: 0xf5b73c, roughness: 0.4, clearcoat: 0.4, sheen: 0.5, sheenColor: 0xffd27a }),
+  // 喉囊：薄薄的皮，加一点暖色自发光和绒面光泽，像阳光能透过去（参考 pelican-bike）
+  pouch: new THREE.MeshPhysicalMaterial({ color: 0xf5b857, roughness: 0.45, clearcoat: 0.3, sheen: 0.8, sheenColor: 0xffd7a3, emissive: 0x5a2200, emissiveIntensity: 0.15, side: THREE.DoubleSide }),
+  eyeGlint: new THREE.MeshBasicMaterial({ color: 0xffffff }),
   goggle: new THREE.MeshPhysicalMaterial({ color: 0x223344, metalness: 0.6, roughness: 0.05, clearcoat: 1 }),
   strap: mat(0x222222, { roughness: 0.8 }),
   rubber: mat(0x1b1b1b, { roughness: 0.85 }),
@@ -828,6 +875,19 @@ const PM = {
 };
 shareAll(PM);
 
+// 喙的顶点色：嘴根偏粉、中段金黄、往嘴尖变橙；上面的中脊亮一点（参考 pelican-bike 的 upperBeak）
+function billColors(g) {
+  const pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+  const base = new THREE.Color('#f0a58a'), mid = new THREE.Color('#f5c15a'), tip = new THREE.Color('#ec8a3c'), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const u = pos.getZ(i) / BILL_LEN;
+    c.copy(base).lerp(mid, smoothstep(0, 0.35, u)).lerp(tip, smoothstep(0.5, 0.95, u));
+    if (pos.getY(i) > 0 && Math.abs(pos.getX(i)) < 0.008) c.offsetHSL(0, 0, 0.06);
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
 const PG = {
   sphere16: new THREE.SphereGeometry(1, 16, 11),
   sphere24: new THREE.SphereGeometry(1, 24, 17),
@@ -837,10 +897,10 @@ const PG = {
     const front = Math.max(0, p.z);
     p.set(p.x * (0.07 - front * 0.015), p.y * (0.08 - front * 0.02), p.z * (0.1 + front * 0.02));
   }),
-  upperBill: sculpt(new THREE.SphereGeometry(1, 32, 12), (p) => {
+  upperBill: billColors(sculpt(new THREE.SphereGeometry(1, 32, 12), (p) => {
     const u = (p.z + 1) / 2;
     p.set(p.x * 0.045 * (1 - 0.55 * u), p.y * 0.02 * (1 - 0.45 * u) - 0.015 * u * u, u * BILL_LEN);
-  }),
+  })),
   hook: sculpt(new THREE.SphereGeometry(1, 14, 10), (p) => {
     p.set(p.x * 0.02, p.y * 0.022 - Math.max(0, p.z) * 0.012, p.z * 0.028);
   }).translate(0, -0.012, BILL_LEN - 0.01),
@@ -944,6 +1004,7 @@ function createPelican(helmetColor, suitColor = helmetColor) {
   group.add(tube([-0.9, -0.5, 0, 0.5, 0.9].map((x) => onBody(x, 1.62)), 0.013, BELT_MAT, 12, 5));
   group.add(shaped(PG.sphere16, PM.metal, v(...onBody(0, 1.45)), v(0.03, 0.03, 0.012)));   // 卡扣
 
+  const lids = [];
   const head = new THREE.Group();
   head.position.set(0, 0.87, 0.14);
   group.add(head);
@@ -953,7 +1014,14 @@ function createPelican(helmetColor, suitColor = helmetColor) {
       shaped(PG.sphere16, PM.skin, v(0.052 * s, 0.01, 0.05), v(0.02, 0.03, 0.05), new THREE.Euler(0, 0.35 * s, 0)),
       shaped(PG.sphere16, PM.iris, v(0.066 * s, 0.016, 0.052), v(0.008, 0.014, 0.014)),
       shaped(PG.sphere16, PM.pupil, v(0.073 * s, 0.016, 0.054), v(0.004, 0.007, 0.007)),
+      shaped(PG.sphere16, PM.eyeGlint, v(0.0745 * s, 0.02, 0.057), v(0.0016, 0.0022, 0.0022)),   // 眼睛的高光点
     );
+    // 眼皮：平时缩成看不见，眨眼时张开盖住眼睛
+    const lid = shaped(PG.sphere16, PM.head, v(0.067 * s, 0.016, 0.052), v(0.0105, 0.017, 0.017));
+    lid.userData.full = lid.scale.clone();
+    lid.scale.setScalar(0.0001);
+    head.add(lid);
+    lids.push(lid);
   }
   // 赛车头盔：头顶 + 后脑两侧，前沿一圈深色遮阳帽檐，顶上一个进气口，下巴一根系带
   const hScale = v(0.092, 0.1, 0.125);
@@ -989,7 +1057,7 @@ function createPelican(helmetColor, suitColor = helmetColor) {
     return { side: s, shoulder, elbow: v(0.27 * s, 0.16, 0.2), upper, fore, hand };
   });
 
-  return { group, head, bill, pouch, crest, wings, pouchOffset: 0, pouchVel: 0, headYaw: 0, headPitch: 0 };
+  return { group, head, bill, pouch, crest, wings, lids, blinkT: -1, nextBlink: 1 + Math.random() * 3, pouchOffset: 0, pouchVel: 0, headYaw: 0, headPitch: 0 };
 }
 
 // 翅膀抓住方向盘两侧（grips 为鹈鹕局部坐标）
@@ -1009,6 +1077,14 @@ function animatePelican(pel, dt, t, steer, accel, speed) {
   pel.headPitch += (pitchTarget - pel.headPitch) * Math.min(1, dt * 6);
   pel.head.rotation.set(pel.headPitch, pel.headYaw, Math.sin(t * 17) * 0.004 * Math.min(speed / 30, 1));
   pel.head.position.z = (pel.headZ ?? 0.14) + pel.headPitch * 0.12;
+  // 眨眼：隔 2～6 秒眨一下，0.16 秒眼皮合上又张开
+  if (pel.lids) {
+    pel.nextBlink -= dt;
+    if (pel.nextBlink <= 0 && pel.blinkT < 0) { pel.blinkT = 0; pel.nextBlink = 2 + Math.random() * 4; }
+    let k = 0;
+    if (pel.blinkT >= 0) { pel.blinkT += dt; k = Math.sin(Math.min(1, pel.blinkT / 0.16) * Math.PI); if (pel.blinkT > 0.16) pel.blinkT = -1; }
+    for (const l of pel.lids) { if (k > 0.05) l.scale.copy(l.userData.full).multiplyScalar(k); else l.scale.setScalar(0.0001); }
+  }
   if (!pel.pouch) return;   // 其他角色没有喉囊、冠羽
   // 弹簧阻尼：加速度让喉囊晃动
   pel.pouchVel += (-80 * pel.pouchOffset - 7 * pel.pouchVel + accel * 0.35) * dt;
@@ -1515,6 +1591,8 @@ const LIVERIES = [
   ['stock', '原厂涂装'], ['stripes', '双条纹'], ['flames', '火焰'], ['twotone', '双色'],
   ['gradient', '渐变'], ['checker', '棋盘格'], ['camo', '迷彩'], ['lightning', '闪电'],
 ];
+// 隐藏款涂装：彩蛋剧情的奖励（quests.js），拿到之后才出现在菜单里；对手不会随机到
+const HIDDEN_LIVERIES = [['livery-fossil', '🦴 化石'], ['livery-neon', '🌈 霓虹'], ['livery-gold', '🏆 黄金']];
 const ACCENTS = [null, 0xf4f4f4, 0x111111, 0xd11f1f, 0xf2b705, 0x1f5fbf, 0x2fa84f, 0xff6a13, 0xb0b6be];
 function contrastOf(hex) {
   const c = new THREE.Color(hex);
@@ -1619,6 +1697,54 @@ function paintPattern(P, st, look, base) {
       P.rect(zA + L * 0.72, zB, 0.46, 0.54, '#f4f4f4');
       P.sideText('POLICE', (d0 + d1) / 2, 0.06, '#111111', { vLeft: 0.27 });
       P.sideText('警察', (d0 + d1) / 2, 0.045, '#1f5fbf', { vLeft: 0.18 });
+      break;
+    }
+    case 'livery-fossil': {
+      // 砂岩底色 + 岩层纹理，两侧各一副恐龙骨架（脊椎、肋骨、头骨）
+      g.fillStyle = '#c9a26b'; g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 14; i++) { g.fillStyle = i % 2 ? 'rgba(120,80,40,0.18)' : 'rgba(240,210,160,0.2)'; g.fillRect(0, rng() * H, W, H * (0.01 + rng() * 0.03)); }
+      for (let i = 0; i < 90; i++) { g.fillStyle = 'rgba(90,60,30,0.25)'; g.beginPath(); g.arc(rng() * W, rng() * H, H * (0.002 + rng() * 0.004), 0, Math.PI * 2); g.fill(); }
+      g.strokeStyle = '#f3ead6'; g.fillStyle = '#f3ead6'; g.lineCap = 'round';
+      for (const vc of [0.26, 0.74]) {
+        const x0 = X(lerp(zA, zB, 0.12)), x1 = X(lerp(zA, zB, 0.82)), yc = Y(vc);
+        g.lineWidth = H * 0.012;
+        g.beginPath(); g.moveTo(x0, yc); g.quadraticCurveTo((x0 + x1) / 2, yc - H * 0.05 * (vc < 0.5 ? -1 : 1), x1, yc); g.stroke();   // 脊椎
+        g.lineWidth = H * 0.006;
+        for (let k = 1; k < 9; k++) {   // 肋骨
+          const x = lerp(x0, x1, 0.25 + k * 0.06), dy = H * 0.05 * (1 - Math.abs(k - 4.5) / 6);
+          g.beginPath(); g.moveTo(x, yc); g.quadraticCurveTo(x + H * 0.01, yc + dy, x - H * 0.006, yc + dy * 1.6); g.stroke();
+          g.beginPath(); g.moveTo(x, yc); g.quadraticCurveTo(x + H * 0.01, yc - dy, x - H * 0.006, yc - dy * 1.6); g.stroke();
+        }
+        g.beginPath(); g.ellipse(x1 + H * 0.03, yc, H * 0.035, H * 0.022, 0, 0, Math.PI * 2); g.fill();   // 头骨
+        g.fillStyle = '#5a3a1e'; g.beginPath(); g.arc(x1 + H * 0.035, yc - H * 0.006, H * 0.006, 0, Math.PI * 2); g.fill(); g.fillStyle = '#f3ead6';
+        for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(x0 - k * H * 0.02, yc); g.lineTo(x0 - (k + 1) * H * 0.02, yc + H * 0.003 * k); g.stroke(); }   // 尾巴
+      }
+      break;
+    }
+    case 'livery-neon': {
+      // 深紫黑底 + 发光的霓虹线（先画宽的半透明光晕，再画细亮线）
+      g.fillStyle = '#120a24'; g.fillRect(0, 0, W, H);
+      const lines = [[0.2, '#22e6ff'], [0.26, '#ff2bd6'], [0.74, '#ff2bd6'], [0.8, '#22e6ff'], [0.47, '#b6ff3a'], [0.53, '#b6ff3a']];
+      for (const [vc, c] of lines) {
+        g.beginPath();
+        g.moveTo(0, Y(vc));
+        for (let x = 0; x <= W; x += W / 24) g.lineTo(x, Y(vc + Math.sin(x / W * 12 + vc * 9) * 0.012));
+        g.strokeStyle = c; g.globalAlpha = 0.3; g.lineWidth = H * 0.03; g.stroke();
+        g.globalAlpha = 1; g.lineWidth = H * 0.007; g.stroke();
+        g.strokeStyle = '#ffffff'; g.lineWidth = H * 0.002; g.stroke();
+      }
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'livery-gold': {
+      // 纯金：竖向的金色渐变 + 斜向高光条 + 一圈皇冠纹样
+      const grad = g.createLinearGradient(0, 0, 0, H);
+      ['#7a4a00', '#e8a812', '#ffd84a', '#c98a06', '#7a4a00', '#e8a812', '#ffd84a', '#c98a06', '#7a4a00'].forEach((c, i, a) => grad.addColorStop(i / (a.length - 1), c));
+      g.fillStyle = grad; g.fillRect(0, 0, W, H);
+      g.globalAlpha = 0.18;
+      for (let i = 0; i < 7; i++) { g.fillStyle = '#fff6c8'; g.beginPath(); const x = (i / 7) * W; g.moveTo(x, 0); g.lineTo(x + W * 0.04, 0); g.lineTo(x - W * 0.04, H); g.lineTo(x - W * 0.08, H); g.fill(); }
+      g.globalAlpha = 1;
+      for (const vc of [0.24, 0.76]) P.rect(zA, zB, vc - 0.004, vc + 0.004, '#7a4c00');
       break;
     }
     default:
@@ -2724,6 +2850,7 @@ function voxelMeshes(meshes, root, size) {
     if (mats.every((mt) => skip.has(mt))) continue;
     m.multiplyMatrices(inv, mesh.matrixWorld);
     const geo = mesh.geometry, pos = geo.attributes.position, uv = geo.attributes.uv, index = geo.index;
+    const vcol = geo.attributes.color;   // 顶点色（例如鹈鹕喙的渐变）：材质开了 vertexColors 时按顶点插值取色
     const triCount = (index ? index.count : pos.count) / 3;
     const groups = geo.groups.length ? geo.groups : [{ start: 0, count: triCount * 3, materialIndex: 0 }];
     for (const gr of groups) {
@@ -2744,7 +2871,10 @@ function voxelMeshes(meshes, root, size) {
           // 后加的零件盖住先加的（眼睛、车灯、饰条画在表面上）；发光零件不会被普通零件盖住；透明罩不盖任何东西
           if (old && (bucket === 'glass' || (bucket === 'solid' && old.bucket !== 'solid' && old.bucket !== 'glass'))) continue;
           let col;
-          if (uv) {
+          if (vcol && mt.vertexColors) {
+            col = vxColor.setRGB(vcol.getX(ia) * ww + vcol.getX(ib) * wu + vcol.getX(ic) * wv, vcol.getY(ia) * ww + vcol.getY(ib) * wu + vcol.getY(ic) * wv,
+              vcol.getZ(ia) * ww + vcol.getZ(ib) * wu + vcol.getZ(ic) * wv).multiply(mt.color);
+          } else if (uv) {
             const u = uv.getX(ia) * ww + uv.getX(ib) * wu + uv.getX(ic) * wv, v = uv.getY(ia) * ww + uv.getY(ib) * wu + uv.getY(ic) * wv;
             col = sampleColor(mt, u, v);
           } else col = sampleColor(mt, 0, 0);
@@ -3400,13 +3530,8 @@ function buildSeaside(rng, theme) {
   const sandZ0 = worldMode === 'open' ? beachEdgeZ() : shoreZ - 20, sandZ1 = shoreZ + 50;
   const sand = mesh(new THREE.PlaneGeometry(7000, sandZ1 - sandZ0).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: noiseTexture(128, '#e8d6a8', [['#d8c290', 0.8], ['#f6ead0', 0.6]], [600, 8]), roughness: 1, ...LAYER(1) }), false);   // 沙滩只比地面高 1 厘米：用深度偏移压在地面上，远处斜着看也不会被草地盖住
   sand.position.set(T.bounds.cx, 0.01, (sandZ0 + sandZ1) / 2);
-  const sea = mesh(new THREE.PlaneGeometry(7000, 3000).rotateX(-Math.PI / 2), new THREE.MeshPhysicalMaterial({ color: 0x1a74a0, roughness: 0.32, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.2, envMapIntensity: 0.45 }), false);   // 反光别太强，不然远处的海映成一片白
-  sea.position.set(T.bounds.cx, 0.05, shoreZ + 50 + 1500);
-  const foam = mesh(new THREE.PlaneGeometry(7000, 4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false, ...LAYER(2) }), false);
-  foam.position.set(T.bounds.cx, 0.07, shoreZ + 50);
-  world.add(sand, sea, foam);
-  world.userData.foam = foam;
-  buildSurf(T.bounds.cx, shoreZ, false);   // 一阵阵涌上沙滩又退回去的浪（beach.js）
+  world.add(sand);
+  buildSurf(T.bounds.cx, shoreZ, false);   // 大海：Gerstner 海面，浪一阵阵涌上沙滩又退回去（beach.js）
 
   // 沙滩上的遮阳伞
   const umbrellas = [], uColors = [];
@@ -5313,7 +5438,7 @@ function buildOpenGround() {
   // 海边：沙滩（高 1 厘米）和海面（高 5 厘米）各是一张平面，地面在它们下面压低半米，
   // 免得几厘米的间隔在远处 / 高处看时深度精度不够，草地一闪一闪地盖过沙滩和海面。
   const lowZ = beachEdgeZ() + 1;   // 沙滩陆地一侧的边缘正好在一行网格上，从下一行起压低（倾斜的那一段都在沙滩底下）
-  for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getZ(i) > lowZ ? -0.5 : terrainH(pos.getX(i), pos.getZ(i)));
+  for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getZ(i) > lowZ ? Math.min(-0.5, seabedY(pos.getZ(i))) : terrainH(pos.getX(i), pos.getZ(i)));   // 海底往外越来越深（sea.js），能潜下去
   geo.computeVertexNormals();
   const cols = Object.fromEntries(TRACKS.map((d) => [d.id, new THREE.Color(THEMES[d.theme].ground[0])]));
   const c = new THREE.Color();
@@ -5374,6 +5499,7 @@ function buildOpenWorld() {
     pixelBeacons();
     pixelSkyObjects();
     buildPark();   // 阳光海滨的我的世界乐园（build.js）
+    buildQuestNPCs();   // 彩蛋剧情的 NPC（quests.js）
     collectPixelCullables();
     blend.lastEnv = -99;
     return;
@@ -5396,6 +5522,7 @@ function buildOpenWorld() {
   buildingRegion = null;
   regionFilter = null;
   buildPark();   // 阳光海滨的我的世界乐园（build.js）
+  buildQuestNPCs();   // 彩蛋剧情的 NPC（quests.js）
   scene.background = null;
   if (!sky.parent) scene.add(sky);
   blend.lastEnv = -99;
@@ -6849,6 +6976,7 @@ function createRacer({ carId, color, name = null, css = '#fff', isPlayer = false
 
   const pel = createDriver(character, helmet ?? (isPlayer ? 0xffffff : color), color);
   if (pixelActive) voxelizePelican(pel);
+  if (isPlayer) wearOutfit(pel);   // 彩蛋奖励的头饰（quests.js）
   pel.group.position.copy(built.seat);
   if (character !== 'pelican') pel.group.position.y += built.charLift ?? 0;
   pel.group.scale.setScalar(built.pelScale);
@@ -7812,6 +7940,7 @@ function setupRace({ newRivals = false } = {}) {
   clearSkids();
   clearMobs();
   clearWalker();
+  if (worldMode !== 'open') clearQuestWorld(); else spawnQuestItems();   // 彩蛋剧情（quests.js）：NPC 跟着开放世界，物品按任务进度重摆
   turboStats.normal = turboStats.perfect = 0;
   carEvents.length = 0;
   if (settings.mode === 'pursuit') setupPursuit(); else clearPursuit();
@@ -9907,6 +10036,7 @@ function exitCar() {
   // 挤开障碍物，避免一下车就卡在树里
   walkCollide(walker);
   scene.add(walker.group);
+  refreshWalkerGear();   // 头饰、钻石剑 / 神龙拳套（quests.js）
   buildCarGuide(walker);
   player.pel.group.visible = false;
   player.ctl.throttle = player.ctl.reverse = false;
@@ -10064,7 +10194,7 @@ function walkCollide(w) {
   if (d < need) { w.x = player.x + (dx / d) * need; w.z = player.z + (dz / d) * need; }
   // 海边：能走进浅水区（海面开始往外 WADE_MAX 米），再往外太深了过不去；没有浪的地方还是到岸边为止
   const surf = world?.userData.surf;
-  const seaLimit = surf ? surf.seaZ + WADE_MAX : oceanZ - 2;
+  const seaLimit = surf ? surf.seaZ + (swimSeaOK() ? SWIM_MAX : WADE_MAX) : oceanZ - 2;   // 经典风格能游到深海，像素风格只能蹚浅水
   if (w.z > seaLimit) w.z = seaLimit;
   const cx = w.x - WORLD_CENTER[0], cz = w.z - WORLD_CENTER[1], cd = Math.hypot(cx, cz);
   if (cd > WORLD_RADIUS - 3) { w.x = WORLD_CENTER[0] + (cx / cd) * (WORLD_RADIUS - 3); w.z = WORLD_CENTER[1] + (cz / cd) * (WORLD_RADIUS - 3); }
@@ -10109,6 +10239,7 @@ function updateWalk(dt) {
   w.z += fz * w.speed * dt;
   walkCollide(w);
   buildPushOut(w, 0.35, w.y + 0.05, w.y + 1.7);   // 方块墙挡住
+  if (updateSwim(w, dt)) { updateCarGuide(w, dt); return; }   // 在深水里：游泳（sea.js）
 
   // 竖直：跳起来、落回地面；走下坡直接贴地（落差不大时）
   const g = walkFeetGround(w);
@@ -10542,7 +10673,7 @@ function strike(mv, filter = null) {
     if (mv.arc > -1 && d > 0.3 && (dx * fx + dz * fz) / d < mv.arc) continue;
     if (Math.abs(groundMeshH(m.x, m.z) - w.y) > 2.2) continue;
     if (!m.t.hostile) { friend = m; continue; }
-    hitMob(m, mv.dmg, dx / (d || 1), dz / (d || 1), mv.kb);
+    hitMob(m, Math.round(mv.dmg * weaponMul(Object.keys(MOVES).find((k) => MOVES[k] === mv))), dx / (d || 1), dz / (d || 1), mv.kb);   // 装备加成（quests.js）
     hitAny = true;
     if (w.atk) w.atk.hit.add(m);
   }
@@ -10676,18 +10807,19 @@ const BLAST_GEO = new THREE.SphereGeometry(0.35, 12, 8);
 BLAST_GEO.userData.shared = true;
 function fireBlast(w) {
   const [fx, fz] = forwardOf(w.heading);
-  const mesh_ = new THREE.Mesh(BLAST_GEO, new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const dragon = qs.weapon === 'weapon-dragon';   // 神龙拳套：金色的大火球
+  const mesh_ = new THREE.Mesh(BLAST_GEO, new THREE.MeshBasicMaterial({ color: dragon ? 0xffb020 : 0x66ccff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   mesh_.position.set(w.x + fx * 0.8, w.y + 1.3, w.z + fz * 0.8);
   scene.add(mesh_);
-  blasts.push({ mesh: mesh_, vx: fx * 28, vz: fz * 28, life: 1.1 });
+  blasts.push({ mesh: mesh_, vx: fx * 28, vz: fz * 28, life: 1.1, size: dragon ? 1.7 : 1, spark: dragon ? 0xffd27a : 0x9fe0ff });
 }
 function updateBlasts(dt) {
   for (const b of [...blasts]) {
     b.life -= dt;
     const p = b.mesh.position;
     p.x += b.vx * dt; p.z += b.vz * dt;
-    b.mesh.scale.setScalar(1 + Math.sin(elapsed * 30) * 0.15);
-    emit(sparkPool, p.clone(), { vel: v(rand(-1, 1), rand(-1, 1), rand(-1, 1)), life: 0.25, size0: 0.4, size1: 0.05, color: 0x9fe0ff, alpha: 0.9 });
+    b.mesh.scale.setScalar(b.size * (1 + Math.sin(elapsed * 30) * 0.15));
+    emit(sparkPool, p.clone(), { vel: v(rand(-1, 1), rand(-1, 1), rand(-1, 1)), life: 0.25, size0: 0.4 * b.size, size1: 0.05, color: b.spark, alpha: 0.9 });
     let done = b.life <= 0;
     let blocked = false;
     obstacles.query(p.x, p.z, 2, (o) => { if (Math.hypot(o.x - p.x, o.z - p.z) < o.r) blocked = true; });
@@ -10696,13 +10828,13 @@ function updateBlasts(dt) {
       const dx = m.x - p.x, dz = m.z - p.z;
       if (Math.hypot(dx, dz) > 0.6 + (m.t.r ?? 0.4) || Math.abs(groundMeshH(m.x, m.z) + m.height / 2 - p.y) > m.height / 2 + 0.6) continue;
       const len = Math.hypot(b.vx, b.vz);
-      if (m.t.hostile) hitMob(m, MOVES.blast.dmg, b.vx / len, b.vz / len, MOVES.blast.kb);
+      if (m.t.hostile) hitMob(m, Math.round(MOVES.blast.dmg * weaponMul('blast')), b.vx / len, b.vz / len, MOVES.blast.kb);
       else warnFriend(m);
       done = true;
       break;
     }
     if (done) {
-      for (let k = 0; k < 12; k++) emit(sparkPool, p.clone(), { vel: v(rand(-5, 5), rand(-1, 5), rand(-5, 5)), life: 0.4, size0: 0.5, size1: 0.05, color: 0x9fe0ff, gravity: 6, alpha: 1 });
+      for (let k = 0; k < 12; k++) emit(sparkPool, p.clone(), { vel: v(rand(-5, 5), rand(-1, 5), rand(-5, 5)), life: 0.4, size0: 0.5 * b.size, size1: 0.05, color: b.spark, gravity: 6, alpha: 1 });
       scene.remove(b.mesh);
       b.mesh.material.dispose();
       blasts.splice(blasts.indexOf(b), 1);
@@ -11100,6 +11232,7 @@ function buildPlace() {
   if (why) { if (!messageTimer) showMessage(`🚫 ${why}`, 0.9); return; }
   const type = BUILD_PALETTE[buildSlot].type;
   setBlock(...buildAim.place, type);
+  buildPlacedCount++;   // 史蒂夫的任务（quests.js）
   walker.wave = 0.25;
   sound.burst({ duration: 0.09, type: 'lowpass', frequency: type === 'glass' ? 2500 : 700, gain: 0.35 });
   saveBuild();
@@ -11620,22 +11753,30 @@ function seaStartZ(shoreZ, pixel) {
   const oz = worldMode === 'open' ? WORLD_CENTER[1] - GROUND_HALF : T.bounds.cz - 3500;
   return oz + Math.ceil((shoreZ + 37.5 - oz) / 25) * 25;
 }
-// 浪：一张半透明的水面，靠沙滩的一头是白色浪花、越往海里越不透明，按时间往沙滩上涌、再退回去（两道浪错开）
+// 浪：像素风格是一张方块贴图的半透明水面，按时间往沙滩上涌、再退回去（两道浪错开）；
+// 经典风格用 Gerstner 海面（buildOcean），涌上沙滩的浪在海面着色器里算
 function buildSurf(cx, shoreZ, pixel) {
   const seaZ = seaStartZ(shoreZ, pixel);
-  const tex = canvasTexture(pixel ? 16 : 128, (g, w, h) => {
+  buildSunRays(seaZ);          // 远处海面上的太阳光束（sea.js）
+  if (!pixel) {
+    const ocean = buildOcean(cx, seaZ);
+    world.userData.surf = { waves: [], ocean, seaZ, cx, crashed: false };
+    buildSeabed(cx);            // 开放世界：海底的礁石、海草、珊瑚（sea.js）
+    buildSurfers(cx, seaZ);     // 浅海里冲浪的动物（sea.js）
+    return;
+  }
+  const tex = canvasTexture(16, (g, w, h) => {
     g.clearRect(0, 0, w, h);
     const grd = g.createLinearGradient(0, 0, 0, h);   // 上面（v=1）是海那一头，下面是浪尖
-    grd.addColorStop(0, pixel ? '#3f76e4d8' : '#2a8fb8d0');
-    grd.addColorStop(0.75, pixel ? '#5a8fe8a0' : '#5ab8d488');
+    grd.addColorStop(0, '#3f76e4d8');
+    grd.addColorStop(0.75, '#5a8fe8a0');
     grd.addColorStop(0.92, '#e8f6fae0');
     grd.addColorStop(1, '#ffffff00');
     g.fillStyle = grd; g.fillRect(0, 0, w, h);
-    if (!pixel) for (let i = 0; i < 400; i++) { g.fillStyle = '#ffffff70'; g.fillRect(Math.random() * w, h * (0.86 + Math.random() * 0.1), 3, 1.5); }   // 浪尖上的泡沫点
-  }, { height: pixel ? 16 : 128 });
+  }, { height: 16 });
   tex.wrapS = THREE.RepeatWrapping;
-  tex.repeat.set(pixel ? 120 : 60, 1);
-  if (pixel) { tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; }
+  tex.repeat.set(120, 1);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, ...LAYER(3) });
   const waves = [0, 0.42].map((phase, i) => {
     // 平面的 z 从 0（浪尖）到 +18（往海里），往海里那一截压在海面底下看不见
@@ -11648,6 +11789,214 @@ function buildSurf(cx, shoreZ, pixel) {
     return { m, phase, size: i ? 0.55 : 1 };
   });
   world.userData.surf = { waves, seaZ, cx, crashed: false };
+  buildSurfers(cx, seaZ);
+}
+// 岸线的弯曲：浪涌上来的前沿不是一条直线（着色器里用同样的公式）
+const shoreWobble = (x) => 0.9 * Math.sin(x * 0.045) + 0.5 * Math.sin(x * 0.13 + 1.7);
+
+// ---------------- Gerstner 海面（参考 pelican-bike 的 ocean.js） ----------------
+// 5 组波（方向 x、方向 z、陡度、波长 / 米）叠加；着色器由这个数组拼出来，CPU 上的 oceanHeight 用同一个公式，水花、浮在水上的东西能和画面对齐。
+// 坐标以海面开始的地方为原点（x 向东、z 向海里），数值小，float 精度够；随时间变化的相位在 JS 里用双精度取模后传进去，开很久也不会跳。
+const OCEAN_WAVES = [
+  [0.18, 1.0, 0.15, 21.0],
+  [-0.45, 1.0, 0.15, 12.5],
+  [0.75, 0.62, 0.13, 7.0],
+  [-0.9, 0.45, 0.1, 4.2],
+  [0.3, 1.0, 0.07, 2.6],
+];
+const OCEAN_Y = 0.06;   // 平静时的海面高度（沙滩是 0.01）
+// 各组波的振幅之和：海面整体抬高这么多（乘上当地的浪幅），浪谷就不会低于平静的水面、露出底下的地面
+const OCEAN_LIFT = OCEAN_WAVES.reduce((a, w) => a + w[2] * w[3] / (2 * Math.PI), 0);
+// 离岸越近浪越小（岸边 15%，往海里 45 米外是满的）；海面开始的地方往陆地那边就只剩一层薄水
+const oceanAmp = (zr) => (0.15 + 0.85 * smoothstep(-2, 45, zr)) * smoothstep(-12, -1, zr);
+const oceanGlsl = () => {
+  const N = OCEAN_WAVES.length;
+  return {
+    vert: /* glsl */ `
+uniform vec2 uOrigin;
+uniform float uPhase[${N}];
+uniform float uAmp;
+varying vec3 vWorld;
+varying vec3 vNormal;
+varying float vHeight;
+varying vec2 vRel;
+#include <fog_pars_vertex>
+vec3 gerstner(vec2 p, vec2 dir, float steep, float wl, float phase, float amp, inout vec3 tangent, inout vec3 binormal) {
+  float k = 6.28318 / wl;
+  vec2 d = normalize(dir);
+  float f = k * dot(d, p) + phase;
+  float st = steep * amp;
+  float a = st / k;
+  float sf = sin(f), cf = cos(f);
+  tangent += vec3(-d.x * d.x * st * sf, d.x * st * cf, -d.x * d.y * st * sf);
+  binormal += vec3(-d.x * d.y * st * sf, d.y * st * cf, -d.y * d.y * st * sf);
+  return vec3(d.x * a * cf, a * sf, d.y * a * cf);
+}
+void main() {
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vec2 p = wp.xz - uOrigin;
+  float amp = uAmp * (0.15 + 0.85 * smoothstep(-2.0, 45.0, p.y)) * smoothstep(-12.0, -1.0, p.y);
+  vec3 tangent = vec3(1.0, 0.0, 0.0), binormal = vec3(0.0, 0.0, 1.0), disp = vec3(0.0);
+  // 远处网格稀，短波采样不够会出现一圈圈规整的条纹：每组波按离镜头的距离淡出（波越短越早淡出）
+  float camD = length(wp.xz - cameraPosition.xz);
+  ${OCEAN_WAVES.map((w, i) => `disp += gerstner(p, vec2(${w[0].toFixed(3)}, ${w[1].toFixed(3)}), ${w[2].toFixed(3)}, ${w[3].toFixed(3)}, uPhase[${i}], amp * (1.0 - smoothstep(${(w[3] * 8).toFixed(1)}, ${(w[3] * 20).toFixed(1)}, camD)), tangent, binormal);`).join('\n  ')}
+  wp.xyz += disp;
+  wp.y += amp * ${OCEAN_LIFT.toFixed(4)};
+  vNormal = normalize(cross(binormal, tangent));
+  vWorld = wp.xyz;
+  vHeight = disp.y / max(uAmp, 0.05);
+  vRel = wp.xz - uOrigin;
+  vec4 mvPosition = viewMatrix * wp;
+  gl_Position = projectionMatrix * mvPosition;
+  #include <fog_vertex>
+}`,
+    frag: /* glsl */ `
+uniform float uTime;
+uniform vec3 uDeep, uShallow, uFoam, uHorizon, uZenith, uSunDir, uSunColor, uSand;
+uniform float uRun, uRun2, uRunMax;
+varying vec3 vWorld;
+varying vec3 vNormal;
+varying float vHeight;
+varying vec2 vRel;
+#include <fog_pars_fragment>
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+}
+void main() {
+  float zr = vRel.y;
+  // 浪涌上沙滩的前沿（和 JS 的 surfRun / shoreWobble 一样）：前沿往陆地那边不是水
+  float wob = 0.9 * sin(vWorld.x * 0.045) + 0.5 * sin(vWorld.x * 0.13 + 1.7);
+  float front = -uRun + wob;
+  float sd = zr - front;                       // 离浪的前沿多远（>0 在水里）
+  float fn = vnoise(vRel * 1.3 + uTime * 0.4) * 0.6 + vnoise(vRel * 4.0 - uTime * 0.3) * 0.4;
+  if (sd < 0.0) {
+    // 浪退下去以后的湿沙：比干沙暗一点、带一点反光，越靠近最远冲到的地方越淡
+    float wet = smoothstep(-uRunMax + wob - 0.5, front, zr);
+    if (wet < 0.02) discard;
+    gl_FragColor = vec4(uSand * 0.55, wet * 0.45);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    #include <fog_fragment>
+    return;
+  }
+  if (!gl_FrontFacing) {
+    // 从水下往上看水面：正上方一片亮（能透出天光，像《斯涅尔窗》），斜着看是反射回来的深蓝，水面上一道道晃动的亮纹
+    vec3 Vd = normalize(cameraPosition - vWorld);
+    float up = clamp(-Vd.y, 0.0, 1.0);
+    float ripple = vnoise(vRel * 0.8 + uTime * 0.6) * 0.5 + vnoise(vRel * 2.3 - uTime * 0.4) * 0.5;
+    vec3 under = mix(uDeep * 0.6, mix(uShallow * 1.4, vec3(0.85, 0.97, 1.0), 0.5), smoothstep(0.55, 0.95, up));
+    under += vec3(0.25, 0.35, 0.35) * smoothstep(0.55, 0.85, ripple) * up;
+    gl_FragColor = vec4(under, 0.92);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    #include <fog_fragment>
+    return;
+  }
+  vec3 N = normalize(vNormal);
+  float dist = length(vWorld - cameraPosition);
+  // 细节法线：两层滚动噪声的有限差分（近处才有，远处看不出来）
+  vec2 q = vRel * 0.55;
+  vec2 f1 = vec2(0.35, 0.6) * uTime, f2 = vec2(-0.5, 0.25) * uTime;
+  float e = 0.35;
+  float h0 = vnoise(q + f1) + 0.5 * vnoise(q * 2.7 + f2);
+  float hx = vnoise(q + vec2(e, 0.0) + f1) + 0.5 * vnoise((q + vec2(e, 0.0)) * 2.7 + f2);
+  float hz = vnoise(q + vec2(0.0, e) + f1) + 0.5 * vnoise((q + vec2(0.0, e)) * 2.7 + f2);
+  N = normalize(N + vec3(h0 - hx, 0.0, h0 - hz) * 0.55 * (1.0 - smoothstep(20.0, 160.0, dist)));
+  vec3 V = normalize(cameraPosition - vWorld);
+  float ndv = max(dot(N, V), 0.0);
+  float fres = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+  vec3 R = reflect(-V, N);
+  R.y = abs(R.y) + 0.02;
+  R = normalize(R);
+  vec3 refl = mix(uHorizon, uZenith, pow(clamp(R.y, 0.0, 1.0), 0.6));   // 天空：地平线（雾色）到天顶（天光色）
+  // 水色：岸边浅蓝绿，往海里变深；浪尖迎着太阳透一点光
+  vec3 water = mix(uShallow, uDeep, smoothstep(0.0, 60.0, zr));
+  float sss = pow(max(dot(V, -uSunDir), 0.0), 3.0) * clamp(vHeight + 0.3, 0.0, 1.5);
+  water += uShallow * uSunColor * sss * 0.35;
+  vec3 col = mix(water, refl, fres);
+  float rs = max(dot(R, uSunDir), 0.0);
+  col += uSunColor * (pow(rs, 420.0) * 12.0 + pow(rs, 60.0) * 0.5);   // 太阳的高光和一片亮斑
+  // 浪尖白沫 + 涌上沙滩的浪花边（前沿最白，后面一层薄薄的碎沫）+ 第二道浪的白线
+  float crest = smoothstep(0.62, 1.05, vHeight + fn * 0.35) * smoothstep(15.0, 60.0, zr);
+  float edge = (1.0 - smoothstep(0.0, 1.8 + fn, sd)) * (0.6 + 0.4 * fn);
+  float lace = smoothstep(0.45, 0.75, fn) * (1.0 - smoothstep(0.0, 7.0, sd)) * 0.6;
+  float line2 = (1.0 - smoothstep(0.0, 0.9, abs(zr - (-uRun2 + wob * 0.6)))) * smoothstep(0.3, 0.6, fn) * step(0.5, uRun2 + 2.0);
+  float foam = clamp(max(max(crest * 0.75, edge), max(lace, line2 * 0.8)), 0.0, 1.0);
+  col = mix(col, uFoam, foam * 0.85);
+  // 刚冲上沙滩的薄水能透出下面的沙子
+  float alpha = mix(0.55, 1.0, smoothstep(0.0, 6.0, sd + 1.5 * foam));
+  gl_FragColor = vec4(col, alpha);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+  #include <fog_fragment>
+}`,
+  };
+};
+// 网格：近处密、远处疏；跟着镜头的 x 平移（按 40 米对齐，各段的格距都能整除 40，挪动时顶点落在同样的位置，浪不会抖）
+function oceanGeometry() {
+  const xs = [];
+  for (let x = -3600; x <= 3600; x += Math.abs(x) < 60 ? 1.25 : Math.abs(x) < 260 ? 5 : 40) xs.push(x);
+  const zs = [];
+  for (let z = -14; z <= 3000; z += z < 60 ? 1 : z < 250 ? 2.5 : z < 700 ? 8 : 50) zs.push(z);
+  const pos = new Float32Array(xs.length * zs.length * 3);
+  let k = 0;
+  for (const z of zs) for (const x of xs) { pos[k++] = x; pos[k++] = 0; pos[k++] = z; }
+  const idx = [];
+  const nx = xs.length;
+  for (let j = 0; j < zs.length - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + nx; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  return g;
+}
+function buildOcean(cx, seaZ) {
+  const { vert, frag } = oceanGlsl();
+  const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+    uOrigin: { value: new THREE.Vector2(cx, seaZ) }, uPhase: { value: new Float32Array(OCEAN_WAVES.length) }, uAmp: { value: 1 }, uTime: { value: 0 },
+    uDeep: { value: new THREE.Color('#0b4a6e') }, uShallow: { value: new THREE.Color('#2bb5b0') }, uFoam: { value: new THREE.Color('#f4f9fb') },
+    uHorizon: { value: new THREE.Color() }, uZenith: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunColor: { value: new THREE.Color(1, 1, 1) },
+    uSand: { value: new THREE.Color('#d9c48f') }, uRun: { value: 0 }, uRun2: { value: 0 }, uRunMax: { value: SURF_RUN },
+  }]);
+  const mat = new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag, fog: true, transparent: true, side: THREE.DoubleSide, ...LAYER(2) });   // 两面都画：潜到水下时往上看能看到水面
+  const m = new THREE.Mesh(oceanGeometry(), mat);
+  m.position.set(cx, OCEAN_Y, seaZ);
+  m.frustumCulled = false;
+  m.userData.noCull = true;
+  m.renderOrder = 1;
+  world.add(m);
+  return { mesh: m, uniforms, x0: cx };
+}
+// 每帧：各组波随时间的相位（双精度算好、取模）、天空和太阳的颜色、涌浪的前沿；网格跟着镜头挪
+function updateOcean(o) {
+  const u = o.uniforms;
+  OCEAN_WAVES.forEach((w, i) => {
+    const k = (2 * Math.PI) / w[3], c = Math.sqrt(9.8 / k);
+    u.uPhase.value[i] = -((k * c * elapsed) % (2 * Math.PI));
+  });
+  u.uTime.value = elapsed % 1000;
+  u.uHorizon.value.copy(scene.fog.color);
+  u.uZenith.value.copy(hemi.color).multiplyScalar(0.85);
+  u.uSunDir.value.copy(SUN_DIR).normalize();
+  u.uSunColor.value.copy(sun.color).multiplyScalar(Math.min(1.5, sun.intensity / 4));
+  u.uRun.value = surfRun(elapsed, 0) * SURF_RUN;
+  u.uRun2.value = surfRun(elapsed, 0.42) * SURF_RUN * 0.55;
+  o.mesh.position.x = o.x0 + Math.round((camera.position.x - o.x0) / 40) * 40;
+}
+// CPU 上的海面高度（和着色器同一个公式，只算竖直方向）
+function oceanHeight(x, z) {
+  const o = world?.userData.surf?.ocean;
+  if (!o) return OCEAN_Y;
+  const px = x - o.uniforms.uOrigin.value.x, pz = z - o.uniforms.uOrigin.value.y;
+  const amp = oceanAmp(pz);
+  let y = 0;
+  OCEAN_WAVES.forEach((w, i) => {
+    const k = (2 * Math.PI) / w[3], l = Math.hypot(w[0], w[1]);
+    y += ((w[2] * amp) / k) * Math.sin(k * ((w[0] / l) * px + (w[1] / l) * pz) + o.uniforms.uPhase.value[i]);
+  });
+  return OCEAN_Y + amp * OCEAN_LIFT + y;
 }
 // 浪的位置：一个周期里先快速涌上来（35% 的时间），再慢慢退回去
 function surfRun(t, phase) {
@@ -11658,6 +12007,7 @@ function surfRun(t, phase) {
 function updateSurf(dt) {
   const s = world?.userData.surf;
   if (!s) return;
+  if (s.ocean) updateOcean(s.ocean);
   for (const w of s.waves) {
     const r = surfRun(elapsed, w.phase) * SURF_RUN * w.size;
     w.m.position.z = s.seaZ - r;
@@ -11684,9 +12034,988 @@ function seaDepthAt(x, z) {
 function inWaterAt(x, z) {
   const s = world?.userData.surf;
   if (!s) return false;
-  const front = s.seaZ - surfRun(elapsed, 0) * SURF_RUN;
+  const front = s.seaZ - surfRun(elapsed, 0) * SURF_RUN + (s.ocean ? shoreWobble(x) : 0);
   return z > front;
 }
+
+/* ===== js/game/sea.js ===== */
+// 大海里的东西：冲浪的动物、远处海面上的太阳光束、海底（沙地、礁石、海草、珊瑚）、游泳模式和水下的鱼群。
+// 游泳和海底只在经典风格的开放世界里有（像素风格的海是一层平的水方块）；冲浪和光束两种风格都有。
+'use strict';
+
+// ---------------- 海底 ----------------
+// 海底的深度：海面开始的地方往外 10 米内还是浅滩（0.5 米），再往外每米深 0.14 米，最深 10 米
+const seaZ0 = () => terrainShoreZ + 50;   // 经典风格开放世界里海面开始的地方（和 beach.js 的 seaStartZ 一样）
+function seabedY(z) {
+  const zr = z - seaZ0();
+  return -Math.min(10, 0.5 + Math.max(0, zr - 10) * 0.14);
+}
+// 画出来的海底（地面网格 25 米一格，格子之间是直线）：人、鱼、礁石都按这个高度放
+function seaFloorAt(z) {
+  const oz = WORLD_CENTER[1] - GROUND_HALF, r = (z - oz) / GROUND_CELL, i = Math.floor(r), f = r - i;
+  return lerp(seabedY(oz + i * GROUND_CELL), seabedY(oz + (i + 1) * GROUND_CELL), f);
+}
+const swimSeaOK = () => worldMode === 'open' && !!world?.userData.surf?.ocean;
+const SWIM_FROM = 14;     // 离海面开始的地方多远开始游泳（和 WADE_MAX 一样，再往里是蹚水）
+const SWIM_MAX = 160;     // 最远能游到多远
+const SWIM_SINK = 0.5;    // 浮在水面时脚在水下多深（身体趴平后背露出水面）
+
+// 海底的礁石、海草、珊瑚（建世界时调用，只有经典风格开放世界）
+function buildSeabed(cx) {
+  if (!swimSeaOK()) return;
+  const rng = seeded(4242), sz = seaZ0();
+  const place = (n, z0, z1, fn) => Array.from({ length: n }, () => {
+    const x = cx + (rng() - 0.5) * 1400, z = sz + z0 + rng() * (z1 - z0);
+    return fn(x, z, seaFloorAt(z));
+  });
+  const rocks = place(140, 12, 160, (x, z, y) => compose(v(x, y + 0.2, z), new THREE.Euler(rng() * 3, rng() * 6, rng() * 3), v(0.6 + rng() * 1.6, 0.4 + rng() * 0.9, 0.6 + rng() * 1.4)));
+  instancedIn(world, new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x6f7a78, roughness: 0.95, flatShading: true }), rocks, null, false);
+  const weeds = place(420, 16, 160, (x, z, y) => compose(v(x, y, z), new THREE.Euler((rng() - 0.5) * 0.4, rng() * 6, (rng() - 0.5) * 0.4), v(1, 0.8 + rng() * 2.2, 1)));
+  const weedCols = weeds.map(() => new THREE.Color().setHSL(0.28 + rng() * 0.1, 0.55, 0.25 + rng() * 0.15));
+  instancedIn(world, new THREE.ConeGeometry(0.12, 1.4, 5).translate(0, 0.7, 0), new THREE.MeshStandardMaterial({ roughness: 0.8 }), weeds, weedCols, false);
+  const corals = place(220, 20, 140, (x, z, y) => compose(v(x, y + 0.15, z), new THREE.Euler(0, rng() * 6, 0), v(0.3 + rng() * 0.6, 0.25 + rng() * 0.5, 0.3 + rng() * 0.6)));
+  const coralCols = corals.map(() => new THREE.Color().setHSL([0.97, 0.05, 0.08, 0.85, 0.55][Math.floor(rng() * 5)], 0.7, 0.55));
+  instancedIn(world, new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ roughness: 0.7 }), corals, coralCols, false);
+}
+
+// ---------------- 鱼群 ----------------
+const FISH_SCHOOLS = 8, FISH_PER = 28;
+let fish = null;
+// 鱼的模型（+z 朝前，长约 0.6 米）：侧扁的纺锤形身体、分叉的尾鳍、背鳍、两片胸鳍、眼睛；
+// 顶点色：背深、腹浅（乘上每条鱼的颜色），眼睛黑色。尾巴在着色器里按时间左右摆（每条鱼相位不同）。
+function fishGeometry() {
+  const L = 0.6;
+  const paint = (g, fn) => {
+    const pos = g.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) { fn(c, pos.getX(i), pos.getY(i), pos.getZ(i)); col.set([c.r, c.g, c.b], i * 3); }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return g.index ? g.toNonIndexed() : g;
+  };
+  // 身体：u = 0 尾柄、1 鼻尖；高度在前 40% 最大，往尾巴收得很细（尾柄），鼻子圆钝
+  const body = sculpt(new THREE.SphereGeometry(1, 20, 14), (p) => {
+    const u = (p.z + 1) / 2;
+    const prof = Math.pow(Math.sin(Math.PI * Math.min(1, 0.12 + u * 0.95)), 0.75) * (0.22 + 0.78 * smoothstep(0, 0.35, u));
+    p.set(p.x * 0.055 * prof, p.y * 0.13 * prof, (u - 0.5) * L);
+  });
+  const shade = (c, x, y) => { const k = y > 0 ? 1 - 0.45 * smoothstep(0, 0.11, y) : 1 + 0.35 * smoothstep(0, -0.1, y); c.setRGB(k, k, k); };
+  const shapeGeo = (pts, rot) => {
+    const sh = new THREE.Shape(); sh.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i += 2) sh.quadraticCurveTo(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+    const g = new THREE.ShapeGeometry(sh, 6);
+    rot(g);
+    return g;
+  };
+  // 尾鳍：两片分叉（在 y-z 平面里，形状的 x → 世界 -z）
+  const tail = shapeGeo([[0, 0], [0.08, 0.06], [0.16, 0.13], [0.11, 0.03], [0.12, 0], [0.11, -0.03], [0.16, -0.13], [0.08, -0.06], [0, 0]], (g) => g.rotateY(Math.PI / 2).translate(0, 0, -L * 0.47));
+  const dorsal = shapeGeo([[0, 0], [0.06, 0.09], [0.15, 0.04], [0.16, 0.0], [0.18, 0.0], [0.09, 0], [0, 0]], (g) => g.rotateY(Math.PI / 2).translate(0, 0.1, 0.08));
+  const pecs = [-1, 1].map((sd) => shapeGeo([[0, 0], [0.03, 0.04], [0.09, 0.02], [0.05, -0.01], [0, 0]], (g) => g.rotateX(-Math.PI / 2).rotateY(Math.PI / 2 + sd * 0.5).translate(sd * 0.05, -0.03, 0.08)));
+  const eyes = [-1, 1].flatMap((sd) => [
+    new THREE.SphereGeometry(0.022, 10, 8).translate(sd * 0.042, 0.03, 0.2),    // 白眼圈
+    new THREE.SphereGeometry(0.014, 8, 6).translate(sd * 0.052, 0.03, 0.205),   // 黑眼珠
+  ]);
+  const parts = [
+    paint(body, (c, x, y) => shade(c, x, y)),
+    paint(tail, (c) => c.setRGB(0.85, 0.85, 0.85)), paint(dorsal, (c) => c.setRGB(0.6, 0.6, 0.6)),
+    ...pecs.map((g) => paint(g, (c) => c.setRGB(0.95, 0.95, 0.95))),
+    paint(eyes[0], (c) => c.setRGB(3, 3, 3)), paint(eyes[1], (c) => c.setRGB(0, 0, 0)), paint(eyes[2], (c) => c.setRGB(3, 3, 3)), paint(eyes[3], (c) => c.setRGB(0, 0, 0)),
+  ];
+  for (const g of parts) { g.deleteAttribute('uv'); if (!g.attributes.normal) g.computeVertexNormals(); }
+  return mergeGeometries(parts);
+}
+function buildFish() {
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.25, side: THREE.DoubleSide });
+  // 摆尾：越靠尾巴摆得越大（每条鱼用实例编号错开相位）
+  const uTime = { value: 0 };
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uFishTime = uTime;
+    sh.vertexShader = 'uniform float uFishTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      float tailW = smoothstep(0.12, -0.32, transformed.z);
+      transformed.x += sin(uFishTime * 9.0 + float(gl_InstanceID) * 1.37 + transformed.z * 6.0) * 0.06 * tailW;`);
+  };
+  const m = new THREE.InstancedMesh(fishGeometry(), mat, FISH_SCHOOLS * FISH_PER);
+  m.frustumCulled = false;
+  m.visible = false;
+  m.userData.uTime = uTime;
+  // 每群一种鱼：金黄、天蓝、珊瑚红、黄绿、淡紫、银白、青绿、橙黄
+  const palette = [0xffb020, 0x4fc3f7, 0xff6f61, 0xc0ca33, 0xb39ddb, 0xdfe6ea, 0x26c6da, 0xff9800];
+  const schools = Array.from({ length: FISH_SCHOOLS }, (_, s) => ({ x: 0, z: 0, y: -3, heading: Math.random() * 6, turn: 0, size: 0.7 + Math.random() * 0.7, live: false,
+    offs: Array.from({ length: FISH_PER }, () => [rand(-2.5, 2.5), rand(-1, 1), rand(-2.5, 2.5), Math.random() * 6]) }));
+  schools.forEach((sc, s) => { for (let i = 0; i < FISH_PER; i++) m.setColorAt(s * FISH_PER + i, new THREE.Color(palette[s % palette.length]).offsetHSL(rand(-0.02, 0.02), 0, rand(-0.06, 0.06))); });
+  scene.add(m);
+  fish = { mesh: m, schools };
+}
+const fishM = new THREE.Matrix4(), fishQ = new THREE.Quaternion(), fishE = new THREE.Euler(), fishP = new THREE.Vector3(), fishS = new THREE.Vector3();
+function updateFish(dt, near) {
+  if (!fish) buildFish();
+  fish.mesh.visible = !!near;
+  if (!near) { for (const sc of fish.schools) sc.live = false; return; }
+  const sz = seaZ0();
+  let k = 0;
+  for (const sc of fish.schools) {
+    // 离人太远的鱼群换个地方：人周围 8～35 米、水面下、离海底一点距离
+    if (!sc.live || Math.hypot(sc.x - near.x, sc.z - near.z) > 45) {
+      const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 27;
+      sc.x = near.x + Math.cos(a) * r; sc.z = clamp(near.z + Math.sin(a) * r, sz + SWIM_FROM + 4, sz + SWIM_MAX + 30);
+      sc.live = true;
+    }
+    const floor = seaFloorAt(sc.z);
+    sc.y += ((floor + 1 + (oceanHeight(sc.x, sc.z) - 1.2 - floor - 1) * 0.5) - sc.y) * Math.min(1, dt);   // 在水面和海底中间
+    sc.turn += (rand(-1, 1) - sc.turn) * dt * 0.5;
+    sc.heading += sc.turn * dt * 0.8;
+    const sp = 1.6 * sc.size;
+    sc.x += Math.sin(sc.heading) * sp * dt; sc.z += Math.cos(sc.heading) * sp * dt;
+    if (sc.z < sz + SWIM_FROM) sc.heading = 0;   // 别游到浅滩上去
+    for (const o of sc.offs) {
+      const t = elapsed * 1.3 + o[3];
+      fishP.set(sc.x + o[0] + Math.sin(t) * 0.4, sc.y + o[1] + Math.sin(t * 0.7) * 0.2, sc.z + o[2] + Math.cos(t * 0.9) * 0.4);
+      fishE.set(0, sc.heading + Math.sin(elapsed * 8 + o[3]) * 0.15, 0);   // 摆尾：整条鱼左右轻轻扭
+      fishS.setScalar(sc.size * (0.8 + 0.4 * ((o[3] * 7) % 1)));
+      fish.mesh.setMatrixAt(k++, fishM.compose(fishP, fishQ.setFromEuler(fishE), fishS));
+    }
+  }
+  fish.mesh.instanceMatrix.needsUpdate = true;
+  fish.mesh.userData.uTime.value = elapsed % 1000;
+}
+
+// ---------------- 游泳（walk.js 每帧调用：在游泳区就接管竖直方向和动画，返回 true） ----------------
+function updateSwim(w, dt) {
+  const zr = w.z - seaZ0();
+  if (!swimSeaOK() || zr < SWIM_FROM) {
+    if (w.swimming) { w.swimming = false; w.pel.group.rotation.x = 0; showMessage('🏖️ 上岸了', 0.8); }
+    return false;
+  }
+  if (!w.swimming) {
+    w.swimming = true; w.air = false; w.vy = 0;
+    showMessage('🏊 游泳<small>方向键游 · 按住空格往下潜，看看海底的鱼群 · 松开浮上来</small>', 2.4);
+    track('game.feature.swim', null, '功能：游泳');
+  }
+  const water = oceanHeight(w.x, w.z), floor = seaFloorAt(w.z), S = w.group.scale.x;
+  const float = water - SWIM_SINK;
+  const dive = keys.has('Space');
+  if (dive && !w.diving) track('game.feature.dive', null, '功能：潜水');
+  w.diving = dive;
+  const target = dive ? floor + 0.5 : float;
+  const rate = dive ? 2.4 : 1.8;
+  w.y += clamp(target - w.y, -rate * dt, rate * dt * (w.y < float - 0.3 ? 1 : 3));
+  w.y = Math.max(w.y, floor + 0.3);
+  // 游泳的姿势：身体趴平（潜水时头朝下一点），手臂轮流划水，腿上下打水
+  const moving = Math.abs(w.speed) > 0.3;
+  w.phase += dt * (moving ? 6 : 2.5);
+  const pitch = dive && w.y > floor + 1 ? 1.75 : 1.35;
+  w.group.position.set(w.x, w.y + 0.3, w.z);
+  w.group.rotation.set(pitch, w.heading, 0, 'YXZ');
+  w.legs.forEach((l, i) => { l.rotation.x = Math.sin(w.phase * 1.8 + i * Math.PI) * 0.35; });
+  for (const wing of w.pel.wings) {
+    const a = w.phase + (wing.side > 0 ? 0 : Math.PI);
+    const sh = wing.shoulder;
+    // 自由泳：手在身体侧面画圈（往前伸、往下划、往后推、出水回到前面）
+    const elbow = v(sh.x * 1.25, sh.y + Math.cos(a) * 0.14, sh.z + Math.sin(a) * 0.16);
+    const hand = v(sh.x * 1.3, sh.y + Math.cos(a) * 0.3, sh.z + Math.sin(a) * 0.32);
+    setLimb(wing.upper, sh, elbow, 0.06, 0.055);
+    setLimb(wing.fore, elbow, hand, 0.045, 0.04);
+    wing.hand.position.copy(hand);
+  }
+  // 水花：在水面上游动时，手划水的地方溅起一点
+  if (moving && w.y > float - 0.4 && Math.random() < dt * 8) {
+    const [fx, fz] = forwardOf(w.heading);
+    emit(sparkPool, v(w.x + fx * 0.6 + rand(-0.3, 0.3), water + 0.05, w.z + fz * 0.6 + rand(-0.3, 0.3)), { vel: v(rand(-1, 1), rand(1.2, 2.4), rand(-1, 1)), life: 0.4, size0: 0.22, size1: 0.06, color: 0xeaf8ff, gravity: 9, alpha: 0.85 });
+  }
+  if (moving && Math.floor(w.phase / Math.PI) !== Math.floor((w.phase - dt * 6) / Math.PI) && w.y > float - 0.4 && sound.ready)
+    sound.burst({ duration: 0.25, type: 'bandpass', frequency: 900 + Math.random() * 500, gain: 0.1 });
+  return true;
+}
+
+// ---------------- 水下：镜头在海面以下时换成水下的颜色和雾 ----------------
+let underwater = false, aboveBg = null;
+function updateUnderwater(dt) {
+  const s = world?.userData.surf;
+  const cam = camera.position;
+  const under = !!(s?.ocean && cam.z > s.seaZ - 2 && cam.y < oceanHeight(cam.x, cam.z) - 0.05);
+  if (under && !underwater) aboveBg = scene.background;   // 记下水面上的背景（像素风格是纯色天空），出水时还原
+  if (under) {
+    const depth = clamp((oceanHeight(cam.x, cam.z) - cam.y) / 10, 0, 1);
+    scene.fog.color.setRGB(0.02, 0.22 - depth * 0.1, 0.3 - depth * 0.1);
+    scene.fog.density = 0.045 + depth * 0.03;
+    scene.background = scene.fog.color;
+    sky.visible = false;
+  } else if (underwater) {
+    scene.background = aboveBg;
+    sky.visible = !world?.userData.pixel;
+  }
+  if (under !== underwater) document.body.classList.toggle('underwater', under);
+  underwater = under;
+  updateFish(dt, under || walker?.swimming ? (walker ?? { x: cam.x, z: cam.z }) : null);
+}
+
+// ---------------- 冲浪的动物 ----------------
+const SURFER_COUNT = 6;
+function buildSurfers(cx, seaZ) {
+  const ids = CHARACTERS.map((c) => c.id).sort(() => Math.random() - 0.5).slice(0, SURFER_COUNT);
+  const boardCols = [0xff6f61, 0x26c6da, 0xffd54f, 0x7e57c2, 0x66bb6a, 0xff8a65];
+  world.userData.surfers = ids.map((id, i) => {
+    const g = new THREE.Group();
+    const board = new THREE.Group();
+    board.add(shaped(PG.sphere24, mat(boardCols[i % boardCols.length], { roughness: 0.4 }), v(0, 0.04, 0), v(0.3, 0.045, 1.15)));
+    board.add(shaped(PG.sphere16, mat(0xffffff, { roughness: 0.4 }), v(0, 0.075, 0), v(0.05, 0.012, 1.0)));   // 中间一道白条纹
+    g.add(board);
+    const rider = buildWalkerModel(id, CHAR_BY_ID[id]?.color ?? 0xffffff);
+    g.add(rider.group);
+    world.add(g);
+    const surfer = { id, g, board, rider, x: cx - 220 + i * 90 + rand(-20, 20), z: seaZ + 20 + rand(0, 30), heading: Math.PI, state: i % 2 ? 'ride' : 'paddle', t: Math.random() * 10, side: Math.random() < 0.5 ? -1 : 1 };
+    surfer.goal = seaZ + 45 + rand(0, 20);
+    return surfer;
+  });
+}
+function updateSurfers(dt) {
+  const list = world?.userData.surfers, s = world?.userData.surf;
+  if (!list || !s) return;
+  const near = Math.abs(camera.position.z - s.seaZ) < 900;
+  for (const f of list) {
+    f.g.visible = near;
+    if (!near) continue;
+    f.t += dt;
+    if (f.state === 'paddle') {
+      // 趴在板上往海里划，划到浪大的地方掉头冲回来
+      f.heading += wrapAngle(0 - f.heading) * Math.min(1, dt * 1.5);
+      f.z += 1.3 * dt;
+      if (f.z > f.goal) { f.state = 'ride'; f.side = Math.random() < 0.5 ? -1 : 1; }
+    } else {
+      // 站在板上顺着浪冲向岸边，斜着滑、左右摆
+      const want = Math.PI + f.side * 0.6 + Math.sin(f.t * 0.7) * 0.25;
+      f.heading += wrapAngle(want - f.heading) * Math.min(1, dt * 2);
+      f.x += Math.sin(f.heading) * 5.5 * dt; f.z += Math.cos(f.heading) * 5.5 * dt;
+      if (f.z < s.seaZ + 12) { f.state = 'paddle'; f.goal = s.seaZ + 40 + rand(0, 25); }
+    }
+    // 跟着海面起伏，板子顺着坡度前后倾、左右侧
+    const y = oceanHeight(f.x, f.z);
+    const [hx, hz] = forwardOf(f.heading);
+    const ahead = oceanHeight(f.x + hx * 1.2, f.z + hz * 1.2), side = oceanHeight(f.x + hz * 0.6, f.z - hx * 0.6);
+    f.g.position.set(f.x, y, f.z);
+    f.g.rotation.set(-Math.atan2(ahead - y, 1.2), f.heading, f.state === 'ride' ? f.side * -0.25 + Math.atan2(side - y, 0.6) : 0, 'YXZ');
+    const r = f.rider, S = r.group.scale.x;
+    if (f.state === 'ride') {
+      // 侧身站在板上，膝盖弯一点、双臂张开保持平衡
+      r.group.position.set(0, 0.08, 0);
+      r.group.rotation.set(0.12, Math.PI / 2 * f.side, 0, 'YXZ');
+      r.legs[0].rotation.x = 0.35; r.legs[1].rotation.x = -0.35;
+      r.legs.forEach((l) => { l.rotation.z = 0; });
+      for (const wing of r.pel.wings) {
+        const sh = wing.shoulder, sway = Math.sin(f.t * 2 + wing.side) * 0.05;
+        const elbow = v(sh.x + wing.side * 0.16, sh.y + 0.02 + sway, sh.z), hand = v(sh.x + wing.side * 0.33, sh.y + 0.06 - sway, sh.z + 0.02);
+        setLimb(wing.upper, sh, elbow, 0.06, 0.055); setLimb(wing.fore, elbow, hand, 0.045, 0.04); wing.hand.position.copy(hand);
+      }
+    } else {
+      // 趴在板上，两只手轮流划水
+      r.group.position.set(0, 0.12, -0.45 * S / 1.35);
+      r.group.rotation.set(1.45, 0, 0, 'YXZ');
+      r.legs.forEach((l) => { l.rotation.x = 0; });
+      for (const wing of r.pel.wings) {
+        const a = f.t * 3.2 + (wing.side > 0 ? 0 : Math.PI), sh = wing.shoulder;
+        const elbow = v(sh.x * 1.3, sh.y + Math.cos(a) * 0.12, sh.z + Math.sin(a) * 0.12), hand = v(sh.x * 1.4, sh.y + Math.cos(a) * 0.28, sh.z + Math.sin(a) * 0.26);
+        setLimb(wing.upper, sh, elbow, 0.06, 0.055); setLimb(wing.fore, elbow, hand, 0.045, 0.04); wing.hand.position.copy(hand);
+      }
+    }
+    r.pel.head.rotation.set(0, 0, 0);
+    // 冲浪时板尾溅起浪花
+    if (f.state === 'ride' && Math.random() < dt * 14) {
+      emit(sparkPool, v(f.x - hx * 1.0 + rand(-0.3, 0.3), y + 0.1, f.z - hz * 1.0), { vel: v(rand(-1.5, 1.5) - hx * 2, rand(1, 2.6), rand(-1.5, 1.5) - hz * 2), life: 0.6, size0: 0.35, size1: 0.1, color: 0xf4fbff, gravity: 8, alpha: 0.85 });
+    }
+  }
+}
+
+// ---------------- 远处海面上的太阳光束 ----------------
+// 从云缝里斜着照到海面上的几道光（耶稣光）：高高的半透明光带，叠加混合，慢慢明暗变化；跟着镜头的 x 走，始终在远处的海上
+function buildSunRays(seaZ) {
+  const tex = canvasTexture(128, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    for (let x = 0; x < w; x++) {
+      const across = Math.exp(-(((x / w) - 0.5) ** 2) / 0.07);   // 光束横截面：中间亮、两边很柔和地淡掉
+      const grd = g.createLinearGradient(0, 0, 0, h);
+      grd.addColorStop(0, `rgba(255,248,225,${0.0})`);
+      grd.addColorStop(0.15, `rgba(255,246,220,${0.9 * across})`);
+      grd.addColorStop(0.7, `rgba(255,240,210,${0.45 * across})`);
+      grd.addColorStop(1, 'rgba(255,240,210,0)');
+      g.fillStyle = grd; g.fillRect(x, 0, 1, h);
+    }
+  }, { height: 256 });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  const rays = [];
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).translate(0, -0.5, 0),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide, opacity: 0 }));
+    m.frustumCulled = false;
+    m.userData.noCull = true;
+    m.renderOrder = 3;
+    world.add(m);
+    rays.push({ m, dx: -550 + i * 190 + rand(-50, 50), dz: 1100 + rand(0, 500), w: 170 + rand(0, 200), h: 380 + rand(0, 160), tilt: 0.2 + rand(-0.05, 0.05), ph: Math.random() * 6, base: 0.07 + Math.random() * 0.06 });
+  }
+  world.userData.sunRays = { rays, seaZ };
+}
+function updateSunRays() {
+  const R = world?.userData.sunRays;
+  if (!R) return;
+  const day = clamp(sun.intensity / 4, 0, 1);
+  for (const r of R.rays) {
+    const top = 260 + r.h * 0.3;
+    r.m.position.set(camera.position.x + r.dx, top, R.seaZ + r.dz);
+    r.m.scale.set(r.w, top + 10, 1);
+    r.m.rotation.set(0, Math.atan2(camera.position.x - r.m.position.x, camera.position.z - r.m.position.z), r.tilt);   // 面向镜头，斜着照下来
+    r.m.material.opacity = day * r.base * (0.65 + 0.35 * Math.sin(elapsed * 0.25 + r.ph));
+    r.m.visible = !underwater;
+  }
+}
+
+// 每帧（loop.js 在天空混合之后调用）
+function updateSea(dt) {
+  updateSurfers(dt);
+  updateSunRays();
+  updateUnderwater(dt);
+}
+
+/* ===== js/game/quests.js ===== */
+// 彩蛋和隐藏剧情（自由驾驶的开放世界）：五张地图里站着 6 位「剧情 NPC」，平时只会闲聊；
+// 顺着对话问到点子上（每个人触发的问法不一样）才会说出自己的烦恼，请你帮忙做一件事，做完回去找他领奖励：
+// 隐藏款车身涂装、衣服（头饰）、打怪的装备。六件事全做完还有一个最终的隐藏奖励。
+// 进度存在 localStorage；收藏面板（I 键 / 顶部「🎒 收藏」）里看奖励、换装备、看任务进度。
+'use strict';
+
+const QUEST_SAVE = 'pelican-racing-quests-v1';
+const qs = Object.assign({ npc: {}, owned: [], outfit: null, weapon: null }, store.get(QUEST_SAVE, {}));
+const saveQuests = () => store.set(QUEST_SAVE, qs);
+const owns = (id) => qs.owned.includes(id);
+
+// ---------------- 奖励 ----------------
+const REWARDS = {
+  'outfit-chef': { kind: 'outfit', icon: '👨‍🍳', name: '蟹堡王厨师帽', desc: '海绵宝宝送的高高的白色厨师帽，下车走路、开车都戴着' },
+  'outfit-wizard': { kind: 'outfit', icon: '🧙', name: '星空魔法帽', desc: '猫头鹰送的紫色尖顶帽，上面缀着金色的星星' },
+  'outfit-crown': { kind: 'outfit', icon: '👑', name: '黄金王冠', desc: '集齐六个彩蛋的最终奖励：传说中的狂飙之王' },
+  'weapon-diamond': { kind: 'weapon', icon: '🗡️', name: '钻石剑', desc: '史蒂夫打造的钻石剑：拳击和飞踢的伤害 ×2，拿在右手里', mul: { punch: 2, kick: 2, spin: 1.3, blast: 1 } },
+  'weapon-dragon': { kind: 'weapon', icon: '🐉', name: '神龙拳套', desc: '熊猫阿宝的金色拳套：所有招式伤害 ×1.5，能量波变成金色的大火球', mul: { punch: 1.5, kick: 1.5, spin: 1.5, blast: 1.5 } },
+  'livery-fossil': { kind: 'livery', icon: '🦴', name: '化石涂装', desc: '恐龙送的隐藏款车身：砂岩底色上印着恐龙骨架' },
+  'livery-neon': { kind: 'livery', icon: '🌈', name: '霓虹涂装', desc: '机器人送的隐藏款车身：深色车身上发光的霓虹线条' },
+  'livery-gold': { kind: 'livery', icon: '🏆', name: '黄金涂装', desc: '集齐六个彩蛋的最终奖励：闪闪发光的纯金车身' },
+};
+function grant(id) {
+  if (owns(id)) return;
+  qs.owned.push(id);
+  const r = REWARDS[id];
+  if (r.kind === 'outfit') qs.outfit = id;
+  if (r.kind === 'weapon') qs.weapon = id;
+  saveQuests();
+  track('game.quest.reward', id, `彩蛋奖励：${r.name}`);
+  if (walker && r.kind !== 'livery') refreshWalkerGear();
+}
+
+// ---------------- 剧情 NPC 和对话 ----------------
+// 每个 NPC：角色、站在哪张地图、对话树（start 起，选项 go 到下一个节点；quest:true 的节点就是接任务）、任务、奖励。
+// 对话里只有一条路能问出剧情（就是「彩蛋」），其他回答都会被敷衍过去。
+const QUEST_NPCS = [
+  {
+    id: 'sponge', char: 'spongebob', region: 'seaside', where: 'beach', reward: 'outfit-chef',
+    talk: {
+      start: { t: '嗨嗨嗨！我是海绵宝宝！今天的阳光好灿烂，就像刚出锅的蟹堡！', o: [['你在海边干什么？', 'what'], ['蟹堡好吃吗？', 'burger'], ['再见', null]] },
+      burger: { t: '全海底最好吃的！不过秘方是绝对、绝对、绝对不能告诉别人的！', o: [['秘方……出什么事了吗？', 'secret'], ['好吧', 'start']] },
+      what: { t: '我在晒太阳呀，啦啦啦～', o: [['真悠闲', 'start']] },
+      secret: { t: '（压低声音）其实……蟹老板把装秘方的瓶子掉进海里了！就在离岸好远好远的海底，瓶子会发光……我又不会潜水！', o: [['我潜下去帮你找！', 'accept'], ['这我可帮不了', 'start']], quest: true },
+    },
+    task: { type: 'find', text: '潜到海底找回发光的秘方瓶', hint: '往海里游（离岸 60 米左右），按住空格潜到海底找发光的瓶子' },
+    doneLine: '秘方瓶！太好了！蟹老板不会扣我工资了！这顶厨师帽送给你，戴上它你就是荣誉厨师啦！',
+  },
+  {
+    id: 'steve', char: null, mob: 'steve', region: 'seaside', where: 'park', reward: 'weapon-diamond',
+    talk: {
+      start: { t: '欢迎来到我的世界乐园！我是史蒂夫，这里的方块都是我搬来的。', o: [['你会做什么？', 'craft'], ['乐园真大', 'start2'], ['再见', null]] },
+      start2: { t: '还不够大！我想让这里到处都是房子。', o: [['那我帮你盖房子！', 'build'], ['加油', 'start']] },
+      craft: { t: '砍树、挖矿、做工作台……要是有人帮我盖房子，我就能腾出手打造一把钻石剑。', o: [['我帮你盖！', 'build'], ['听起来好累', 'start']] },
+      build: { t: '真的吗？去工坊里拉下开关，用方块盖点东西——放够 20 块方块就行！', o: [['没问题！', 'accept'], ['我再想想', 'start']], quest: true },
+    },
+    task: { type: 'build', need: 20, text: '在建造模式里放 20 块方块', hint: '走进建造工坊，按 E 拉开关，用鼠标左键 / C 放方块' },
+    doneLine: '哇，盖得真棒！说好的，这把钻石剑是你的了——拳头和飞踢都会厉害一倍！',
+  },
+  {
+    id: 'dino', char: 'dino', region: 'canyon', where: 'track', reward: 'livery-fossil',
+    talk: {
+      start: { t: '吼——！啊，吓到你了吗？我是小恐龙。', o: [['你在找什么？', 'look'], ['一点也不吓人', 'proud'], ['再见', null]] },
+      proud: { t: '哼，我可是霸王龙！……虽然只是小小的。', o: [['你好像很着急？', 'look'], ['好吧霸王龙', 'start']] },
+      look: { t: '我……我的蛋不见了，一共五颗，滚得到处都是！', o: [['蛋长什么样？', 'eggs'], ['祝你好运', 'start']] },
+      eggs: { t: '白白的、带绿色斑点，在峡谷的石头堆里会发光。你愿意帮我找回来吗？', o: [['交给我吧！', 'accept'], ['下次吧', 'start']], quest: true },
+    },
+    task: { type: 'collect', need: 5, item: 'egg', text: '找回 5 颗恐龙蛋', hint: '恐龙蛋散落在小恐龙周围 30～110 米的峡谷里，发着绿光；走过去或开车经过都能捡起来' },
+    doneLine: '五颗都在！宝宝们！谢谢你！我用化石给你的车画了一套新衣服——去车库换上「化石涂装」吧！',
+  },
+  {
+    id: 'panda', char: 'panda', region: 'snow', where: 'track', reward: 'weapon-dragon',
+    talk: {
+      start: { t: '嗨～我是阿宝。你吃过包子吗？', o: [['你会功夫吗？', 'kungfu'], ['吃过', 'bun'], ['再见', null]] },
+      bun: { t: '雪山上的包子最好吃了……可是最近有怪物来偷包子。', o: [['什么怪物？', 'monster'], ['真可惜', 'start']] },
+      kungfu: { t: '当然！我是神龙大侠！……不过一个人打不过那么多怪物。', o: [['什么怪物？', 'monster'], ['加油大侠', 'start']] },
+      monster: { t: '僵尸、骷髅、苦力帕，还有那个瘦瘦高高的墨影人！帮我打败 5 个怪物，我就把神龙拳套给你！', o: [['看我的！', 'accept'], ['太危险了', 'start']], quest: true },
+    },
+    task: { type: 'defeat', need: 5, text: '打败 5 个敌对生物', hint: '下车走到旷野里，用 J / K / L / U 打败僵尸、骷髅、苦力帕或墨影人' },
+    doneLine: '你就是真正的神龙大侠！这副神龙拳套给你，所有招式都会更厉害，能量波还会变成金色的火球！',
+  },
+  {
+    id: 'robot', char: 'robot', region: 'night', where: 'track', reward: 'livery-neon',
+    talk: {
+      start: { t: '滴——嘟。系统启动。你好，人类车手。', o: [['你在做什么？', 'scan'], ['你好机器人', 'hi'], ['再见', null]] },
+      hi: { t: '问候已接收。电量：12%。', o: [['电量这么低？', 'power'], ['那你休息吧', 'start']] },
+      scan: { t: '正在扫描霓虹城的能量环。检测到 5 个能量环。电量不足，无法前往。', o: [['我开车帮你去收集能量！', 'race'], ['好的', 'start']] },
+      power: { t: '能量来源：赛道上的 5 个霓虹能量环。需要高速穿过才能充能。', o: [['我开车去充能！', 'race'], ['嗯……', 'start']] },
+      race: { t: '任务确认：开车依次穿过 5 个霓虹能量环，从穿过第一个开始，限时 75 秒。', o: [['出发！', 'accept'], ['取消', 'start']], quest: true },
+    },
+    task: { type: 'rings', need: 5, time: 75, text: '开车在 75 秒内穿过 5 个霓虹能量环', hint: '上车，沿着霓虹夜城的赛道开，依次穿过发光的圆环；穿过第一个开始计时' },
+    doneLine: '电量 100%！感谢你，人类。作为回报，我为你的车设计了「霓虹涂装」，去车库看看吧。滴——嘟。',
+  },
+  {
+    id: 'owl', char: 'owl', region: 'sunset', where: 'track', reward: 'outfit-wizard',
+    talk: {
+      start: { t: '咕——咕。年轻的车手，夕阳真美，不是吗？', o: [['你看起来很有学问', 'wise'], ['是啊', 'start'], ['再见', null]] },
+      wise: { t: '我知道很多秘密……但只告诉聪明的人。', o: [['考考我吧！', 'quiz'], ['我不太聪明', 'start']] },
+      quiz: { t: '回答我三个谜语，全对的话，这顶魔法帽就是你的。准备好了吗？', o: [['准备好了！', 'accept'], ['我再想想', 'start']], quest: true },
+    },
+    task: { type: 'quiz', text: '回答猫头鹰的三个谜语', hint: '回去找猫头鹰答题' },
+    quiz: [
+      ['第一题：这个游戏里，海边乐园的建造工坊是谁的世界？', ['我的世界', '海底世界', '恐龙世界'], 0],
+      ['第二题：在霓虹夜城，天上挂着的是什么？', ['太阳', '月亮和星星', '彩虹'], 1],
+      ['第三题：鹈鹕的嘴下面那个能装鱼的大口袋叫什么？', ['喉囊', '鼻孔', '尾巴'], 0],
+    ],
+    doneLine: '全部答对！咕咕！你果然是聪明的车手。这顶星空魔法帽送给你。',
+  },
+];
+const QNPC_BY_ID = Object.fromEntries(QUEST_NPCS.map((n) => [n.id, n]));
+const qstate = (id) => (qs.npc[id] ??= { state: 'none', progress: 0 });   // none → active → ready → done
+
+// ---------------- 建世界：把 NPC 和任务物品摆出来 ----------------
+let qnpcs = [];          // 场上的 NPC：{ def, x, z, y, group, model, ui, heading }
+let qitems = [];         // 场上的任务物品（恐龙蛋、秘方瓶）
+let qrings = [];         // 霓虹能量环
+let qtalk = null;        // 正在和谁说话：{ n, node, quizI }
+let qringRun = null;     // 能量环计时：{ next, t }
+function qspot(x, z, tries = 30) {
+  for (let k = 0; k < tries; k++) {
+    const a = k * 2.4, r = k * 1.5;
+    const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+    let blocked = false;
+    obstacles.query(px, pz, 3, (o) => { if (Math.hypot(o.x - px, o.z - pz) < o.r + 1.5) blocked = true; });
+    if (!blocked && roadClear(px, pz, 2) && !buildBlocksMob(px, pz)) return [px, pz];
+  }
+  return [x, z];
+}
+function buildQuestNPCs() {
+  clearQuestWorld();
+  if (worldMode !== 'open') return;
+  for (const def of QUEST_NPCS) {
+    const Tr = regionTracks[def.region];
+    if (!Tr) continue;
+    let x, z;
+    if (def.where === 'beach') {
+      const s = world.userData.surf;
+      x = (s?.cx ?? Tr.bounds.cx) + 40; z = (s?.seaZ ?? Tr.bounds.z1 + 110) - 26;
+    } else if (def.where === 'park' && park) {
+      x = park.x + park.fx * 15 + park.fz * 4; z = park.z + park.fz * 15 - park.fx * 4;
+    } else {
+      // 起点旁边、路边往外 14 米
+      const i = Math.floor(Tr.N * 0.03), side = 1;
+      x = Tr.px[i] + Tr.nx[i] * (Tr.B + 14) * side; z = Tr.pz[i] + Tr.nz[i] * (Tr.B + 14) * side;
+    }
+    [x, z] = qspot(x, z);
+    const group = new THREE.Group();
+    let model = null;
+    if (def.mob) {   // 史蒂夫用旷野生物的方块模型
+      const parts = MOB_TYPES[def.mob].build(group);
+      model = { mob: true, ...parts };
+    } else {
+      model = buildWalkerModel(def.char, CHAR_BY_ID[def.char]?.color ?? 0xffffff);
+      group.add(model.group);
+    }
+    // 头顶的「！」：有剧情可以接 / 「？」：任务完成了回来领奖
+    const top = new THREE.Box3().setFromObject(group).max.y;   // 标记浮在头顶上方一点
+    const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: questMarkTex, transparent: true, depthWrite: false }));
+    mark.scale.set(0.55, 0.55, 1);
+    mark.position.y = top + 0.5;
+    group.add(mark);
+    const y = groundMeshH(x, z);
+    group.position.set(x, y, z);
+    world.add(group);
+    addObstacle(x, z, 0.6);
+    qnpcs.push({ def, x, z, y, group, model, mark, markY: top + 0.5, heading: Math.random() * 6, t: Math.random() * 10 });
+  }
+  spawnQuestItems();
+}
+const questMarkTex = canvasTexture(128, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#f2c430'; g.beginPath(); g.arc(w / 2, h / 2, w * 0.42, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#7a5200'; g.lineWidth = 6; g.stroke();
+  g.fillStyle = '#3a2500'; g.font = `900 ${h * 0.62}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('!', w / 2, h / 2 + 4);
+}, { height: 128 });
+questMarkTex.userData.shared = true;
+const questDoneTex = canvasTexture(128, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#4fd36a'; g.beginPath(); g.arc(w / 2, h / 2, w * 0.42, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#1b6b2c'; g.lineWidth = 6; g.stroke();
+  g.fillStyle = '#ffffff'; g.font = `900 ${h * 0.62}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('?', w / 2, h / 2 + 4);
+}, { height: 128 });
+questDoneTex.userData.shared = true;
+function clearQuestWorld() {
+  for (const n of qnpcs) n.ui?.el.remove();
+  qnpcs = []; qitems = []; qrings = []; qringRun = null;
+  if (qtalk) closeQuestTalk();
+}
+
+// 任务物品：按任务状态摆出来（建世界时、接任务时）
+function spawnQuestItems() {
+  for (const it of qitems) it.mesh.removeFromParent();
+  for (const r of qrings) r.mesh.removeFromParent();
+  qitems = []; qrings = [];
+  for (const n of qnpcs) {
+    const st = qstate(n.def.id), task = n.def.task;
+    if (st.state !== 'active') continue;
+    if (task.type === 'collect') {
+      const rng = seeded(99 + n.def.id.length * 17);
+      const spots = [];
+      for (let k = 0; k < 400 && spots.length < task.need; k++) {
+        const a = rng() * Math.PI * 2, r = 30 + rng() * 80;
+        const x = n.x + Math.cos(a) * r, z = n.z + Math.sin(a) * r;
+        if (nearestRegion(x, z) !== n.def.region || !mobSpotOk(x, z) || buildBlocksMob(x, z)) continue;
+        spots.push([x, z]);
+      }
+      spots.slice(st.progress).forEach(([x, z]) => qitems.push(makeQuestItem('egg', x, groundMeshH(x, z), z, n)));
+    } else if (task.type === 'find') {
+      const s = world.userData.surf;
+      if (!s) continue;
+      const x = n.x + 25, z = s.seaZ + (s.ocean ? 62 : 6);
+      const y = s.ocean ? seaFloorAt(z) + 0.25 : 0.12;
+      qitems.push(makeQuestItem('bottle', x, y, z, n));
+    } else if (task.type === 'rings') {
+      const Tr = regionTracks[n.def.region];
+      const i0 = Math.floor(Tr.N * 0.08);
+      for (let k = 0; k < task.need; k++) {
+        const i = Tr.wrap(i0 + Math.round(k * (Tr.N * 0.17)));
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.35, 10, 40), new THREE.MeshBasicMaterial({ color: k === 0 ? 0xff2bd6 : 0x22e6ff, transparent: true, opacity: 0.85, fog: false }));
+        ring.position.set(Tr.px[i], roadHeightAt(Tr, i, Tr.px[i], Tr.pz[i]) + 4.6, Tr.pz[i]);
+        ring.rotation.y = Tr.heading[i];
+        world.add(ring);
+        qrings.push({ mesh: ring, x: Tr.px[i], z: Tr.pz[i], k, n });
+      }
+    }
+  }
+}
+function makeQuestItem(kind, x, y, z, n) {
+  const g = new THREE.Group();
+  if (kind === 'egg') {
+    const egg = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12).scale(1, 1.3, 1), new THREE.MeshStandardMaterial({ color: 0xf4f1e6, emissive: 0x2a8a3a, emissiveIntensity: 0.35, roughness: 0.6 }));
+    egg.position.y = 0.45;
+    for (let k = 0; k < 6; k++) {
+      const sp = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshStandardMaterial({ color: 0x4caf50 }));
+      const a = k * 1.1, b = (k % 3) * 0.5 - 0.4;
+      sp.position.set(Math.cos(a) * 0.32 * Math.cos(b), 0.45 + Math.sin(b) * 0.4, Math.sin(a) * 0.32 * Math.cos(b));
+      g.add(sp);
+    }
+    g.add(egg);
+  } else {
+    const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.5, 14), new THREE.MeshStandardMaterial({ color: 0x9ff2ff, emissive: 0x30c8ff, emissiveIntensity: 0.9, transparent: true, opacity: 0.85 }));
+    bottle.position.y = 0.25;
+    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.14, 10), new THREE.MeshStandardMaterial({ color: 0x8a5a2b }));
+    cork.position.y = 0.56;
+    const paper = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.02), new THREE.MeshStandardMaterial({ color: 0xf5e6b8 }));
+    paper.position.y = 0.25;
+    g.add(bottle, cork, paper);
+    g.rotation.z = 1.2;
+  }
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, color: kind === 'egg' ? 0x7dff8a : 0x7fe6ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  glow.scale.setScalar(2.4);
+  glow.position.y = 0.5;
+  g.add(glow);
+  g.position.set(x, y, z);
+  world.add(g);
+  return { kind, mesh: g, glow, x, y, z, n };
+}
+
+// ---------------- 对话 ----------------
+const nearQuestNpc = () => {
+  if (!walker) return null;
+  let best = null, bd = 3.2;
+  for (const n of qnpcs) { const d = Math.hypot(n.x - walker.x, n.z - walker.z); if (d < bd) { bd = d; best = n; } }
+  return best;
+};
+function openQuestTalk(n = nearQuestNpc()) {
+  if (!n) return false;
+  closeTalk();
+  const st = qstate(n.def.id);
+  qtalk = { n, node: 'start' };
+  if (st.state === 'active' && n.def.task.type === 'quiz') { qtalk.quizI = 0; qtalk.node = '#quiz'; }
+  else if (st.state === 'active') qtalk.node = '#progress';
+  else if (st.state === 'ready') qtalk.node = '#reward';
+  else if (st.state === 'done') qtalk.node = '#after';
+  track('game.quest.talk', n.def.id, `剧情 NPC 对话：${npcName(n)}`);
+  renderQuestTalk();
+  return true;
+}
+const npcName = (n) => (n.def.mob ? MOB_TYPES[n.def.mob].name : CHAR_BY_ID[n.def.char]?.name ?? n.def.id);
+function closeQuestTalk() {
+  qtalk = null;
+  $('talkPanel').style.display = 'none';
+}
+function questLine(n, node) {
+  const def = n.def, st = qstate(def.id), task = def.task;
+  if (node === '#progress') return { t: `${task.text}：${progressText(def)}。\n${task.hint}`, o: [['我这就去！', null]] };
+  if (node === '#reward') return { t: def.doneLine, o: [[`收下${REWARDS[def.reward].icon} ${REWARDS[def.reward].name}`, '#claim']] };
+  if (node === '#after') return { t: `谢谢你上次的帮忙！${REWARDS[def.reward].icon} ${REWARDS[def.reward].name}用得还顺手吗？`, o: [['挺好的！', null]] };
+  if (node === '#quiz') {
+    const q = def.quiz[qtalk.quizI];
+    return { t: q[0], o: q[1].map((a, i) => [a, `#ans${i}`]) };
+  }
+  if (node === '#wrong') return { t: '咕……不对哦。没关系，下次再来挑战吧。', o: [['再试一次', '#retry'], ['下次再来', null]] };
+  return def.talk[node];
+}
+function renderQuestTalk() {
+  const { n, node } = qtalk;
+  const line = questLine(n, node);
+  const st = qstate(n.def.id);
+  const tag = st.state === 'done' ? '✅ 已完成' : st.state === 'active' ? '📜 任务进行中' : st.state === 'ready' ? '🎁 可以领奖励' : '💬 闲聊';
+  $('talkPanel').innerHTML = `<div class="tp-head">💬 ${npcName(n)} <span>${tag}</span><button class="tp-x" data-q="-1">✕</button></div>
+    <div class="tp-line">${npcName(n)}：${line.t.replace(/\n/g, '<br>')}</div>
+    <div class="tp-opts">${line.o.map((o, i) => `<button data-q="${i}"><kbd>${i + 1}</kbd>${o[0]}</button>`).join('')}</div>`;
+  $('talkPanel').style.display = 'block';
+  say(n, line.t.split('\n')[0].slice(0, 40) + (line.t.length > 40 ? '……' : ''), 3);
+}
+function questChoose(i) {
+  if (!qtalk) return;
+  const { n } = qtalk, def = n.def, st = qstate(def.id);
+  const line = questLine(n, qtalk.node);
+  const opt = line.o[i];
+  if (!opt) return;
+  say(walker, opt[0], 1.6);
+  let go = opt[1];
+  if (go === 'accept') {   // 接任务（触发了彩蛋）
+    st.state = 'active'; st.progress = 0; st.base = def.task.type === 'defeat' ? mobKills : def.task.type === 'build' ? buildPlacedCount : 0;
+    saveQuests();
+    track('game.quest.start', def.id, `接到剧情任务：${npcName(n)}`);
+    sound.tone({ frequency: 520, slideTo: 880, duration: 0.3, type: 'triangle', gain: 0.15 });
+    showMessage(`📜 新任务：${def.task.text}<small>${def.task.hint}</small>`, 3.5);
+    spawnQuestItems();
+    if (def.task.type === 'quiz') { qtalk.quizI = 0; qtalk.node = '#quiz'; return renderQuestTalk(); }
+    return closeQuestTalk();
+  }
+  if (go === '#claim') {
+    st.state = 'done'; saveQuests();
+    grant(def.reward);
+    const r = REWARDS[def.reward];
+    sound.fanfare?.();
+    showMessage(`🎁 获得 ${r.icon} ${r.name}<small>${r.desc}${r.kind === 'livery' ? ' · 在菜单的「车身涂装」里换上' : ' · 按 I 打开收藏面板可以换装'}</small>`, 4);
+    track('game.quest.done', def.id, `完成剧情任务：${npcName(n)}`);
+    checkAllQuests();
+    return closeQuestTalk();
+  }
+  if (go?.startsWith('#ans')) {
+    const q = def.quiz[qtalk.quizI];
+    if (Number(go.slice(4)) !== q[2]) { qtalk.node = '#wrong'; return renderQuestTalk(); }
+    qtalk.quizI++;
+    if (qtalk.quizI >= def.quiz.length) { st.state = 'ready'; saveQuests(); qtalk.node = '#reward'; }
+    return renderQuestTalk();
+  }
+  if (go === '#retry') { qtalk.quizI = 0; qtalk.node = '#quiz'; return renderQuestTalk(); }
+  if (!go) return closeQuestTalk();
+  qtalk.node = go;
+  renderQuestTalk();
+}
+$('talkPanel').addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('button[data-q]');
+  if (!b || !qtalk) return;
+  e.preventDefault(); e.stopPropagation();
+  const i = Number(b.dataset.q);
+  if (i < 0) closeQuestTalk(); else questChoose(i);
+}, true);
+
+// 六个都完成：最终隐藏奖励
+function checkAllQuests() {
+  if (QUEST_NPCS.every((d) => qstate(d.id).state === 'done') && !owns('livery-gold')) qFinalT = 4.2;   // 等领奖的提示放完
+}
+let qFinalT = 0;
+function finalReward() {
+  grant('livery-gold'); grant('outfit-crown');
+  sound.fanfare?.();
+  showMessage('👑 隐藏剧情：狂飙之王<small>你帮助了动物狂飙世界里的每一位朋友！获得 🏆 黄金涂装 和 👑 黄金王冠</small>', 6);
+  track('game.quest.all', null, '集齐六个彩蛋');
+}
+
+// ---------------- 任务进度 ----------------
+let buildPlacedCount = 0;   // build.js 每放一块方块加一
+function progressText(def) {
+  const st = qstate(def.id), t = def.task;
+  if (t.type === 'find') return st.state === 'active' ? '还没找到' : '找到了';
+  if (t.type === 'quiz') return '回去答题';
+  if (t.type === 'rings') return qringRun ? `${qringRun.next}/${t.need}，剩 ${Math.max(0, t.time - qringRun.t).toFixed(0)} 秒` : `0/${t.need}`;
+  return `${st.progress}/${t.need}`;
+}
+function questReady(def, msg) {
+  const st = qstate(def.id);
+  if (st.state !== 'active') return;
+  st.state = 'ready'; saveQuests();
+  sound.tone({ frequency: 660, slideTo: 1320, duration: 0.4, type: 'triangle', gain: 0.16 });
+  showMessage(`✅ ${msg}<small>回去找${npcName(qnpcs.find((n) => n.def === def) ?? { def })}领奖励（头顶的绿色「?」）</small>`, 3.5);
+}
+function updateQuests(dt) {
+  const bag = $('bagBtn'), showBag = worldMode === 'open' && raceState !== 'menu' && !menuKind;
+  if ((bag.style.display === 'block') !== showBag) bag.style.display = showBag ? 'block' : 'none';
+  if (qFinalT > 0 && (qFinalT -= dt) <= 0) finalReward();
+  if (worldMode !== 'open' || !qnpcs.length) { $('questHud').style.display = 'none'; return; }
+  const P = walker ?? player;
+  // NPC：站着呼吸、转头看人，靠近时挥手；头顶的标记按任务状态显示
+  for (const n of qnpcs) {
+    n.t += dt;
+    const st = qstate(n.def.id).state, d = P ? Math.hypot(P.x - n.x, P.z - n.z) : 999;
+    n.mark.visible = st === 'none' || st === 'ready';
+    if (n.mark.visible) {
+      n.mark.material.map = st === 'ready' ? questDoneTex : questMarkTex;
+      n.mark.position.y = n.markY + Math.sin(n.t * 2.5) * 0.08;
+    }
+    if (d < 12 && P) n.heading += wrapAngle(Math.atan2(P.x - n.x, P.z - n.z) - n.heading) * Math.min(1, dt * 3);
+    n.group.rotation.y = n.heading;
+    const m = n.model;
+    if (!m.mob) {
+      m.group.position.y = Math.sin(n.t * 1.8) * 0.015;
+      const waving = d < 6 && !qtalk;
+      for (const wing of m.pel.wings) {
+        const sh = wing.shoulder, up = waving && wing.side > 0;
+        const elbow = up ? v(sh.x * 1.5, sh.y + 0.18, sh.z) : v(sh.x * 1.15, sh.y - 0.17, sh.z);
+        const hand = up ? v(sh.x * 1.4, sh.y + 0.42, sh.z + 0.05 + Math.sin(n.t * 9) * 0.06) : v(sh.x * 1.2, sh.y - 0.32, sh.z + 0.04);
+        setLimb(wing.upper, sh, elbow, 0.06, 0.055); setLimb(wing.fore, elbow, hand, 0.045, 0.04); wing.hand.position.copy(hand);
+      }
+    } else if (m.arms?.length) {
+      m.arms[1].rotation.x = d < 6 && !qtalk ? -2.6 + Math.sin(n.t * 9) * 0.3 : 0;
+    }
+    // 靠近时提示怎么聊天
+    if (d < 6 && !qtalk && P) {
+      const ui = uiOf(n), sp = screenPos(n.x, n.y + n.markY + 0.4, n.z);
+      if (sp) {
+        ui.el.style.display = 'block';
+        ui.el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -100%)`;
+        ui.hint.style.display = 'block';
+        ui.hint.innerHTML = walker ? `${st === 'ready' ? '🎁' : st === 'done' ? '✅' : '❗'} ${npcName(n)} · <kbd>E</kbd> 聊天` : `${npcName(n)} · 下车（<kbd>F</kbd>）和我聊聊`;
+        ui.bar.style.display = 'none';
+        ui.sayT -= dt;
+        ui.bubble.style.display = ui.sayT > 0 ? 'block' : 'none';
+      }
+    } else if (n.ui) {
+      n.ui.sayT -= dt;
+      const sp = n.ui.sayT > 0 && screenPos(n.x, n.y + n.markY + 0.4, n.z);
+      n.ui.el.style.display = sp ? 'block' : 'none';
+      if (sp) { n.ui.el.style.transform = `translate(${sp[0]}px, ${sp[1]}px) translate(-50%, -100%)`; n.ui.hint.style.display = 'none'; n.ui.bubble.style.display = 'block'; }
+    }
+  }
+  if (qtalk && (!walker || Math.hypot(qtalk.n.x - walker.x, qtalk.n.z - walker.z) > 6)) closeQuestTalk();
+  // 任务物品：转、上下浮、碰到就捡起来（人走过去，或者开车经过）
+  for (const it of [...qitems]) {
+    it.mesh.rotation.y += dt * 1.5;
+    it.mesh.position.y = it.y + Math.sin(elapsed * 2 + it.x) * 0.12;
+    it.glow.material.opacity = 0.55 + 0.35 * Math.sin(elapsed * 3 + it.z);
+    const px = walker ? walker.x : player.x, pz = walker ? walker.z : player.z, py = walker ? walker.y : player.y;
+    if (Math.hypot(px - it.x, pz - it.z) > (walker ? 1.8 : 3.2) || Math.abs(py - it.y) > 2.5) continue;
+    it.mesh.removeFromParent();
+    qitems.splice(qitems.indexOf(it), 1);
+    for (let k = 0; k < 14; k++) emit(sparkPool, v(it.x, it.y + 0.6, it.z), { vel: v(rand(-3, 3), rand(1, 4), rand(-3, 3)), life: 0.6, size0: 0.4, size1: 0.05, color: it.kind === 'egg' ? 0x9cff9c : 0x9fe8ff, gravity: 6, alpha: 1 });
+    sound.tone({ frequency: 880, slideTo: 1320, duration: 0.18, type: 'triangle', gain: 0.14 });
+    const def = it.n.def, st = qstate(def.id);
+    st.progress++; saveQuests();
+    if (it.kind === 'bottle') questReady(def, '找到了秘方瓶！');
+    else if (st.progress >= def.task.need) questReady(def, `${def.task.need} 颗恐龙蛋全找到了！`);
+    else showMessage(`🥚 找到恐龙蛋 ${st.progress}/${def.task.need}`, 1.2);
+  }
+  // 打怪、盖房子：按计数
+  for (const def of QUEST_NPCS) {
+    const st = qstate(def.id);
+    if (st.state !== 'active') continue;
+    if (def.task.type === 'defeat') {
+      const p = Math.min(def.task.need, mobKills - (st.base ?? 0));
+      if (p !== st.progress) { st.progress = p; saveQuests(); if (p >= def.task.need) questReady(def, `打败了 ${def.task.need} 个怪物！`); }
+    } else if (def.task.type === 'build') {
+      const p = Math.min(def.task.need, buildPlacedCount - (st.base ?? 0));
+      if (p !== st.progress) { st.progress = p; saveQuests(); if (p >= def.task.need) questReady(def, `放了 ${def.task.need} 块方块！`); }
+    }
+  }
+  // 霓虹能量环：开车依次穿过，从第一个开始计时
+  if (qrings.length) {
+    const def = qrings[0].n.def;
+    if (qringRun) {
+      qringRun.t += dt;
+      if (qringRun.t > def.task.time) { qringRun = null; showMessage('⏱ 超时了！<small>能量环重置了，再从第一个开始</small>', 2); sound.burst({ duration: 0.4, type: 'lowpass', frequency: 300, gain: 0.3 }); }
+    }
+    const next = qringRun?.next ?? 0;
+    qrings.forEach((r) => {
+      r.mesh.rotation.z += dt * (r.k === next ? 1.5 : 0.3);
+      r.mesh.material.color.setHex(r.k < next ? 0x334455 : r.k === next ? 0xff2bd6 : 0x22e6ff);
+      r.mesh.material.opacity = r.k < next ? 0.25 : 0.9;
+    });
+    const r = qrings[next];
+    if (r && !walker && player && Math.hypot(player.x - r.x, player.z - r.z) < 5.5) {
+      qringRun ??= { next: 0, t: 0 };
+      qringRun.next++;
+      sound.tone({ frequency: 600 + next * 120, slideTo: 1000 + next * 160, duration: 0.25, type: 'square', gain: 0.12 });
+      for (let k = 0; k < 20; k++) emit(sparkPool, r.mesh.position.clone(), { vel: v(rand(-6, 6), rand(-3, 6), rand(-6, 6)), life: 0.6, size0: 0.6, size1: 0.05, color: 0xff6af0, gravity: 4, alpha: 1 });
+      if (qringRun.next >= def.task.need) {
+        qstate(def.id).progress = def.task.need;
+        qringRun = null;
+        for (const x of qrings) x.mesh.removeFromParent();
+        qrings = [];
+        questReady(def, `5 个能量环全部穿过！`);
+      } else showMessage(`🌈 能量环 ${qringRun.next}/${def.task.need}`, 1);
+    }
+  }
+  // 屏幕右上：进行中的任务
+  const act = QUEST_NPCS.filter((d) => ['active', 'ready'].includes(qstate(d.id).state));
+  const hud = $('questHud');
+  hud.style.display = act.length ? 'block' : 'none';
+  if (act.length) {
+    const html = act.map((d) => `<div>${qstate(d.id).state === 'ready' ? '🎁' : '📜'} ${d.task.text}<small>${qstate(d.id).state === 'ready' ? `完成！回去找${d.mob ? MOB_TYPES[d.mob].name : CHAR_BY_ID[d.char].name}` : progressText(d)}</small></div>`).join('');
+    if (hud._html !== html) { hud.innerHTML = html; hud._html = html; }
+  }
+}
+
+// 小地图 / 全景地图上的标记：有剧情的 NPC 黄色「!」、可以领奖励的绿色「?」、能量环（下一个）粉色圈
+// 恐龙蛋和秘方瓶不标（要自己找）
+function drawQuestMarkers(g, toXY, big) {
+  if (worldMode !== 'open') return;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const n of qnpcs) {
+    const st = qstate(n.def.id).state;
+    if (st !== 'none' && st !== 'ready') continue;
+    const [x, y] = toXY(n.x, n.z);
+    g.fillStyle = st === 'ready' ? '#4fd36a' : '#f2c430';
+    g.beginPath(); g.arc(x, y, 5.5 * big, 0, Math.PI * 2); g.fill();
+    g.fillStyle = st === 'ready' ? '#fff' : '#3a2500';
+    g.font = `900 ${9 * big}px Arial`;
+    g.fillText(st === 'ready' ? '?' : '!', x, y + 0.5);
+  }
+  const r = qrings[qringRun?.next ?? 0];
+  if (r) {
+    const [x, y] = toXY(r.x, r.z);
+    g.strokeStyle = '#ff2bd6'; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, 5 * big, 0, Math.PI * 2); g.stroke();
+  }
+}
+
+// ---------------- 装备：衣服（头饰）和武器 ----------------
+// 头饰挂在头上（按头部的包围盒找到头顶），开车和下车走路都戴
+function wearOutfit(pel, outfit = qs.outfit) {
+  if (!outfit || !pel?.head) return;
+  pel.head.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  const inv = new THREE.Matrix4().copy(pel.head.matrixWorld).invert();
+  pel.head.traverse((o) => {
+    if (!o.isMesh || o === pel.pouch) return;
+    if (pel.bill && (o === pel.bill || o.parent === pel.bill)) return;
+    const b = new THREE.Box3().setFromObject(o).applyMatrix4(inv);
+    box.union(b);
+  });
+  if (box.isEmpty()) return;
+  const top = box.max.y, w = Math.max(0.12, (box.max.x - box.min.x) * 0.5), cz = (box.min.z + box.max.z) / 2;
+  const hat = new THREE.Group();
+  if (outfit === 'outfit-chef') {
+    const white = mat(0xffffff, { roughness: 0.8 });
+    hat.add(shaped(PG.sphere24, white, v(0, 0.06, 0), v(w * 0.85, 0.06, w * 0.85)));
+    hat.add(new THREE.Mesh(new THREE.CylinderGeometry(w * 0.7, w * 0.62, w * 0.9, 20), white).translateY(w * 0.45));
+    for (let k = 0; k < 5; k++) hat.add(shaped(PG.sphere16, white, v(Math.cos(k * 1.26) * w * 0.4, w * 0.95, Math.sin(k * 1.26) * w * 0.4), w * 0.42));
+  } else if (outfit === 'outfit-wizard') {
+    const purple = mat(0x5b3aa8, { roughness: 0.7 }), gold = mat(0xf2c430, { roughness: 0.3, metalness: 0.6 });
+    hat.add(new THREE.Mesh(new THREE.CylinderGeometry(w * 1.25, w * 1.25, 0.02, 24), purple));
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(w * 0.75, w * 2.4, 20), purple);
+    cone.position.y = w * 1.2; cone.rotation.z = 0.15;
+    hat.add(cone);
+    for (let k = 0; k < 4; k++) hat.add(shaped(PG.sphere16, gold, v(Math.cos(k * 1.7) * w * 0.55, w * (0.4 + k * 0.35), Math.sin(k * 1.7) * w * 0.55), w * 0.09));
+  } else if (outfit === 'outfit-crown') {
+    const gold = new THREE.MeshPhysicalMaterial({ color: 0xffc83a, metalness: 1, roughness: 0.22, clearcoat: 1 });
+    hat.add(new THREE.Mesh(new THREE.CylinderGeometry(w * 0.75, w * 0.8, w * 0.35, 24, 1, true), gold).translateY(w * 0.17));
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3;
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(w * 0.16, w * 0.4, 8), gold);
+      spike.position.set(Math.cos(a) * w * 0.74, w * 0.52, Math.sin(a) * w * 0.74);
+      hat.add(spike);
+      hat.add(shaped(PG.sphere16, mat([0xe53935, 0x1e88e5, 0x43a047][k % 3], { roughness: 0.1 }), v(Math.cos(a) * w * 0.78, w * 0.17, Math.sin(a) * w * 0.78), w * 0.08));
+    }
+  }
+  if (pixelActive) voxelizeGroup(hat, 0.025);
+  hat.position.set(0, top - 0.015, cz);
+  hat.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  pel.head.add(hat);
+  pel.hat = hat;
+}
+// 武器：钻石剑拿在右手；神龙拳套把手套换成金色
+const SWORD_MATS = { blade: new THREE.MeshPhysicalMaterial({ color: 0x6ff0ff, roughness: 0.15, metalness: 0.2, clearcoat: 1, emissive: 0x0a5a6a, emissiveIntensity: 0.35 }), hilt: mat(0x6b4423), guard: mat(0x2f9fbf, { metalness: 0.6, roughness: 0.3 }) };
+const GOLD_GLOVE = new THREE.MeshPhysicalMaterial({ color: 0xffc83a, metalness: 0.9, roughness: 0.25, emissive: 0x6a4400, emissiveIntensity: 0.4 });
+for (const m of [...Object.values(SWORD_MATS), GOLD_GLOVE]) m.userData.shared = true;
+function equipWalkerGear(w) {
+  if (!w) return;
+  if (w.sword) { w.sword.removeFromParent(); w.sword = null; }
+  for (const wing of w.pel.wings) { wing.hand.userData.origMat ??= wing.hand.material; wing.hand.material = qs.weapon === 'weapon-dragon' ? GOLD_GLOVE : wing.hand.userData.origMat; }
+  if (qs.weapon === 'weapon-diamond') {
+    const s = new THREE.Group();
+    s.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.62, 0.012), SWORD_MATS.blade).translateY(0.42));
+    s.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.04, 0.04), SWORD_MATS.guard).translateY(0.1));
+    s.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.16, 0.035), SWORD_MATS.hilt));
+    w.pel.group.add(s);
+    w.sword = s;
+  }
+}
+function refreshWalkerGear() {
+  if (!walker) return;
+  if (walker.pel.hat) { walker.pel.hat.removeFromParent(); walker.pel.hat = null; }
+  wearOutfit(walker.pel);
+  equipWalkerGear(walker);
+}
+// 每帧：剑跟着右手（从前臂方向往外伸）
+const swordUp = new THREE.Vector3(0, 1, 0), swordDir = new THREE.Vector3();
+function updateWalkerGear(w) {
+  if (!w?.sword) return;
+  const wing = w.pel.wings.find((x) => x.side < 0) ?? w.pel.wings[0];
+  w.sword.position.copy(wing.hand.position);
+  swordDir.copy(wing.hand.position).sub(wing.fore.position).normalize();
+  w.sword.quaternion.setFromUnitVectors(swordUp, swordDir);
+}
+// 招式伤害倍率（interact.js 用）
+const weaponMul = (kind) => REWARDS[qs.weapon]?.mul?.[kind] ?? 1;
+
+// ---------------- 收藏面板（I 键） ----------------
+function toggleCollection(show = $('collection').style.display !== 'block') {
+  const el = $('collection');
+  if (!show) { el.style.display = 'none'; return; }
+  const items = Object.entries(REWARDS);
+  const card = ([id, r]) => {
+    const got = owns(id), on = qs.outfit === id || qs.weapon === id || settings.livery === id;
+    const btn = !got ? '<span class="lock">🔒 未获得</span>' : r.kind === 'livery' ? `<button data-col="${id}">${on ? '✓ 使用中' : '换上（下一局生效）'}</button>` : `<button data-col="${id}">${on ? '✓ 装备中（点击卸下）' : '装备'}</button>`;
+    return `<div class="col-item ${got ? '' : 'locked'} ${on ? 'on' : ''}"><div class="ci-icon">${got ? r.icon : '❔'}</div><div><b>${got ? r.name : '？？？'}</b><small>${got ? r.desc : '和地图里的 NPC 聊聊，也许能发现隐藏剧情……'}</small>${btn}</div></div>`;
+  };
+  const kinds = [['outfit', '👒 衣服'], ['weapon', '⚔️ 装备'], ['livery', '🎨 隐藏涂装']];
+  const quests = QUEST_NPCS.map((d) => {
+    const st = qstate(d.id).state;
+    const name = d.mob ? MOB_TYPES[d.mob].name : CHAR_BY_ID[d.char].name;
+    const where = TRACK_BY_ID[d.region]?.name ?? '';
+    return `<li class="${st}">${st === 'done' ? '✅' : st === 'none' ? '❔' : '📜'} ${st === 'none' ? `${where}的某位朋友……` : `${name}（${where}）：${d.task.text}${st === 'active' ? ` · ${progressText(d)}` : st === 'ready' ? ' · 完成，回去领奖' : ''}`}</li>`;
+  }).join('');
+  const nDone = QUEST_NPCS.filter((d) => qstate(d.id).state === 'done').length;
+  el.innerHTML = `<div class="col-head">🎒 收藏 <span>彩蛋 ${nDone}/${QUEST_NPCS.length}</span><button data-col="close">✕</button></div>
+    ${kinds.map(([k, label]) => `<h4>${label}</h4><div class="col-grid">${items.filter(([, r]) => r.kind === k).map(card).join('')}</div>`).join('')}
+    <h4>📜 剧情</h4><ul class="col-quests">${quests}</ul>
+    <p class="col-tip">提示：自由驾驶时，五张地图里藏着 6 位有故事的朋友（头顶有黄色「!」）。下车（F）走过去按 E 聊天，问对了问题才会说出他们的烦恼。</p>`;
+  el.style.display = 'block';
+}
+$('collection').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-col]');
+  if (!b) return;
+  const id = b.dataset.col;
+  if (id === 'close') return toggleCollection(false);
+  const r = REWARDS[id];
+  if (!r || !owns(id)) return;
+  if (r.kind === 'outfit') qs.outfit = qs.outfit === id ? null : id;
+  else if (r.kind === 'weapon') qs.weapon = qs.weapon === id ? null : id;
+  else { settings.livery = settings.livery === id ? 'stock' : id; saveSettings(); }
+  saveQuests();
+  refreshWalkerGear();
+  toggleCollection(true);
+});
+$('bagBtn').onclick = () => toggleCollection();
 
 /* ===== js/ui/input.js ===== */
 // 键盘和触屏按键
@@ -11696,7 +13025,7 @@ function inWaterAt(x, z) {
 // 输入：键盘 + 触屏按键
 // =====================================================================
 const keys = new Set();
-const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyF', 'KeyG', 'ShiftLeft', 'ShiftRight', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'];
+const HANDLED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyT', 'KeyR', 'KeyC', 'KeyP', 'KeyM', 'KeyB', 'KeyN', 'KeyV', 'Tab', 'KeyX', 'Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyF', 'KeyG', 'ShiftLeft', 'ShiftRight', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0', 'KeyI'];
 const menu = $('menu');
 const dialog = menu.querySelector('.dialog');
 let menuKind = null;
@@ -11717,6 +13046,8 @@ function press(code) {
   const live = raceState === 'racing' || raceState === 'countdown' || raceState === 'done';
   if (worldMapOpen && (code === 'Tab' || code === 'Escape')) return toggleWorldMap(false);
   if (code === 'Escape' && talk) return closeTalk();   // 先关聊天框
+  if (code === 'Escape' && qtalk) return closeQuestTalk();
+  if (code === 'Escape' && $('collection').style.display === 'block') return toggleCollection(false);
   if (code === 'Escape') {
     if (menuKind === 'pause') return resume();
     if (live && !menuKind) return openPauseMenu();
@@ -11726,6 +13057,7 @@ function press(code) {
   if (code === 'KeyB') return toggleMusic();
   if (code === 'KeyN') return nextSong();
   if (code === 'KeyV') return toggleMirror();
+  if (code === 'KeyI') return toggleCollection();   // 收藏面板（quests.js）
   if (!live || menuKind) return;
   if (code === 'Tab') return toggleWorldMap(true);
   if (code === 'KeyP') return togglePause();
@@ -11752,11 +13084,12 @@ function press(code) {
     if (code === 'KeyT') return toggleView();
     if (code === 'KeyG') return summonCar();
     if (code === 'KeyQ') return greetMob();
-    if (code === 'KeyE') return nearLever() ? toggleBuildMode() : toggleTalk();   // 工坊开关旁：拉开关
+    if (code === 'KeyE') return qtalk ? closeQuestTalk() : nearQuestNpc() ? openQuestTalk() : nearLever() ? toggleBuildMode() : toggleTalk();   // 剧情 NPC 优先；工坊开关旁：拉开关
     if (buildOn && code === 'KeyC') return buildPlace();
     if (buildOn && code === 'KeyX') return buildBreak();
     const atk = { KeyJ: 'punch', KeyK: 'kick', KeyL: 'spin', KeyU: 'blast' }[code];
     if (atk) return walkAttack(atk);
+    if (code.startsWith('Digit') && qtalk) return questChoose((Number(code.slice(5)) + 9) % 10);
     if (code.startsWith('Digit') && talk) return talkChoose((Number(code.slice(5)) + 9) % 10);   // 1～9、0 选第 1～10 句
     if (code.startsWith('Digit') && buildOn) return selectBuildSlot(Number(code.slice(5)) - 1);   // 建造模式：选方块
     return;
@@ -11993,14 +13326,14 @@ function openMainMenu() {
     `<button data-${key}="${val}" class="${String(settings[key]) === String(val) ? 'sel' : ''}">${label}</button>`).join('')}</span>`;
 
   showDialog('main', `
-    <h2>🏁 动物狂飙世界</h2>
+    <h2>🏁 动物狂飙世界 <small style="font-size:13px;font-weight:600;opacity:0.6">v${GAME_VERSION}</small></h2>
     <p class="lead">选一位车手，和 10 位对手（鹈鹕、海绵宝宝、小黄人、蟹老板、功夫熊猫……每场随机）同场竞技，率先跑完全部圈数就是冠军！</p>
     <h3>${isFree() ? '选择出发地（自由驾驶时四张地图由公路连成一片）' : '选择赛道'}</h3><div class="grid tracks">${trackCards}</div>
     <h3>选择车手</h3><div style="margin-bottom:6px"><span class="seg wrap chars">${CHARACTERS.map((ch) => `<button data-character="${ch.id}" class="${settings.character === ch.id ? 'sel' : ''}">${ch.icon} ${ch.name}</button>`).join('')}</span></div>
     <h3>选择赛车</h3><div class="grid cars">${carCards}</div>
     <h3>车身颜色</h3><div class="swatches">${swatches}</div>
     <h3>车身涂装</h3>
-    <div style="margin-bottom:8px"><span class="seg wrap">${LIVERIES.map(([id, label]) => `<button data-livery="${id}" class="${(settings.livery ?? 'stock') === id ? 'sel' : ''}">${label}</button>`).join('')}</span></div>
+    <div style="margin-bottom:8px"><span class="seg wrap">${[...LIVERIES, ...HIDDEN_LIVERIES.filter(([id]) => owns(id))].map(([id, label]) => `<button data-livery="${id}" class="${(settings.livery ?? 'stock') === id ? 'sel' : ''}">${label}</button>`).join('')}</span></div>
     <div class="swatches" style="align-items:center">副色 ${ACCENTS.map((col, i) => `<button class="swatch ${settings.accent === col ? 'sel' : ''}" data-accent="${i}" title="${col === null ? '自动（与车身对比）' : ''}" style="background:${col === null ? 'linear-gradient(135deg,#f4f4f4 50%,#111 50%)' : hexCss(col)}"></button>`).join('')}</div>
     <h3>比赛设置</h3>
     <div style="margin-bottom:4px">画面风格 ${seg('style', [['classic', '🎨 经典'], ['pixel', '🧱 像素方块']])}</div>
@@ -12293,7 +13626,9 @@ function updateCamera(dt) {
   }
   // 旷野有起伏：镜头不钻进山坡里
   if (worldMode === 'open' && mode !== 'first') {
-    const gh = groundMeshH(camera.position.x, camera.position.z) + 1.2;
+    const s = world?.userData.surf;
+    const overSea = s?.ocean && camera.position.z > s.seaZ + 2;   // 海上：镜头可以跟着潜到水下，只是别钻进海底
+    const gh = overSea ? seaFloorAt(camera.position.z) + 0.4 : groundMeshH(camera.position.x, camera.position.z) + 1.2;
     if (camera.position.y < gh) camera.position.y = gh;
   }
   lastCarPos.copy(p);
@@ -12363,6 +13698,7 @@ function drawMarkers(g, toXY, big = 1) {
     g.textBaseline = 'middle';
     g.fillText('⛏', x, y);
   }
+  drawQuestMarkers(g, toXY, big);   // 彩蛋剧情的 NPC、任务物品（quests.js）
   if (walker) {   // 下车走路：人是一个白色小圆点（车还是原来的标记）
     const [x, y] = toXY(walker.x, walker.z);
     g.fillStyle = '#ffffff';
@@ -12958,6 +14294,8 @@ function update(dt) {
   updateParticles(dt);
   updateWalk(dt);
   updateInteract(dt);
+  updateQuests(dt);   // 彩蛋剧情（quests.js）
+  updateWalkerGear(walker);
   updateBuild(dt);
   updateBeach(dt);
   updateCamera(dt);
@@ -12966,6 +14304,7 @@ function update(dt) {
   if (raceState !== 'menu') drawMinimap();
   updateCrowd(elapsed);
   if (worldMode === 'open' && player) applyBlendedTheme(focusPos().x, focusPos().z);
+  updateSea(dt);   // 冲浪、太阳光束、水下（sea.js）：要在天空混合之后，水下会改雾和背景
   updateSnow(dt);
   if (world?.userData.foam) world.userData.foam.material.opacity = 0.45 + Math.sin(elapsed * 1.5) * 0.2;
   updateSurf(dt);   // 海浪（beach.js）
